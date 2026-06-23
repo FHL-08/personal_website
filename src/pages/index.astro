@@ -1,0 +1,219 @@
+---
+// index.astro — M1 cockpit scene + M2 constellation star map.
+import Base from "../layouts/Base.astro";
+import { profile, constellations, missionLog } from "../data/content";
+import { renderStarmap, recordsPayload } from "../lib/starmapRender";
+
+const pip = (level: number) => Array.from({ length: 5 }, (_, i) => i < level);
+const pad = (n: number) => String(n).padStart(2, "0");
+const starmapSVG = renderStarmap(constellations);
+const recordsJSON = JSON.stringify(recordsPayload(constellations));
+---
+
+<Base>
+  <div class="boot-veil" aria-hidden="true"></div>
+
+  <!-- ===================== SCENE (cockpit + star map) ===================== -->
+  <section class="scene" id="scene">
+    <canvas id="starfield"></canvas>
+    <div class="scene-grid"></div>
+
+    <div class="world" id="world">
+    <!-- constellation star map -->
+    <svg id="starmap" viewBox="0 -170 2400 1840" preserveAspectRatio="xMidYMid meet" aria-hidden="true" set:html={starmapSVG}></svg>
+
+    <!-- ship reticle -->
+    <div class="reticle">
+      <svg viewBox="0 0 660 660" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g fill="none" stroke="#41e3ff">
+          <circle class="arc arc1" cx="330" cy="330" r="250" stroke-opacity="0.05" stroke-width="12" stroke-dasharray="240 1500"></circle>
+          <circle class="arc arc2" cx="330" cy="330" r="238" stroke-opacity="0.35" stroke-width="2.5" stroke-dasharray="40 16 8 16"></circle>
+          <circle class="arc arc3" cx="330" cy="330" r="224" stroke-opacity="0.06" stroke-width="16" stroke-dasharray="300 900"></circle>
+          <circle class="arc arc4" cx="330" cy="330" r="212" stroke-opacity="0.22" stroke-width="2" stroke-dasharray="2 10"></circle>
+          <circle class="arc arc5" cx="330" cy="330" r="200" stroke-opacity="0.30" stroke-width="3" stroke-dasharray="120 700"></circle>
+          <g stroke-opacity="0.4" stroke-width="1.5"><path d="M330 80 v18 M330 580 v-18 M80 330 h18 M580 330 h-18"></path></g>
+        </g>
+        <g stroke="#ffb648" stroke-opacity="0.85" stroke-width="1.5"><path d="M322 330 h16 M330 322 v16"></path></g>
+        <circle cx="330" cy="330" r="3" fill="#ffb648"></circle>
+      </svg>
+    </div>
+
+    <div class="ship-rig">
+      <div class="ship">
+        <svg class="ship-svg" viewBox="0 0 300 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Starship FSL-01">
+          <defs>
+            <linearGradient id="hull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a3b56"></stop><stop offset="1" stop-color="#0c1426"></stop></linearGradient>
+            <radialGradient id="thr" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#41e3ff"></stop><stop offset="1" stop-color="rgba(65,227,255,0)"></stop></radialGradient>
+          </defs>
+          <ellipse class="thruster" cx="38" cy="78" rx="34" ry="13" fill="url(#thr)"></ellipse>
+          <rect x="48" y="66" width="40" height="26" rx="6" fill="#16243c" stroke="#41e3ff" stroke-opacity="0.35"></rect>
+          <path d="M70 70 Q150 36 268 70 Q150 104 70 70 Z" fill="url(#hull)" stroke="#41e3ff" stroke-opacity="0.5" stroke-width="1.5"></path>
+          <path d="M86 70 L250 70" stroke="#41e3ff" stroke-opacity="0.25"></path>
+          <path d="M210 70 Q236 60 256 70 Q236 80 210 70 Z" fill="#ffb648" fill-opacity="0.85"></path>
+          <path d="M120 58 L150 30 L165 56 Z" fill="#16243c" stroke="#41e3ff" stroke-opacity="0.4"></path>
+          <line x1="150" y1="36" x2="150" y2="18" stroke="#41e3ff" stroke-opacity="0.6"></line>
+          <circle class="navlight n3" cx="150" cy="16" r="3" fill="#41e3ff"></circle>
+          <path d="M120 82 L150 108 L165 84 Z" fill="#101b30" stroke="#41e3ff" stroke-opacity="0.3"></path>
+          <circle class="navlight n1" cx="250" cy="70" r="3" fill="#ffb648"></circle>
+          <circle class="navlight n2" cx="96" cy="70" r="2.5" fill="#56e39f"></circle>
+        </svg>
+      </div>
+    </div>
+
+
+    <button class="beacon" type="button" data-link="left" aria-haspopup="dialog" aria-label="Open Commander Profile">
+      <span class="sweep"></span>
+      <span class="beacon-line code">{profile.callsign}</span>
+      <span class="beacon-line name">{profile.name}</span>
+      <span class="beacon-line role">{profile.className}</span>
+      <span class="beacon-line status"><i></i> STATUS: {profile.status}</span>
+      <span class="beacon-hint">▸ ACCESS DOSSIER</span>
+    </button>
+
+    <button class="telemetry" id="mlog-launch" type="button" data-link="right" aria-haspopup="dialog" aria-label="Open Mission Log">
+      <span class="sweep"></span>
+      <h5>MISSION LOG</h5>
+      <div class="row"><span>ENTRIES</span><span>{pad(missionLog.length)}</span></div>
+      <div class="row"><span>LATEST</span><span>{missionLog[0]?.year}</span></div>
+      <div class="row"><span>SIGNAL</span><span>RECOVERED</span></div>
+      <span class="mlog-hint">▸ OPEN LOG</span>
+      <div class="hashbar"></div>
+    </button>
+    </div>
+    <svg class="scene-links" id="scene-links" aria-hidden="true"></svg>
+
+    <span class="hud-corner tl"></span><span class="hud-corner tr"></span>
+    <span class="hud-corner bl"></span><span class="hud-corner br"></span>
+    <div class="scene-hud">
+      <div class="hud-tl">FSL-01 // NAV SYSTEM ONLINE</div>
+      <div class="hud-tr">SECTOR MAP // SELECT A CONSTELLATION</div>
+    </div>
+
+    <!-- M2 interaction layers -->
+    <svg id="sm-fx" aria-hidden="true"></svg>
+    <div id="sm-cursor" aria-hidden="true"><div class="r1"></div><div class="r2"></div><div class="cx"></div><div class="cy"></div></div>
+    <div class="con-name" id="con-name"><span class="sweep"></span><div class="y"></div><div class="t"></div></div>
+    <div class="star-name" id="star-name"><span class="sweep"></span><div class="y"></div><div class="t"></div></div>
+    <div id="record-overlay" role="dialog" aria-modal="true" aria-label="Data Record">
+      <div class="record-panel"><span class="sweep"></span><button class="record-close" type="button">✕ CLOSE</button><div id="record-body"></div></div>
+    </div>
+    <script is:inline type="application/json" id="sm-records" set:html={recordsJSON}></script>
+  </section>
+
+  <!-- ===================== ARCHIVE FALLBACK + MISSION LOG ===================== -->
+  <main class="wrap">
+    <div class="sm-fallback">
+      {
+        constellations.map((c, ci) => (
+          <section class="constellation" id={c.id}>
+            <header>
+              <div class="sector">SECTOR {pad(ci + 1)}</div>
+              <h2>{c.narrativeName}</h2>
+              <div class="blurb">{c.blurb}</div>
+            </header>
+            <div class="grid">
+              {c.stars.map((s) => (
+                <article class="record" id={s.id}>
+                  <span class="sweep"></span>
+                  {s.badge && <span class="badge">{s.badge}</span>}
+                  <div class="rtype">{s.recordType}</div>
+                  <h3>{s.title}</h3>
+                  {s.date && <div class="date">{s.date}</div>}
+                  <p class="summary">{s.summary}</p>
+                  {s.tags && (<div class="tags">{s.tags.map((t) => (<span class="tag">{t}</span>))}</div>)}
+                  {s.assets && (<div class="assets">{s.assets.map((a) => (<a class="asset" href={a.href}>{a.label}</a>))}</div>)}
+                </article>
+              ))}
+            </div>
+          </section>
+        ))
+      }
+    </div>
+
+    <section class="missionlog">
+      <div class="sector">TRANSMISSION ARCHIVE</div>
+      <h2>Mission Log</h2>
+      {missionLog.map((m) => (
+        <div class="logrow"><div class="yr">{m.year}</div><div>{m.event}</div></div>
+      ))}
+    </section>
+  </main>
+
+  <!-- ===================== COMMANDER PROFILE ===================== -->
+  <div class="profile-overlay" role="dialog" aria-modal="true" aria-label="Commander Profile">
+    <div class="profile-panel">
+      <button class="profile-close" type="button">✕ CLOSE</button>
+      <section class="dossier">
+        <span class="sweep"></span>
+        <div class="dossier-head">
+          <div class="portrait-wrap">
+            <img class="portrait" src={profile.portrait.src} alt={profile.portrait.alt} decoding="async" />
+            <span class="scan"></span>
+          </div>
+          <div>
+            <div class="id-tag">PERSONNEL DOSSIER // {profile.callsign}</div>
+            <h1>{profile.name}<span class="status-pill">{profile.status}</span></h1>
+            <div class="class">{profile.className}</div>
+            <div class="directive">{profile.directive}</div>
+          </div>
+        </div>
+        <div class="dossier-grid">
+          <div class="dblock">
+            <h4>IDENTIFICATION</h4>
+            <dl class="fields">{profile.dossier.map((f) => (<><dt>{f.label}</dt><dd>{f.value}</dd></>))}</dl>
+          </div>
+          <div class="dblock">
+            <h4>SPECIALISATIONS</h4>
+            {profile.specialisations.map((s) => (
+              <div class="skill">
+                <div class="skill-row"><span>{s.name}</span><span class="lv">{s.level}/5</span></div>
+                <div class="pips">{pip(s.level).map((on) => (<span class={on ? "pip on" : "pip"}></span>))}</div>
+              </div>
+            ))}
+          </div>
+          <div class="dblock">
+            <h4>FIELD RECORD</h4>
+            <ul class="reclist">{profile.fieldRecord.map((r) => (<li>{r}</li>))}</ul>
+          </div>
+          <div class="dblock">
+            <h4>TOOLSET</h4>
+            {profile.toolset.map((g) => (
+              <div class="toolgroup">
+                <div class="tlabel">{g.label}</div>
+                <div class="titems">{g.items.map((i) => (<span class="chip">{i}</span>))}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div class="contacts">
+          <a href={profile.cv.href}>&#8615; {profile.cv.label}</a>
+          {profile.contacts.map((c) => (<a href={c.href}>{c.label}</a>))}
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ===================== MISSION LOG (holographic) ===================== -->
+  <div id="missionlog-overlay" role="dialog" aria-modal="true" aria-label="Mission Log">
+    <div class="mlog-card">
+      <span class="sweep"></span>
+      <button class="mlog-close" type="button">✕ CLOSE</button>
+      <div class="id-tag">TRANSMISSION ARCHIVE // RECOVERED</div>
+      <h2 class="mlog-title">Mission Log</h2>
+      {missionLog.map((m) => (
+        <div class="mlog-row"><div class="yr">{m.year}</div><div class="ev">{m.event}</div></div>
+      ))}
+    </div>
+  </div>
+
+  <!-- ===================== MEDIA LIGHTBOX ===================== -->
+  <div id="media-lightbox" role="dialog" aria-modal="true" aria-label="Media viewer">
+    <button class="ml-close" type="button">✕ CLOSE</button>
+    <button class="ml-nav ml-prev" type="button" aria-label="Previous">‹</button>
+    <div class="ml-stage"><div class="ml-frame" id="ml-frame"></div><div class="ml-cap" id="ml-cap"></div></div>
+    <button class="ml-nav ml-next" type="button" aria-label="Next">›</button>
+  </div>
+
+  <script>import "../scripts/scene.js";</script>
+  <script>import "../scripts/starmap.js";</script>
+</Base>

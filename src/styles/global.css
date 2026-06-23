@@ -1,0 +1,465 @@
+/* global.css — all-mono HUD type system, holographic frames, immersive scene. */
+@import "./tokens.css";
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 800px at 70% -10%, rgba(65,227,255,0.07), transparent 60%),
+    radial-gradient(900px 600px at 10% 110%, rgba(255,182,72,0.06), transparent 60%),
+    var(--bg-void);
+  color: var(--text); font-family: var(--font-mono);
+  font-size: 14.5px; line-height: 1.58; letter-spacing: 0.01em; -webkit-font-smoothing: antialiased;
+}
+a { color: var(--hud-cyan); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.wrap { max-width: var(--maxw); margin: 0 auto; padding: 3rem 1.25rem 6rem; }
+.dim { color: var(--text-dim); }
+
+/* ============================================================
+   Holographic frame — notched corners, masked cyan outline, scanlines
+   Applied to: beacon, telemetry, dossier, record cards
+   ============================================================ */
+.beacon, .telemetry, .dossier, .record {
+  --bk: 26px; --bw: 2px; position: relative; border: 0; border-radius: 0;
+  background: rgba(12,20,38,0.55); overflow: hidden;
+}
+.beacon, .telemetry, .dossier { -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+.beacon::before, .telemetry::before, .dossier::before, .record::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; transition: filter 0.2s;
+  background:
+    linear-gradient(var(--hud-cyan), var(--hud-cyan)) 0 0 / var(--bk) var(--bw) no-repeat,
+    linear-gradient(var(--hud-cyan), var(--hud-cyan)) 0 0 / var(--bw) var(--bk) no-repeat,
+    linear-gradient(var(--hud-cyan), var(--hud-cyan)) 100% 0 / var(--bk) var(--bw) no-repeat,
+    linear-gradient(var(--hud-cyan), var(--hud-cyan)) 100% 0 / var(--bw) var(--bk) no-repeat,
+    linear-gradient(var(--hud-cyan), var(--hud-cyan)) 0 100% / var(--bk) var(--bw) no-repeat,
+    linear-gradient(var(--hud-cyan), var(--hud-cyan)) 0 100% / var(--bw) var(--bk) no-repeat,
+    linear-gradient(var(--hud-cyan), var(--hud-cyan)) 100% 100% / var(--bk) var(--bw) no-repeat,
+    linear-gradient(var(--hud-cyan), var(--hud-cyan)) 100% 100% / var(--bw) var(--bk) no-repeat;
+}
+.beacon::after, .telemetry::after, .dossier::after, .record::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(65,227,255,0.045) 3px 4px);
+}
+
+/* ============================================================
+   Commander Profile — personnel dossier
+   ============================================================ */
+.dossier { padding: 1.6rem; margin: 0; }
+.dossier-head { display: grid; grid-template-columns: 132px 1fr; gap: 1.5rem; align-items: start; }
+.portrait { width: 132px; height: 132px; object-fit: cover; border: 1px solid var(--hud-line-strong);
+  filter: saturate(1.05) contrast(1.03); box-shadow: 0 0 0 1px rgba(65,227,255,0.15), 0 0 24px rgba(65,227,255,0.12); }
+.portrait-wrap { position: relative; width: 132px; }
+.portrait-wrap .scan { position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(5,7,15,0.18) 3px 4px); }
+.id-tag { color: var(--hud-cyan); letter-spacing: 0.22em; font-size: 0.72rem; }
+.dossier h1 { margin: 0.2rem 0 0.15rem; font-size: 1.85rem; font-weight: 800; color: var(--text-bright); letter-spacing: 0.04em; text-transform: uppercase; }
+.dossier .class { color: var(--hud-amber); font-size: 0.82rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.status-pill { display: inline-block; font-size: 0.6rem; vertical-align: middle; color: var(--ok);
+  border: 1px solid var(--ok); border-radius: 999px; padding: 0.12rem 0.55rem; margin-left: 0.6rem; letter-spacing: 0.16em; }
+.directive { margin-top: 0.8rem; font-size: 0.82rem; color: var(--text); border-left: 2px solid var(--hud-amber); padding-left: 0.7rem; }
+.directive::before { content: "DIRECTIVE // "; color: var(--hud-amber-dim); }
+.dossier-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1.25rem 2rem; margin-top: 1.4rem; }
+.dblock h4 { font-size: 0.68rem; letter-spacing: 0.18em; color: var(--hud-cyan); font-weight: 700; margin: 0 0 0.55rem; border-bottom: 1px solid var(--hud-line); padding-bottom: 0.3rem; }
+.fields { display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.8rem; font-size: 0.8rem; }
+.fields dt { color: var(--text-dim); font-size: 0.76rem; }
+.fields dd { margin: 0; color: var(--text-bright); }
+.skill { margin-bottom: 0.5rem; }
+.skill-row { display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 0.18rem; }
+.skill-row .lv { color: var(--hud-cyan); }
+.pips { display: flex; gap: 4px; }
+.pip { width: 100%; height: 6px; background: rgba(65,227,255,0.12); }
+.pip.on { background: var(--hud-cyan); box-shadow: 0 0 6px rgba(65,227,255,0.5); }
+.reclist { list-style: none; margin: 0; padding: 0; font-size: 0.82rem; }
+.reclist li { padding: 0.2rem 0 0.2rem 1rem; position: relative; }
+.reclist li::before { content: "\25B8"; position: absolute; left: 0; color: var(--hud-cyan); }
+.toolgroup { margin-bottom: 0.6rem; }
+.toolgroup .tlabel { font-size: 0.7rem; color: var(--text-dim); letter-spacing: 0.06em; }
+.toolgroup .titems { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.3rem; }
+.contacts { margin-top: 1.3rem; padding-top: 1rem; border-top: 1px solid var(--hud-line); display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.82rem; }
+.chip { font-size: 0.68rem; color: var(--hud-cyan); border: 1px solid var(--hud-line); border-radius: 999px; padding: 0.14rem 0.6rem; background: rgba(65,227,255,0.05); letter-spacing: 0.03em; }
+
+/* ===== Constellation sections ===== */
+.constellation { margin: 3rem 0 1rem; }
+.constellation > header { border-bottom: 1px solid var(--hud-line); padding-bottom: 0.55rem; margin-bottom: 1.25rem; }
+.constellation .sector { color: var(--hud-cyan-dim); letter-spacing: 0.24em; font-size: 0.66rem; }
+.constellation h2 { margin: 0.2rem 0 0.25rem; font-size: 1.45rem; font-weight: 800; color: var(--text-bright); letter-spacing: 0.08em; text-transform: uppercase; }
+.constellation .blurb { color: var(--text-dim); font-size: 0.82rem; }
+
+/* ===== Record cards ===== */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 1.1rem; }
+.record { padding: 1.1rem 1.2rem; transition: transform 0.2s; }
+.record:hover { transform: translateY(-3px); }
+.record:hover::before { filter: drop-shadow(0 0 5px rgba(65,227,255,0.6)); }
+.record .rtype { font-size: 0.64rem; color: var(--hud-amber); letter-spacing: 0.18em; }
+.record h3 { margin: 0.35rem 0 0.2rem; font-size: 1rem; font-weight: 700; color: var(--text-bright); line-height: 1.32; }
+.record .date { font-size: 0.72rem; color: var(--text-dim); letter-spacing: 0.04em; }
+.record .summary { font-size: 0.84rem; margin: 0.6rem 0; color: var(--text); }
+.badge { position: absolute; top: 0.85rem; right: 1.1rem; font-size: 0.58rem; font-weight: 700; color: var(--bg-void); background: var(--hud-amber); padding: 0.14rem 0.45rem; letter-spacing: 0.1em; z-index: 1; }
+.assets { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.65rem; }
+.asset { font-size: 0.7rem; padding: 0.22rem 0.6rem; border: 1px solid var(--hud-line); color: var(--hud-cyan); letter-spacing: 0.03em; }
+.asset:hover { border-color: var(--hud-line-strong); text-decoration: none; background: rgba(65,227,255,0.06); }
+.tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.55rem; }
+.tag { font-size: 0.66rem; color: var(--text-dim); }
+.tag::before { content: "// "; color: var(--hud-cyan-dim); }
+
+/* ===== Mission Log ===== */
+.missionlog { margin-top: 3.5rem; border-top: 1px solid var(--hud-line); padding-top: 1.5rem; }
+.missionlog .sector { color: var(--hud-cyan-dim); letter-spacing: 0.24em; font-size: 0.66rem; }
+.missionlog h2 { color: var(--text-bright); font-size: 1.45rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; margin: 0.2rem 0 1rem; }
+.logrow { display: grid; grid-template-columns: 70px 1fr; gap: 1rem; padding: 0.45rem 0; border-bottom: 1px dashed rgba(65,227,255,0.12); font-size: 0.86rem; }
+.logrow .yr { color: var(--hud-amber); }
+
+/* ============================================================
+   M1 — immersive HUD scene
+   ============================================================ */
+.scene { position: relative; min-height: 100vh; min-height: 100svh; overflow: hidden; isolation: isolate; --bob: 0px; --bobrot: 0deg; }
+#starfield { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
+.scene-grid { position: absolute; inset: 0; z-index: 0;
+  background-image: linear-gradient(rgba(65,227,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(65,227,255,0.05) 1px, transparent 1px);
+  background-size: 46px 46px;
+  -webkit-mask-image: radial-gradient(circle at 58% 44%, #000, transparent 80%);
+  mask-image: radial-gradient(circle at 58% 44%, #000, transparent 80%); }
+
+.reticle { position: absolute; left: 58%; top: 44%; transform: translate(-50%,-50%); width: min(40vw, 380px); height: min(40vw, 380px); z-index: 1; pointer-events: none; }
+.reticle svg { width: 100%; height: 100%; display: block; }
+.arc { transform-box: fill-box; transform-origin: center; }
+.arc1 { animation: spincw 46s linear infinite; }
+.arc2 { animation: spincw 26s linear infinite; }
+.arc3 { animation: spinccw 17s linear infinite; }
+.arc4 { animation: spincw 34s linear infinite; }
+.arc5 { animation: spincw 13s linear infinite; }
+.reticle.scanning .arc2, .reticle.scanning .arc3 { animation-duration: 7s; }
+@keyframes spincw { to { transform: rotate(360deg); } }
+@keyframes spinccw { to { transform: rotate(-360deg); } }
+
+.ship-rig { position: absolute; left: 58%; top: 44%; transform: translate(-50%,-50%); z-index: 2; }
+.ship { position: relative; width: min(30vw, 270px); transform: translateY(var(--bob)) rotate(var(--bobrot)); filter: drop-shadow(0 0 22px rgba(65,227,255,0.18)); }
+.ship-svg { width: 100%; height: auto; display: block; }
+@keyframes drift { 0%,100% { transform: translateY(-5px) rotate(-0.5deg); } 50% { transform: translateY(5px) rotate(0.5deg); } }
+.thruster { transform-box: fill-box; transform-origin: center; animation: thrust 1.6s ease-in-out infinite; }
+@keyframes thrust { 0%,100% { opacity: 0.55; transform: scaleX(0.85); } 50% { opacity: 1; transform: scaleX(1.15); } }
+.navlight { animation: blink 2.4s ease-in-out infinite; }
+.navlight.n2 { animation-delay: 0.6s; } .navlight.n3 { animation-delay: 1.2s; }
+@keyframes blink { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+.scene-links { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
+.scene-links .lnk { animation: dashflow 1s linear infinite; }
+@keyframes dashflow { to { stroke-dashoffset: -10; } }
+
+.beacon { position: absolute; left: 58%; top: 44%; transform: translate(calc(-100% - 40px), calc(-100% - 26px)) translateY(var(--bob)); width: min(38vw, 168px); z-index: 4; cursor: pointer; text-align: left;
+  font-family: var(--font-mono); color: var(--text); padding: 0.8rem 1.1rem;
+  box-shadow: 0 0 30px rgba(65,227,255,0.10); transition: transform 0.25s, box-shadow 0.25s; }
+.beacon:hover, .beacon:focus-visible { box-shadow: 0 0 44px rgba(65,227,255,0.30); outline: none; }
+.beacon:hover::before, .beacon:focus-visible::before { filter: drop-shadow(0 0 6px rgba(65,227,255,0.7)); }
+.beacon-line { display: block; }
+.beacon .code { color: var(--hud-cyan); font-size: 0.6rem; letter-spacing: 0.3em; }
+.beacon .name { color: var(--text-bright); font-size: 1.05rem; font-weight: 800; letter-spacing: 0.06em; margin: 0.12rem 0; }
+.beacon .role { color: var(--hud-amber); font-size: 0.62rem; letter-spacing: 0.12em; }
+.beacon .status { color: var(--ok); font-size: 0.58rem; letter-spacing: 0.14em; margin-top: 0.32rem; }
+.beacon .status i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); margin-right: 5px; box-shadow: 0 0 6px var(--ok); animation: blink 1.8s ease-in-out infinite; }
+.beacon-hint { display: block; margin-top: 0.45rem; color: var(--hud-cyan); font-size: 0.56rem; letter-spacing: 0.16em; opacity: 0.75; }
+
+.telemetry { position: absolute; left: 58%; top: 44%; transform: translate(46px, 22px) translateY(var(--bob)); width: min(32vw, 132px); z-index: 4; padding: 0.7rem 0.9rem; color: var(--text); transition: box-shadow 0.25s; }
+.telemetry:hover { box-shadow: 0 0 40px rgba(65,227,255,0.28); }
+.telemetry:hover::before { filter: drop-shadow(0 0 6px rgba(65,227,255,0.7)); }
+/* scanning sweep — on every card frame */
+.sweep { position: absolute; left: 0; right: 0; height: 42%; top: -45%; pointer-events: none; background: linear-gradient(180deg, transparent, rgba(65,227,255,0.14), transparent); animation: sweepdown 3.6s ease-in-out infinite; }
+.record:nth-child(2n) .sweep { animation-delay: 1.2s; }
+.record:nth-child(3n) .sweep { animation-delay: 2.1s; }
+.record:nth-child(4n) .sweep { animation-delay: 0.7s; }
+@keyframes sweepdown { 0% { top: -45%; opacity: 0; } 12% { opacity: 1; } 66% { top: 114%; opacity: 1; } 68%, 100% { top: 114%; opacity: 0; } }
+.telemetry h5 { margin: 0 0 0.5rem; font-size: 0.62rem; letter-spacing: 0.2em; color: var(--hud-cyan); font-weight: 700; border-bottom: 1px solid var(--hud-line); padding-bottom: 0.3rem; }
+.telemetry .row { display: flex; justify-content: space-between; font-size: 0.7rem; margin-top: 0.25rem; }
+.telemetry .row span:last-child { color: var(--hud-cyan); }
+.telemetry .hashbar { height: 8px; margin-top: 0.55rem; opacity: 0.55; background: repeating-linear-gradient(115deg, var(--hud-cyan) 0 2px, transparent 2px 6px); }
+
+.scene-hud { position: absolute; inset: 1.1rem 1.4rem; z-index: 5; pointer-events: none; display: flex; justify-content: space-between; align-items: flex-start; }
+.scene-hud div { color: var(--text-dim); font-size: 0.62rem; letter-spacing: 0.24em; }
+.scene-hud .hud-tr { text-align: right; color: var(--hud-cyan-dim); }
+.hud-corner { position: absolute; width: 18px; height: 18px; border: 2px solid var(--hud-cyan); opacity: 0.8; z-index: 5; pointer-events: none; }
+.hud-corner.tl { top: 14px; left: 14px; border-right: 0; border-bottom: 0; }
+.hud-corner.tr { top: 14px; right: 14px; border-left: 0; border-bottom: 0; }
+.hud-corner.bl { bottom: 14px; left: 14px; border-right: 0; border-top: 0; }
+.hud-corner.br { bottom: 14px; right: 14px; border-left: 0; border-top: 0; }
+
+.enter-archive { position: absolute; bottom: 1.4rem; left: 50%; transform: translateX(-50%); z-index: 5; cursor: pointer;
+  color: var(--hud-cyan); font-size: 0.64rem; letter-spacing: 0.22em; background: none; border: none; font-family: var(--font-mono); animation: bobhint 2s ease-in-out infinite; }
+@keyframes bobhint { 0%,100% { transform: translate(-50%,0); opacity: 0.7; } 50% { transform: translate(-50%,5px); opacity: 1; } }
+
+/* ===== Commander Profile overlay ===== */
+.profile-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-start; justify-content: center; padding: 4vh 1rem; overflow: auto;
+  background: rgba(3,5,12,0.74); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); opacity: 0; visibility: hidden; transition: opacity 0.25s; }
+.profile-overlay.open { opacity: 1; visibility: visible; }
+.profile-panel { position: relative; width: 100%; max-width: var(--maxw); }
+.profile-close { position: sticky; top: 0; float: right; margin-bottom: 0.5rem; z-index: 2; cursor: pointer; font-family: var(--font-mono);
+  font-size: 0.64rem; letter-spacing: 0.16em; color: var(--hud-cyan); background: var(--bg-panel-solid); border: 1px solid var(--hud-line); padding: 0.4rem 0.75rem; }
+.profile-close:hover { border-color: var(--hud-line-strong); }
+
+@media (max-width: 640px) {
+  .dossier-head { grid-template-columns: 1fr; }
+  .beacon { left: 5%; top: 12%; transform: none; }
+  .telemetry { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .record, .beacon { transition: none; }
+  .ship, .thruster, .navlight, .enter-archive, .beacon .status i,
+  .arc1, .arc2, .arc3, .arc4, .arc5, .scene-links .lnk, .sweep, .telemetry::before { animation: none !important; } .sweep { display: none; }
+  .pip.on { box-shadow: none; }
+}
+
+/* ============================================================
+   M2 — constellation star map
+   ============================================================ */
+#starmap { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none;
+  transform-origin: 0 0; transition: transform 0.8s cubic-bezier(.22,.61,.36,1); }
+.sm-hit { fill: #000; fill-opacity: 0; pointer-events: all; cursor: pointer; }
+.sm-rr { transform-box: fill-box; transform-origin: center; animation: smspin 24s linear infinite; }
+.sm-rr.b { animation-duration: 16s; animation-direction: reverse; } .sm-rr.c { animation-duration: 34s; }
+@keyframes smspin { to { transform: rotate(360deg); } }
+.sm-ring { stroke: var(--hud-cyan); fill: none; stroke-opacity: 0.16; transition: stroke-opacity 0.35s; }
+.sm-con.on .sm-ring { stroke-opacity: 0.6; }
+.sm-reticle { transition: filter 0.35s; }
+.sm-con.on .sm-reticle { filter: drop-shadow(0 0 5px rgba(65,227,255,0.55)); }
+.sm-edgeGlow { stroke: #7fa8ff; stroke-opacity: 0.12; fill: none; transition: stroke-opacity 0.35s; }
+.sm-edgeCore { stroke: #dbe8ff; stroke-opacity: 0.5; fill: none; transition: stroke-opacity 0.35s; }
+.sm-con.on .sm-edgeGlow { stroke-opacity: 0.3; } .sm-con.on .sm-edgeCore { stroke-opacity: 0.95; }
+
+#sm-fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; }
+
+#sm-cursor { position: absolute; width: 48px; height: 48px; left: 0; top: 0; transform: translate(-50%,-50%);
+  pointer-events: none; z-index: 40; opacity: 0; transition: opacity 0.2s, width 0.2s, height 0.2s; filter: drop-shadow(0 0 4px rgba(5,8,16,0.9)); }
+.scene.sm-focus #sm-cursor { opacity: 1; }
+#sm-cursor.lock { width: 72px; height: 72px; }
+#sm-cursor .r1, #sm-cursor .r2 { position: absolute; inset: 0; border-radius: 50%; border: 1.5px dashed #6ff0ff; opacity: 0.95; animation: smspin 7s linear infinite; }
+#sm-cursor .r2 { inset: 8px; border-style: dotted; opacity: 0.7; animation: smspin 4.5s linear infinite reverse; }
+#sm-cursor.lock .r1 { animation-duration: 2.6s; } #sm-cursor.lock .r2 { animation-duration: 1.8s; }
+#sm-cursor .cx, #sm-cursor .cy { position: absolute; background: #6ff0ff; }
+#sm-cursor .cx { left: 50%; top: -8px; width: 1px; height: 12px; transform: translateX(-50%); }
+#sm-cursor .cy { top: 50%; left: -8px; height: 1px; width: 12px; transform: translateY(-50%); }
+
+.scene.sm-focus { cursor: none; }
+.scene.sm-focus .ship-rig, .scene.sm-focus .beacon, .scene.sm-focus .telemetry, .scene.sm-focus .reticle,
+.scene.sm-focus .scene-links, .scene.sm-focus .enter-archive,
+.scene.sm-star .ship-rig, .scene.sm-star .beacon, .scene.sm-star .telemetry, .scene.sm-star .reticle,
+.scene.sm-star .scene-links, .scene.sm-star .enter-archive {
+  opacity: 0 !important; pointer-events: none; transition: opacity 0.5s;
+}
+
+/* name cards (constellation + star) */
+.con-name, .star-name { position: absolute; pointer-events: none; opacity: 0; transition: opacity 0.25s; z-index: 9;
+  background: rgba(12,20,38,0.94); padding: 7px 11px; }
+.con-name.show, .star-name.show { opacity: 1; }
+.con-name::before, .star-name::before { content: ""; position: absolute; inset: 0;
+  background: linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/16px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/2px 16px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/16px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/2px 16px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/16px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/2px 16px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/16px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/2px 16px no-repeat; }
+.con-name .t, .star-name .t { color: var(--text-bright); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.06em; }
+.con-name .y, .star-name .y { color: var(--hud-amber); font-size: 0.56rem; letter-spacing: 0.16em; }
+
+/* Data Record overlay (star view) */
+#record-overlay { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 4%; opacity: 0; visibility: hidden; transition: opacity 0.35s; }
+#record-overlay.show { opacity: 1; visibility: visible; }
+.record-panel { position: relative; width: min(460px, 44%); max-height: 86%; overflow: auto; padding: 24px 26px;
+  background: rgba(12,20,38,0.95); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.record-panel::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/30px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/2px 30px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/30px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/2px 30px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/30px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/2px 30px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/30px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/2px 30px no-repeat; }
+.record-close { position: sticky; top: 0; float: right; cursor: pointer; font-family: var(--font-mono); font-size: 0.62rem;
+  letter-spacing: 0.14em; color: var(--hud-cyan); background: var(--bg-panel-solid); border: 1px solid var(--hud-line); padding: 0.3rem 0.6rem; }
+.rec-badge { display: inline-block; font-size: 0.56rem; font-weight: 700; color: var(--bg-void); background: var(--hud-amber); padding: 0.12rem 0.4rem; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+.rec-type { color: var(--hud-amber); font-size: 0.62rem; letter-spacing: 0.18em; }
+.rec-title { margin: 0.3rem 0 0.2rem; font-size: 1.2rem; font-weight: 800; color: var(--text-bright); line-height: 1.25; }
+.rec-date { font-size: 0.7rem; color: var(--text-dim); letter-spacing: 0.04em; margin-bottom: 0.6rem; }
+.rec-p { font-size: 0.82rem; color: var(--text); margin: 0.5rem 0; line-height: 1.55; }
+.rec-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.6rem; }
+.rec-assets { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.8rem; }
+.rec-media { margin-top: 1rem; height: 64px; border: 1px dashed var(--hud-line); display: flex; align-items: center; justify-content: center;
+  color: var(--text-dim); font-size: 0.6rem; letter-spacing: 0.16em; }
+
+/* mobile / no-hover fallback: hide the map, show the record cards */
+.sm-fallback { display: none; }
+.scene.sm-off #starmap, .scene.sm-off #sm-fx, .scene.sm-off #sm-cursor { display: none; }
+@media (hover: none), (max-width: 720px) {
+  #starmap, #sm-fx, #sm-cursor, #record-overlay, .con-name, .star-name { display: none !important; }
+  .sm-fallback { display: block; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #starmap { transition: none; }
+  .sm-rr, #sm-cursor .r1, #sm-cursor .r2 { animation: none !important; }
+}
+
+.reticle { pointer-events: none; }
+
+/* ===== M2.1 — reticle hover glow, star profile card, mission-log overlay ===== */
+.reticle svg { transition: filter 0.35s; }
+.reticle.hot svg { filter: drop-shadow(0 0 8px rgba(65,227,255,0.55)); }
+.reticle.hot .arc2, .reticle.hot .arc5 { stroke-opacity: 0.62; }
+
+/* bigger "stellar profile" data record */
+.record-panel { width: min(540px, 46%); padding: 26px 30px; }
+.rec-eyebrow { color: var(--hud-cyan); font-size: 0.6rem; letter-spacing: 0.24em; margin-bottom: 0.5rem; }
+.rec-title { font-size: 1.35rem; }
+.rec-p { font-size: 0.86rem; }
+
+/* mission-log launcher (was telemetry) */
+.telemetry { cursor: pointer; }
+.mlog-hint { display: block; margin-top: 0.5rem; color: var(--hud-cyan); font-size: 0.56rem; letter-spacing: 0.16em; opacity: 0.78; }
+
+/* mission-log overlay */
+#missionlog-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 5vh 1rem; overflow: auto;
+  background: rgba(3,5,12,0.74); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); opacity: 0; visibility: hidden; transition: opacity 0.25s; }
+#missionlog-overlay.open { opacity: 1; visibility: visible; }
+.mlog-card { position: relative; width: min(660px, 94%); max-height: 84%; overflow: auto; padding: 26px 30px; background: rgba(12,20,38,0.96);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.mlog-card::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/30px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/2px 30px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/30px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/2px 30px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/30px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/2px 30px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/30px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/2px 30px no-repeat; }
+.mlog-close { position: sticky; top: 0; float: right; cursor: pointer; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.14em;
+  color: var(--hud-cyan); background: var(--bg-panel-solid); border: 1px solid var(--hud-line); padding: 0.3rem 0.6rem; }
+.mlog-card .id-tag { color: var(--hud-cyan); letter-spacing: 0.22em; font-size: 0.66rem; }
+.mlog-title { margin: 0.3rem 0 1rem; font-size: 1.5rem; font-weight: 800; color: var(--text-bright); letter-spacing: 0.06em; text-transform: uppercase; }
+.mlog-row { display: grid; grid-template-columns: 78px 1fr; gap: 1rem; padding: 0.55rem 0; border-bottom: 1px dashed rgba(65,227,255,0.14); font-size: 0.86rem; }
+.mlog-row .yr { color: var(--hud-amber); }
+.mlog-row .ev { color: var(--text); }
+.mlog-row .ev::before { content: "▸ "; color: var(--hud-cyan-dim); }
+
+/* ===== M2.3 — holographic transparent cards + scanlines (record / names / mlog) ===== */
+.record-panel, .mlog-card {
+  background:
+    repeating-linear-gradient(0deg, transparent 0 3px, rgba(65,227,255,0.05) 3px 4px),
+    rgba(12,20,38,0.62);
+}
+.con-name, .star-name {
+  overflow: hidden;
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  background:
+    repeating-linear-gradient(0deg, transparent 0 3px, rgba(65,227,255,0.06) 3px 4px),
+    rgba(12,20,38,0.68);
+}
+
+/* ===== M2.4 — free pan/zoom map; no scroll archive on desktop ===== */
+main.wrap { display: none; }
+#starmap { transition: none; }
+#starmap.sm-anim { transition: transform 0.8s cubic-bezier(.22,.61,.36,1); }
+.scene { cursor: grab; }
+.scene.sm-grab { cursor: grabbing; }
+.scene.sm-focus { cursor: none; }
+.scene.sm-star { cursor: default; }
+@media (hover: none), (max-width: 720px) {
+  main.wrap { display: block; }
+  .scene { cursor: auto; }
+}
+
+/* ===== M2.5 — world layer: ship + cockpit pan/zoom together with the map ===== */
+.world { position: absolute; inset: 0; transform-origin: 0 0; z-index: 1; will-change: transform; }
+.world.sm-anim { transition: transform 0.8s cubic-bezier(.22,.61,.36,1); }
+
+/* ===== M2.6 — kill sweep-induced scrollbar flicker on record / mlog cards ===== */
+.record-panel { display: flex; flex-direction: column; overflow: hidden; }
+.record-close { position: static; float: none; align-self: flex-end; margin-bottom: 8px; }
+#record-body { overflow-y: auto; overflow-x: hidden; min-height: 0; }
+.mlog-card { overflow: hidden; }
+
+/* ===== M3 — media gallery (thumbnail strip) + holographic lightbox ===== */
+.rec-media-wrap { margin-top: 1rem; }
+.media-head { font-size: 0.6rem; letter-spacing: 0.2em; color: var(--hud-cyan); margin-bottom: 0.55rem; }
+.media-strip { display: flex; flex-wrap: wrap; gap: 8px; }
+.media-thumb { position: relative; width: 94px; height: 66px; padding: 0; border: 0; cursor: pointer; overflow: hidden;
+  background: rgba(12,20,38,0.6); outline: 1px solid var(--hud-line); transition: outline-color 0.2s, box-shadow 0.2s; }
+.media-thumb img, .media-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.media-thumb::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/10px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/2px 10px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/10px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/2px 10px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/10px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/2px 10px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/10px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/2px 10px no-repeat; }
+.media-thumb:hover { outline-color: var(--hud-line-strong); box-shadow: 0 0 14px rgba(65,227,255,0.35); }
+.media-thumb.is-video::before { content: "VIDEO"; position: absolute; left: 4px; top: 4px; z-index: 1; font-size: 0.5rem; letter-spacing: 0.12em;
+  color: var(--hud-cyan); background: rgba(5,8,16,0.72); padding: 1px 4px; pointer-events: none; }
+.media-badge { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(5,8,16,0.55);
+  border: 1px solid var(--hud-cyan); color: var(--hud-cyan); font-size: 0.66rem; padding-left: 2px; pointer-events: none; }
+
+#media-lightbox { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  padding: 4vh 4vw; background: rgba(2,4,10,0.86); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  opacity: 0; visibility: hidden; transition: opacity 0.25s; }
+#media-lightbox.open { opacity: 1; visibility: visible; }
+.ml-stage { position: relative; display: flex; flex-direction: column; align-items: center; max-width: 88vw; max-height: 88vh; }
+.ml-frame { position: relative; padding: 10px; background: rgba(10,16,30,0.7); }
+.ml-frame::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/26px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/2px 26px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/26px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/2px 26px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/26px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/2px 26px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/26px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/2px 26px no-repeat; }
+.ml-frame img, .ml-frame video { display: block; max-width: 84vw; max-height: 76vh; width: auto; height: auto; }
+.ml-cap { margin-top: 0.6rem; font-size: 0.72rem; letter-spacing: 0.05em; color: var(--text); text-align: center; max-width: 72ch; }
+.ml-cap .ix { color: var(--hud-cyan-dim); margin-right: 0.6rem; }
+.ml-close { position: absolute; top: 2.2vh; right: 2.4vw; z-index: 2; cursor: pointer; font-family: var(--font-mono);
+  font-size: 0.64rem; letter-spacing: 0.14em; color: var(--hud-cyan); background: rgba(5,8,16,0.7); border: 1px solid var(--hud-line); padding: 0.35rem 0.7rem; }
+.ml-nav { cursor: pointer; font-family: var(--font-mono); font-size: 1.7rem; line-height: 1; color: var(--hud-cyan);
+  background: rgba(5,8,16,0.5); border: 1px solid var(--hud-line); width: 46px; height: 70px; flex: none; transition: background 0.2s, border-color 0.2s; }
+.ml-nav:hover, .ml-close:hover { background: rgba(65,227,255,0.12); border-color: var(--hud-line-strong); }
+@media (hover: none), (max-width: 720px) { #media-lightbox { display: none !important; } }
+
+/* ===== M3.1 — holographic screen overlay on media + PDF viewer ===== */
+.holo-scan { position: absolute; inset: 0; pointer-events: none; z-index: 1; mix-blend-mode: screen;
+  background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(65,227,255,0.06) 2px 3px),
+    linear-gradient(180deg, rgba(65,227,255,0.05), transparent 45%); }
+.media-badge { z-index: 2; }
+.media-thumb.is-pdf::before { content: "PDF"; position: absolute; left: 4px; top: 4px; z-index: 2; font-size: 0.5rem;
+  letter-spacing: 0.12em; color: var(--hud-cyan); background: rgba(5,8,16,0.72); padding: 1px 4px; pointer-events: none; }
+.media-thumb.is-pdf img { object-position: top; }
+.ml-frame .holo-scan { z-index: 2; }
+.ml-frame iframe.ml-pdf { width: min(860px, 84vw); height: 80vh; border: 0; background: #fff; display: block; }
+
+/* ===== M3.2 — stronger holographic scanlines for PDFs (visible on white pages) ===== */
+.holo-scan.pdf, .media-thumb.is-pdf .holo-scan {
+  mix-blend-mode: normal;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 2px, rgba(18,58,72,0.13) 2px 3px),
+    linear-gradient(180deg, rgba(65,227,255,0.08), transparent 55%);
+}
+
+
+
+/* ===== M4 — compact cockpit cards (fit-view) ===== */
+.beacon { padding: 0.6rem 0.8rem; }
+.beacon .name { font-size: 0.92rem; }
+.beacon .code { font-size: 0.54rem; }
+.beacon .role { font-size: 0.56rem; }
+.beacon .status { font-size: 0.54rem; }
+.beacon-hint { font-size: 0.52rem; margin-top: 0.35rem; }
+.telemetry { padding: 0.55rem 0.7rem; }
+.telemetry h5 { font-size: 0.56rem; }
+.telemetry .row { font-size: 0.62rem; }
+.mlog-hint { font-size: 0.5rem; }
+
+/* ===== M4 — stellar record: bigger, larger type, closer to the star ===== */
+#record-overlay { padding-right: 6%; }
+.record-panel { width: min(660px, 52%); padding: 30px 34px; }
+.rec-eyebrow { font-size: 0.66rem; }
+.rec-type { font-size: 0.68rem; }
+.rec-title { font-size: 1.5rem; line-height: 1.22; }
+.rec-date { font-size: 0.76rem; }
+.rec-p { font-size: 0.95rem; line-height: 1.62; }
+.rec-tags .tag { font-size: 0.72rem; }
+.rec-assets .asset { font-size: 0.74rem; }
+.media-head { font-size: 0.64rem; }
+
+/* ===== M4 — boot reveal (first paint) ===== */
+.boot-veil { position: fixed; inset: 0; z-index: 90; background: var(--bg-void); pointer-events: none;
+  animation: bootFade 0.7s ease-out both; }
+.boot-veil::after { content: ""; position: absolute; left: 0; right: 0; height: 2px; top: 0;
+  background: linear-gradient(90deg, transparent, rgba(65,227,255,0.9) 50%, transparent);
+  box-shadow: 0 0 12px rgba(65,227,255,0.6); animation: bootScan 0.7s ease-out both; }
+@keyframes bootFade { 0% { opacity: 1; } 32% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+@keyframes bootScan { 0% { top: 0; opacity: 0; } 14% { opacity: 0.95; } 100% { top: 100%; opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .boot-veil { display: none; } }

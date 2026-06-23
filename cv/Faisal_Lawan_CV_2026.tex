@@ -1,0 +1,209 @@
+\documentclass[a4paper,11pt]{article}
+
+% --- ROBUST PREAMBLE (compile with xelatex or lualatex) ---
+\usepackage[a4paper, top=1.4cm, bottom=1.4cm, left=1.5cm, right=1.5cm]{geometry}
+\usepackage{fontspec}
+\setmainfont{Lato}
+\setmonofont{DejaVu Sans Mono}[Scale=0.9]
+
+\usepackage{titlesec}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage{tabularx}
+
+% --- DESIGN & COLORS ---
+\definecolor{PrimaryColor}{RGB}{20, 45, 105}   % Deep Navy
+\definecolor{SecondaryColor}{RGB}{70, 70, 70}  % Dark Grey
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\urlstyle{same}
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+\titleformat{\section}{
+  \vspace{-4pt}\color{PrimaryColor}\raggedright\large\bfseries
+}{}{0em}{}[\color{PrimaryColor}\titlerule \vspace{-5pt}]
+
+% --- CUSTOM COMMANDS ---
+\newcommand{\resumeItem}[1]{\item\small{#1}}
+
+\newcommand{\resumeSubheading}[4]{
+  \item
+    \begin{tabular*}{\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & \textcolor{SecondaryColor}{\small #2} \\
+      \textit{\small#3} & \textit{\textcolor{SecondaryColor}{\small #4}} \\
+    \end{tabular*}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \item
+    \begin{tabular*}{\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{\small#1} & \textcolor{SecondaryColor}{\small #2} \\
+    \end{tabular*}
+}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0in, label={}, itemsep=2pt, parsep=0pt, topsep=2pt, partopsep=0pt]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}[leftmargin=0.15in, label={\small\textcolor{PrimaryColor}{$\bullet$}}, itemsep=2pt, parsep=0pt, topsep=2pt, partopsep=0pt]}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-2pt}}
+\newcommand{\resumePubListStart}{\begin{itemize}[leftmargin=0.1in, label={}, itemsep=4pt, parsep=0pt, topsep=2pt, partopsep=0pt]}
+\newcommand{\resumePubListEnd}{\end{itemize}}
+\newcommand{\resumeSkillListStart}{\begin{itemize}[leftmargin=0in, label={}, itemsep=2pt, parsep=0pt, topsep=2pt, partopsep=0pt]}
+\newcommand{\resumeSkillListEnd}{\end{itemize}}
+
+\newcommand{\linkbutton}[2]{%
+  \colorbox{black!5}{\href{#1}{\rule{0pt}{0.75em}\textbf{\small \textcolor{PrimaryColor}{\texttt{#2}}}}}%
+}
+
+%-------------------------------------------
+\begin{document}
+
+%----------HEADING----------
+\begin{center}
+    {\Huge \textbf{Faisal Lawan}} \\[3pt]
+    \small \textcolor{SecondaryColor}{Control Systems Researcher \ $\cdot$\ Safety-Critical Control \ $\cdot$\ Multi-Agent Robotics \ $\cdot$\ Embedded Systems} \\[6pt]
+    \small \textcolor{SecondaryColor}{Manchester, UK $|$ +44 7956 723983 $|$}
+    \href{mailto:faisallawan08@gmail.com}{\underline{faisallawan08@gmail.com}} \\[6pt]
+    \linkbutton{https://github.com/FHL-08}{[gh] GitHub} \quad
+    \linkbutton{https://www.linkedin.com/in/faisal-lawan/}{[in] LinkedIn} \quad
+    \linkbutton{https://arxiv.org/abs/2605.28367}{[ax] arXiv}
+\end{center}
+
+%-----------EDUCATION-----------
+\section{Education}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {The University of Manchester}{Apr. 2026 -- Present (Expected 2030)}
+      {PhD, Electrical \& Electronic Engineering}{}
+      \resumeItemListStart
+        \resumeItem{\textbf{Scholarship:} School of Engineering PGR Scholarship (Fully Funded).}
+        \resumeItem{\textbf{Research Focus:} Control Barrier Functions (CBFs), multi-agent control, safety-critical autonomy, nonlinear robust/adaptive control.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {The University of Manchester}{Jul. 2021 -- Jul. 2025}
+      {BEng (Hons), Mechatronics Engineering with Industrial Experience}{First Class}
+      \resumeItemListStart
+        \resumeItem{\textbf{Dissertation:} Safety-critical consensus-based formation control of distributed mobile robots.}
+        \resumeItem{Top 0.5\% of the 2025 graduating cohort; Outstanding Achievement Award.}
+        \resumeItem{Best Final Year Project \& Best in EEE Department.}
+        \resumeItem{\textbf{Awards:} IET Future Talent Boost Scholarship (2024), Intel Fearless Innovation Award (2024).}
+      \resumeItemListEnd
+  \resumeSubHeadingListEnd
+
+%-----------EXPERIENCE-----------
+\section{Experience}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {Doctoral Researcher}{Apr. 2026 -- Present}
+      {The University of Manchester}{Manchester, UK}
+      \resumeItemListStart
+        \resumeItem{Architecting provably safe and stable Control Barrier Function (CBF) methods for multi-agent autonomous systems operating in highly dynamic, uncertain environments.}
+        \resumeItem{Designing nonlinear control algorithms optimised for real-time edge computing on robotic platforms with severe computational and actuator constraints.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Robotics Research Assistant}{Aug. 2025 -- Apr. 2026}
+      {The University of Manchester --- RAICo Programme}{Manchester, UK}
+      \resumeItemListStart
+        \resumeItem{Engineered a safety-critical adaptive impedance control framework for nuclear decommissioning, fusing IT2-Fuzzy Logic with Nonsmooth CBFs to guarantee real-time safety under severe parametric uncertainty.}
+        \resumeItem{Developed a unified soft-constrained quadratic program (QP) solved online at 54 $\mu$s per control cycle.}
+        \resumeItem{Proved Uniform Ultimate Boundedness via composite Lyapunov analysis and deployed the framework on 7-DOF KINOVA and Franka Emika manipulators.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Cohort 2.s}{Feb. 2026 -- Apr. 2026}
+      {FR8}{Espoo, Finland}
+      \resumeItemListStart
+        \resumeItem{Selected from a global pool for an intensive deep-tech builder programme focused on accelerating transformative, highly technical projects.}
+        \resumeItem{Collaborated alongside tier-1 VCs, deep-tech founders, and domain experts in a high-performance prototyping environment.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {FPGA Hardware Engineer}{Jul. 2023 -- Aug. 2024}
+      {Altera (formerly Intel PSG)}{Marlow, UK}
+      \resumeItemListStart
+        \resumeItem{Architected and validated an FPGA hardware accelerator for Google's Snappy compression algorithm in SystemVerilog, boosting compression ratio by 10\% and throughput by 30\% versus software baselines.}
+        \resumeItem{Engineered a NIOS V embedded test platform and custom driver software to stress-test the compression core.}
+        \resumeItem{Benchmarked and redesigned search algorithms for duplicate MAC-address detection in VirtIO network devices, yielding a 100$\times$ computational efficiency improvement.}
+      \resumeItemListEnd
+  \resumeSubHeadingListEnd
+
+%-----------PUBLICATIONS-----------
+\section{Publications}
+  \resumePubListStart
+    \small{\item{
+      \textbf{Lawan, F.}, Zhan, W., Pan, W., \& Carrasco, J. (2026).
+      ``Constrained Torque-Level Formation Control of Differential-Drive Wheeled Mobile Robots via Consensus-Based Feedback Linearised MPC.''
+      \emph{Towards Autonomous Robotic Systems (TAROS 2026).} \textcolor{SecondaryColor}{Accepted.}
+    }}
+    \small{\item{
+      \textbf{Lawan, F.}, Han, X., Carrasco, J., Lennox, B., \& Cheng, X. (2026).
+      ``Safety-Critical Adaptive Impedance Control via Nonsmooth Control Barrier Functions under State and Input Constraints.''
+      \emph{Under review.} \href{https://arxiv.org/abs/2605.28367}{\underline{arXiv:2605.28367}}
+    }}
+  \resumePubListEnd
+
+%-----------PROJECTS-----------
+\section{Projects}
+    \resumeSubHeadingListStart
+        \resumeProjectHeading
+          {\textbf{Tessellate: Distributed Formation Control Platform} $|$ \href{https://github.com/Tessellate-Labs/tessellate-consensus-socp-mpc}{\textcolor{PrimaryColor}{\texttt{[GitHub]}}} $|$ \emph{Python, MPC, SOCP}}{Oct. 2025}
+          \resumeItemListStart
+            \resumeItem{Built a real-time platform for distributed formation control of nonholonomic robots using a consensus-based feedback-linearised MPC, solved as a Second-Order Cone Program at 60 Hz.}
+            \resumeItem{Implemented a shape-aware multi-layered A* planner and run-time-reconfigurable communication graph, with a PySide6 telemetry UI.}
+          \resumeItemListEnd
+
+        \resumeProjectHeading
+          {\textbf{Robot Poker Dealer and Player} $|$ \href{https://github.com/jalliet/prap-25-26}{\textcolor{PrimaryColor}{\texttt{[GitHub]}}}}{Sep. 2025 -- Present}
+          \resumeItemListStart
+            \resumeItem{Building an end-to-end autonomous poker-playing physical system using a modified SO-101 robot arm.}
+            \resumeItem{Fusing real-time computer vision (YOLOv8) with ROS 2 manipulation and game-theoretic decision making.}
+          \resumeItemListEnd
+
+        \resumeProjectHeading
+          {\textbf{GUH Quant Trading Challenge (1st Place)} $|$ \href{https://github.com/jonghunlee05/Greater_Uni_Hackathon_2025}{\textcolor{PrimaryColor}{\texttt{[GitHub]}}} $|$ \emph{Python, Algorithmic Trading}}{Nov. 2025}
+          \resumeItemListStart
+            \resumeItem{Won 1st place (60\% of the prize pool) in the Greater Uni Hackathon algorithmic-trading challenge.}
+            \resumeItem{Built a quantitative market-making trading bot for the Limex market-making challenge.}
+          \resumeItemListEnd
+
+        \resumeProjectHeading
+          {\textbf{Quanser Robotics Hackathon (1st Place)} $|$ \href{https://github.com/FHL-08/quanser-hackathon}{\textcolor{PrimaryColor}{\texttt{[GitHub]}}}}{Nov. 2025}
+          \resumeItemListStart
+            \resumeItem{Engineered the fastest autonomous ring-sorting algorithm on Quanser's 4-DOF robot arm.}
+            \resumeItem{Derived geometric inverse kinematics from first principles to achieve precise sub-threshold cycle times without standard IK libraries (internet was down!).}
+          \resumeItemListEnd
+
+        \resumeProjectHeading
+          {\textbf{Autonomous Line-Following Robot} $|$ \href{https://github.com/FHL-08/UOM-ESP2022-Group25}{\textcolor{PrimaryColor}{\texttt{[GitHub]}}}}{Sep. 2022 -- Jul. 2023}
+          \resumeItemListStart
+            \resumeItem{Led a team of four to design a custom PCB and C++ STM32 control stack, achieving 100\% line-following accuracy and winning the ESP Innovative Features Prize.}
+          \resumeItemListEnd
+
+        \resumeProjectHeading
+          {\textbf{Swarmhack (1st Place)} $|$ \emph{Python, ROS, Multi-Agent Swarms}}{Nov. 2022}
+          \resumeItemListStart
+            \resumeItem{Designed and deployed a distributed algorithm achieving 100\% autonomous aggregation of randomly moving robots in an enclosed physical space.}
+          \resumeItemListEnd
+    \resumeSubHeadingListEnd
+
+%-----------TECHNICAL SKILLS-----------
+\section{Skills}
+  \resumeSkillListStart
+    \item \small{\textbf{Robotics \& Control}{: ROS/ROS2, Safety-Critical Control (CBFs, NCBFs), Linear/Nonlinear Systems, Robust/Adaptive/Optimal Control (PID, LQR, H-infinity, MPC), Stability Analysis.}}
+    \item \small{\textbf{Programming}{: Python, C/C++, TypeScript, MATLAB/Simulink, Node.js}}
+    \item \small{\textbf{Hardware Description Languages}{: SystemVerilog, VHDL, Verilog}}
+    \item \small{\textbf{Embedded Platforms}{: STM32, ESP32, ARM, Altera \& Xilinx FPGAs, Raspberry Pi}}
+    \item \small{\textbf{Robotic Platforms}{: KINOVA Gen3, Franka Emika Panda, Boston Dynamics SPOT, Quanser, SO-101 Arm}}
+  \resumeSkillListEnd
+
+%-------------------------------------------
+\end{document}

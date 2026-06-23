@@ -1,0 +1,34 @@
+/* tokens.css — HUD design system. Tune the whole look from here. */
+:root {
+  /* Space base */
+  --bg-void: #05070f;
+  --bg-deep: #080b18;
+  --bg-panel: rgba(12, 18, 34, 0.72);
+  --bg-panel-solid: #0b1120;
+
+  /* HUD accents */
+  --hud-cyan: #41e3ff;
+  --hud-cyan-dim: #1d6f80;
+  --hud-amber: #ffb648;
+  --hud-amber-dim: #7a5b22;
+  --hud-line: rgba(65, 227, 255, 0.28);
+  --hud-line-strong: rgba(65, 227, 255, 0.55);
+
+  /* Text */
+  --text-bright: #eaf6ff;
+  --text: #aebcd2;
+  --text-dim: #6c7d96;
+
+  /* Status */
+  --ok: #56e39f;
+  --warn: #ffb648;
+
+  /* Type — single monospace HUD family everywhere; hierarchy via colour/size/weight */
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", "Courier New", monospace;
+  --font-sans: var(--font-mono);
+
+  /* Geometry */
+  --radius: 4px;
+  --gap: 1rem;
+  --maxw: 1200px;
+}

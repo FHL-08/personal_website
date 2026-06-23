@@ -1,0 +1,15 @@
+portfolio_plan_v0.md
+Context and media/
+
+
+
+# --- build / node ---
+node_modules/
+dist/
+.astro/
+*.log
+.DS_Store
+
+# local backups
+*.tar.gz
+*.zip

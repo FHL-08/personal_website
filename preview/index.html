@@ -1,0 +1,929 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Faisal Lawan - Control Systems Researcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet"/>
+<style>/* tokens.css — HUD design system. Tune the whole look from here. */
+:root {
+  /* Space base */
+  --bg-void: #05070f;
+  --bg-deep: #080b18;
+  --bg-panel: rgba(12, 18, 34, 0.72);
+  --bg-panel-solid: #0b1120;
+
+  /* HUD accents */
+  --hud-cyan: #41e3ff;
+  --hud-cyan-dim: #1d6f80;
+  --hud-amber: #ffb648;
+  --hud-amber-dim: #7a5b22;
+  --hud-line: rgba(65, 227, 255, 0.28);
+  --hud-line-strong: rgba(65, 227, 255, 0.55);
+
+  /* Text */
+  --text-bright: #eaf6ff;
+  --text: #aebcd2;
+  --text-dim: #6c7d96;
+
+  /* Status */
+  --ok: #56e39f;
+  --warn: #ffb648;
+
+  /* Type — single monospace HUD family everywhere; hierarchy via colour/size/weight */
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", "Courier New", monospace;
+  --font-sans: var(--font-mono);
+
+  /* Geometry */
+  --radius: 4px;
+  --gap: 1rem;
+  --maxw: 1200px;
+}
+
+/* global.css — all-mono HUD type system, holographic frames, immersive scene. */
+
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 800px at 70% -10%, rgba(65,227,255,0.07), transparent 60%),
+    radial-gradient(900px 600px at 10% 110%, rgba(255,182,72,0.06), transparent 60%),
+    var(--bg-void);
+  color: var(--text); font-family: var(--font-mono);
+  font-size: 14.5px; line-height: 1.58; letter-spacing: 0.01em; -webkit-font-smoothing: antialiased;
+}
+a { color: var(--hud-cyan); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.wrap { max-width: var(--maxw); margin: 0 auto; padding: 3rem 1.25rem 6rem; }
+.dim { color: var(--text-dim); }
+
+/* ============================================================
+   Holographic frame — notched corners, masked cyan outline, scanlines
+   Applied to: beacon, telemetry, dossier, record cards
+   ============================================================ */
+.beacon, .telemetry, .dossier, .record {
+  --bk: 26px; --bw: 2px; position: relative; border: 0; border-radius: 0;
+  background: rgba(12,20,38,0.55); overflow: hidden;
+}
+.beacon, .telemetry, .dossier { -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+.beacon::before, .telemetry::before, .dossier::before, .record::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; transition: filter 0.2s;
+  background:
+    linear-gradient(var(--hud-cyan), var(--hud-cyan)) 0 0 / var(--bk) var(--bw) no-repeat,
+    linear-gradient(var(--hud-cyan), var(--hud-cyan)) 0 0 / var(--bw) var(--bk) no-repeat,
+    linear-gradient(var(--hud-cyan), var(--hud-cyan)) 100% 0 / var(--bk) var(--bw) no-repeat,
+    linear-gradient(var(--hud-cyan), var(--hud-cyan)) 100% 0 / var(--bw) var(--bk) no-repeat,
+    linear-gradient(var(--hud-cyan), var(--hud-cyan)) 0 100% / var(--bk) var(--bw) no-repeat,
+    linear-gradient(var(--hud-cyan), var(--hud-cyan)) 0 100% / var(--bw) var(--bk) no-repeat,
+    linear-gradient(var(--hud-cyan), var(--hud-cyan)) 100% 100% / var(--bk) var(--bw) no-repeat,
+    linear-gradient(var(--hud-cyan), var(--hud-cyan)) 100% 100% / var(--bw) var(--bk) no-repeat;
+}
+.beacon::after, .telemetry::after, .dossier::after, .record::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(65,227,255,0.045) 3px 4px);
+}
+
+/* ============================================================
+   Commander Profile — personnel dossier
+   ============================================================ */
+.dossier { padding: 1.6rem; margin: 0; }
+.dossier-head { display: grid; grid-template-columns: 132px 1fr; gap: 1.5rem; align-items: start; }
+.portrait { width: 132px; height: 132px; object-fit: cover; border: 1px solid var(--hud-line-strong);
+  filter: saturate(1.05) contrast(1.03); box-shadow: 0 0 0 1px rgba(65,227,255,0.15), 0 0 24px rgba(65,227,255,0.12); }
+.portrait-wrap { position: relative; width: 132px; }
+.portrait-wrap .scan { position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(5,7,15,0.18) 3px 4px); }
+.id-tag { color: var(--hud-cyan); letter-spacing: 0.22em; font-size: 0.72rem; }
+.dossier h1 { margin: 0.2rem 0 0.15rem; font-size: 1.85rem; font-weight: 800; color: var(--text-bright); letter-spacing: 0.04em; text-transform: uppercase; }
+.dossier .class { color: var(--hud-amber); font-size: 0.82rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.status-pill { display: inline-block; font-size: 0.6rem; vertical-align: middle; color: var(--ok);
+  border: 1px solid var(--ok); border-radius: 999px; padding: 0.12rem 0.55rem; margin-left: 0.6rem; letter-spacing: 0.16em; }
+.directive { margin-top: 0.8rem; font-size: 0.82rem; color: var(--text); border-left: 2px solid var(--hud-amber); padding-left: 0.7rem; }
+.directive::before { content: "DIRECTIVE // "; color: var(--hud-amber-dim); }
+.dossier-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1.25rem 2rem; margin-top: 1.4rem; }
+.dblock h4 { font-size: 0.68rem; letter-spacing: 0.18em; color: var(--hud-cyan); font-weight: 700; margin: 0 0 0.55rem; border-bottom: 1px solid var(--hud-line); padding-bottom: 0.3rem; }
+.fields { display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.8rem; font-size: 0.8rem; }
+.fields dt { color: var(--text-dim); font-size: 0.76rem; }
+.fields dd { margin: 0; color: var(--text-bright); }
+.skill { margin-bottom: 0.5rem; }
+.skill-row { display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 0.18rem; }
+.skill-row .lv { color: var(--hud-cyan); }
+.pips { display: flex; gap: 4px; }
+.pip { width: 100%; height: 6px; background: rgba(65,227,255,0.12); }
+.pip.on { background: var(--hud-cyan); box-shadow: 0 0 6px rgba(65,227,255,0.5); }
+.reclist { list-style: none; margin: 0; padding: 0; font-size: 0.82rem; }
+.reclist li { padding: 0.2rem 0 0.2rem 1rem; position: relative; }
+.reclist li::before { content: "\25B8"; position: absolute; left: 0; color: var(--hud-cyan); }
+.toolgroup { margin-bottom: 0.6rem; }
+.toolgroup .tlabel { font-size: 0.7rem; color: var(--text-dim); letter-spacing: 0.06em; }
+.toolgroup .titems { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.3rem; }
+.contacts { margin-top: 1.3rem; padding-top: 1rem; border-top: 1px solid var(--hud-line); display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.82rem; }
+.chip { font-size: 0.68rem; color: var(--hud-cyan); border: 1px solid var(--hud-line); border-radius: 999px; padding: 0.14rem 0.6rem; background: rgba(65,227,255,0.05); letter-spacing: 0.03em; }
+
+/* ===== Constellation sections ===== */
+.constellation { margin: 3rem 0 1rem; }
+.constellation > header { border-bottom: 1px solid var(--hud-line); padding-bottom: 0.55rem; margin-bottom: 1.25rem; }
+.constellation .sector { color: var(--hud-cyan-dim); letter-spacing: 0.24em; font-size: 0.66rem; }
+.constellation h2 { margin: 0.2rem 0 0.25rem; font-size: 1.45rem; font-weight: 800; color: var(--text-bright); letter-spacing: 0.08em; text-transform: uppercase; }
+.constellation .blurb { color: var(--text-dim); font-size: 0.82rem; }
+
+/* ===== Record cards ===== */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 1.1rem; }
+.record { padding: 1.1rem 1.2rem; transition: transform 0.2s; }
+.record:hover { transform: translateY(-3px); }
+.record:hover::before { filter: drop-shadow(0 0 5px rgba(65,227,255,0.6)); }
+.record .rtype { font-size: 0.64rem; color: var(--hud-amber); letter-spacing: 0.18em; }
+.record h3 { margin: 0.35rem 0 0.2rem; font-size: 1rem; font-weight: 700; color: var(--text-bright); line-height: 1.32; }
+.record .date { font-size: 0.72rem; color: var(--text-dim); letter-spacing: 0.04em; }
+.record .summary { font-size: 0.84rem; margin: 0.6rem 0; color: var(--text); }
+.badge { position: absolute; top: 0.85rem; right: 1.1rem; font-size: 0.58rem; font-weight: 700; color: var(--bg-void); background: var(--hud-amber); padding: 0.14rem 0.45rem; letter-spacing: 0.1em; z-index: 1; }
+.assets { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.65rem; }
+.asset { font-size: 0.7rem; padding: 0.22rem 0.6rem; border: 1px solid var(--hud-line); color: var(--hud-cyan); letter-spacing: 0.03em; }
+.asset:hover { border-color: var(--hud-line-strong); text-decoration: none; background: rgba(65,227,255,0.06); }
+.tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.55rem; }
+.tag { font-size: 0.66rem; color: var(--text-dim); }
+.tag::before { content: "// "; color: var(--hud-cyan-dim); }
+
+/* ===== Mission Log ===== */
+.missionlog { margin-top: 3.5rem; border-top: 1px solid var(--hud-line); padding-top: 1.5rem; }
+.missionlog .sector { color: var(--hud-cyan-dim); letter-spacing: 0.24em; font-size: 0.66rem; }
+.missionlog h2 { color: var(--text-bright); font-size: 1.45rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; margin: 0.2rem 0 1rem; }
+.logrow { display: grid; grid-template-columns: 70px 1fr; gap: 1rem; padding: 0.45rem 0; border-bottom: 1px dashed rgba(65,227,255,0.12); font-size: 0.86rem; }
+.logrow .yr { color: var(--hud-amber); }
+
+/* ============================================================
+   M1 — immersive HUD scene
+   ============================================================ */
+.scene { position: relative; min-height: 100vh; min-height: 100svh; overflow: hidden; isolation: isolate; --bob: 0px; --bobrot: 0deg; }
+#starfield { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
+.scene-grid { position: absolute; inset: 0; z-index: 0;
+  background-image: linear-gradient(rgba(65,227,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(65,227,255,0.05) 1px, transparent 1px);
+  background-size: 46px 46px;
+  -webkit-mask-image: radial-gradient(circle at 58% 44%, #000, transparent 80%);
+  mask-image: radial-gradient(circle at 58% 44%, #000, transparent 80%); }
+
+.reticle { position: absolute; left: 58%; top: 44%; transform: translate(-50%,-50%); width: min(40vw, 380px); height: min(40vw, 380px); z-index: 1; pointer-events: none; }
+.reticle svg { width: 100%; height: 100%; display: block; }
+.arc { transform-box: fill-box; transform-origin: center; }
+.arc1 { animation: spincw 46s linear infinite; }
+.arc2 { animation: spincw 26s linear infinite; }
+.arc3 { animation: spinccw 17s linear infinite; }
+.arc4 { animation: spincw 34s linear infinite; }
+.arc5 { animation: spincw 13s linear infinite; }
+.reticle.scanning .arc2, .reticle.scanning .arc3 { animation-duration: 7s; }
+@keyframes spincw { to { transform: rotate(360deg); } }
+@keyframes spinccw { to { transform: rotate(-360deg); } }
+
+.ship-rig { position: absolute; left: 58%; top: 44%; transform: translate(-50%,-50%); z-index: 2; }
+.ship { position: relative; width: min(30vw, 270px); transform: translateY(var(--bob)) rotate(var(--bobrot)); filter: drop-shadow(0 0 22px rgba(65,227,255,0.18)); }
+.ship-svg { width: 100%; height: auto; display: block; }
+@keyframes drift { 0%,100% { transform: translateY(-5px) rotate(-0.5deg); } 50% { transform: translateY(5px) rotate(0.5deg); } }
+.thruster { transform-box: fill-box; transform-origin: center; animation: thrust 1.6s ease-in-out infinite; }
+@keyframes thrust { 0%,100% { opacity: 0.55; transform: scaleX(0.85); } 50% { opacity: 1; transform: scaleX(1.15); } }
+.navlight { animation: blink 2.4s ease-in-out infinite; }
+.navlight.n2 { animation-delay: 0.6s; } .navlight.n3 { animation-delay: 1.2s; }
+@keyframes blink { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+.scene-links { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
+.scene-links .lnk { animation: dashflow 1s linear infinite; }
+@keyframes dashflow { to { stroke-dashoffset: -10; } }
+
+.beacon { position: absolute; left: 58%; top: 44%; transform: translate(calc(-100% - 40px), calc(-100% - 26px)) translateY(var(--bob)); width: min(38vw, 168px); z-index: 4; cursor: pointer; text-align: left;
+  font-family: var(--font-mono); color: var(--text); padding: 0.8rem 1.1rem;
+  box-shadow: 0 0 30px rgba(65,227,255,0.10); transition: transform 0.25s, box-shadow 0.25s; }
+.beacon:hover, .beacon:focus-visible { box-shadow: 0 0 44px rgba(65,227,255,0.30); outline: none; }
+.beacon:hover::before, .beacon:focus-visible::before { filter: drop-shadow(0 0 6px rgba(65,227,255,0.7)); }
+.beacon-line { display: block; }
+.beacon .code { color: var(--hud-cyan); font-size: 0.6rem; letter-spacing: 0.3em; }
+.beacon .name { color: var(--text-bright); font-size: 1.05rem; font-weight: 800; letter-spacing: 0.06em; margin: 0.12rem 0; }
+.beacon .role { color: var(--hud-amber); font-size: 0.62rem; letter-spacing: 0.12em; }
+.beacon .status { color: var(--ok); font-size: 0.58rem; letter-spacing: 0.14em; margin-top: 0.32rem; }
+.beacon .status i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); margin-right: 5px; box-shadow: 0 0 6px var(--ok); animation: blink 1.8s ease-in-out infinite; }
+.beacon-hint { display: block; margin-top: 0.45rem; color: var(--hud-cyan); font-size: 0.56rem; letter-spacing: 0.16em; opacity: 0.75; }
+
+.telemetry { position: absolute; left: 58%; top: 44%; transform: translate(46px, 22px) translateY(var(--bob)); width: min(32vw, 132px); z-index: 4; padding: 0.7rem 0.9rem; color: var(--text); transition: box-shadow 0.25s; }
+.telemetry:hover { box-shadow: 0 0 40px rgba(65,227,255,0.28); }
+.telemetry:hover::before { filter: drop-shadow(0 0 6px rgba(65,227,255,0.7)); }
+/* scanning sweep — on every card frame */
+.sweep { position: absolute; left: 0; right: 0; height: 42%; top: -45%; pointer-events: none; background: linear-gradient(180deg, transparent, rgba(65,227,255,0.14), transparent); animation: sweepdown 3.6s ease-in-out infinite; }
+.record:nth-child(2n) .sweep { animation-delay: 1.2s; }
+.record:nth-child(3n) .sweep { animation-delay: 2.1s; }
+.record:nth-child(4n) .sweep { animation-delay: 0.7s; }
+@keyframes sweepdown { 0% { top: -45%; opacity: 0; } 12% { opacity: 1; } 66% { top: 114%; opacity: 1; } 68%, 100% { top: 114%; opacity: 0; } }
+.telemetry h5 { margin: 0 0 0.5rem; font-size: 0.62rem; letter-spacing: 0.2em; color: var(--hud-cyan); font-weight: 700; border-bottom: 1px solid var(--hud-line); padding-bottom: 0.3rem; }
+.telemetry .row { display: flex; justify-content: space-between; font-size: 0.7rem; margin-top: 0.25rem; }
+.telemetry .row span:last-child { color: var(--hud-cyan); }
+.telemetry .hashbar { height: 8px; margin-top: 0.55rem; opacity: 0.55; background: repeating-linear-gradient(115deg, var(--hud-cyan) 0 2px, transparent 2px 6px); }
+
+.scene-hud { position: absolute; inset: 1.1rem 1.4rem; z-index: 5; pointer-events: none; display: flex; justify-content: space-between; align-items: flex-start; }
+.scene-hud div { color: var(--text-dim); font-size: 0.62rem; letter-spacing: 0.24em; }
+.scene-hud .hud-tr { text-align: right; color: var(--hud-cyan-dim); }
+.hud-corner { position: absolute; width: 18px; height: 18px; border: 2px solid var(--hud-cyan); opacity: 0.8; z-index: 5; pointer-events: none; }
+.hud-corner.tl { top: 14px; left: 14px; border-right: 0; border-bottom: 0; }
+.hud-corner.tr { top: 14px; right: 14px; border-left: 0; border-bottom: 0; }
+.hud-corner.bl { bottom: 14px; left: 14px; border-right: 0; border-top: 0; }
+.hud-corner.br { bottom: 14px; right: 14px; border-left: 0; border-top: 0; }
+
+.enter-archive { position: absolute; bottom: 1.4rem; left: 50%; transform: translateX(-50%); z-index: 5; cursor: pointer;
+  color: var(--hud-cyan); font-size: 0.64rem; letter-spacing: 0.22em; background: none; border: none; font-family: var(--font-mono); animation: bobhint 2s ease-in-out infinite; }
+@keyframes bobhint { 0%,100% { transform: translate(-50%,0); opacity: 0.7; } 50% { transform: translate(-50%,5px); opacity: 1; } }
+
+/* ===== Commander Profile overlay ===== */
+.profile-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-start; justify-content: center; padding: 4vh 1rem; overflow: auto;
+  background: rgba(3,5,12,0.74); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); opacity: 0; visibility: hidden; transition: opacity 0.25s; }
+.profile-overlay.open { opacity: 1; visibility: visible; }
+.profile-panel { position: relative; width: 100%; max-width: var(--maxw); }
+.profile-close { position: sticky; top: 0; float: right; margin-bottom: 0.5rem; z-index: 2; cursor: pointer; font-family: var(--font-mono);
+  font-size: 0.64rem; letter-spacing: 0.16em; color: var(--hud-cyan); background: var(--bg-panel-solid); border: 1px solid var(--hud-line); padding: 0.4rem 0.75rem; }
+.profile-close:hover { border-color: var(--hud-line-strong); }
+
+@media (max-width: 640px) {
+  .dossier-head { grid-template-columns: 1fr; }
+  .beacon { left: 5%; top: 12%; transform: none; }
+  .telemetry { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .record, .beacon { transition: none; }
+  .ship, .thruster, .navlight, .enter-archive, .beacon .status i,
+  .arc1, .arc2, .arc3, .arc4, .arc5, .scene-links .lnk, .sweep, .telemetry::before { animation: none !important; } .sweep { display: none; }
+  .pip.on { box-shadow: none; }
+}
+
+/* ============================================================
+   M2 — constellation star map
+   ============================================================ */
+#starmap { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none;
+  transform-origin: 0 0; transition: transform 0.8s cubic-bezier(.22,.61,.36,1); }
+.sm-hit { fill: #000; fill-opacity: 0; pointer-events: all; cursor: pointer; }
+.sm-rr { transform-box: fill-box; transform-origin: center; animation: smspin 24s linear infinite; }
+.sm-rr.b { animation-duration: 16s; animation-direction: reverse; } .sm-rr.c { animation-duration: 34s; }
+@keyframes smspin { to { transform: rotate(360deg); } }
+.sm-ring { stroke: var(--hud-cyan); fill: none; stroke-opacity: 0.16; transition: stroke-opacity 0.35s; }
+.sm-con.on .sm-ring { stroke-opacity: 0.6; }
+.sm-reticle { transition: filter 0.35s; }
+.sm-con.on .sm-reticle { filter: drop-shadow(0 0 5px rgba(65,227,255,0.55)); }
+.sm-edgeGlow { stroke: #7fa8ff; stroke-opacity: 0.12; fill: none; transition: stroke-opacity 0.35s; }
+.sm-edgeCore { stroke: #dbe8ff; stroke-opacity: 0.5; fill: none; transition: stroke-opacity 0.35s; }
+.sm-con.on .sm-edgeGlow { stroke-opacity: 0.3; } .sm-con.on .sm-edgeCore { stroke-opacity: 0.95; }
+
+#sm-fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; }
+
+#sm-cursor { position: absolute; width: 48px; height: 48px; left: 0; top: 0; transform: translate(-50%,-50%);
+  pointer-events: none; z-index: 40; opacity: 0; transition: opacity 0.2s, width 0.2s, height 0.2s; filter: drop-shadow(0 0 4px rgba(5,8,16,0.9)); }
+.scene.sm-focus #sm-cursor { opacity: 1; }
+#sm-cursor.lock { width: 72px; height: 72px; }
+#sm-cursor .r1, #sm-cursor .r2 { position: absolute; inset: 0; border-radius: 50%; border: 1.5px dashed #6ff0ff; opacity: 0.95; animation: smspin 7s linear infinite; }
+#sm-cursor .r2 { inset: 8px; border-style: dotted; opacity: 0.7; animation: smspin 4.5s linear infinite reverse; }
+#sm-cursor.lock .r1 { animation-duration: 2.6s; } #sm-cursor.lock .r2 { animation-duration: 1.8s; }
+#sm-cursor .cx, #sm-cursor .cy { position: absolute; background: #6ff0ff; }
+#sm-cursor .cx { left: 50%; top: -8px; width: 1px; height: 12px; transform: translateX(-50%); }
+#sm-cursor .cy { top: 50%; left: -8px; height: 1px; width: 12px; transform: translateY(-50%); }
+
+.scene.sm-focus { cursor: none; }
+.scene.sm-focus .ship-rig, .scene.sm-focus .beacon, .scene.sm-focus .telemetry, .scene.sm-focus .reticle,
+.scene.sm-focus .scene-links, .scene.sm-focus .enter-archive,
+.scene.sm-star .ship-rig, .scene.sm-star .beacon, .scene.sm-star .telemetry, .scene.sm-star .reticle,
+.scene.sm-star .scene-links, .scene.sm-star .enter-archive {
+  opacity: 0 !important; pointer-events: none; transition: opacity 0.5s;
+}
+
+/* name cards (constellation + star) */
+.con-name, .star-name { position: absolute; pointer-events: none; opacity: 0; transition: opacity 0.25s; z-index: 9;
+  background: rgba(12,20,38,0.94); padding: 7px 11px; }
+.con-name.show, .star-name.show { opacity: 1; }
+.con-name::before, .star-name::before { content: ""; position: absolute; inset: 0;
+  background: linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/16px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/2px 16px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/16px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/2px 16px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/16px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/2px 16px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/16px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/2px 16px no-repeat; }
+.con-name .t, .star-name .t { color: var(--text-bright); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.06em; }
+.con-name .y, .star-name .y { color: var(--hud-amber); font-size: 0.56rem; letter-spacing: 0.16em; }
+
+/* Data Record overlay (star view) */
+#record-overlay { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 4%; opacity: 0; visibility: hidden; transition: opacity 0.35s; }
+#record-overlay.show { opacity: 1; visibility: visible; }
+.record-panel { position: relative; width: min(460px, 44%); max-height: 86%; overflow: auto; padding: 24px 26px;
+  background: rgba(12,20,38,0.95); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.record-panel::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/30px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/2px 30px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/30px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/2px 30px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/30px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/2px 30px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/30px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/2px 30px no-repeat; }
+.record-close { position: sticky; top: 0; float: right; cursor: pointer; font-family: var(--font-mono); font-size: 0.62rem;
+  letter-spacing: 0.14em; color: var(--hud-cyan); background: var(--bg-panel-solid); border: 1px solid var(--hud-line); padding: 0.3rem 0.6rem; }
+.rec-badge { display: inline-block; font-size: 0.56rem; font-weight: 700; color: var(--bg-void); background: var(--hud-amber); padding: 0.12rem 0.4rem; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+.rec-type { color: var(--hud-amber); font-size: 0.62rem; letter-spacing: 0.18em; }
+.rec-title { margin: 0.3rem 0 0.2rem; font-size: 1.2rem; font-weight: 800; color: var(--text-bright); line-height: 1.25; }
+.rec-date { font-size: 0.7rem; color: var(--text-dim); letter-spacing: 0.04em; margin-bottom: 0.6rem; }
+.rec-p { font-size: 0.82rem; color: var(--text); margin: 0.5rem 0; line-height: 1.55; }
+.rec-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.6rem; }
+.rec-assets { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.8rem; }
+.rec-media { margin-top: 1rem; height: 64px; border: 1px dashed var(--hud-line); display: flex; align-items: center; justify-content: center;
+  color: var(--text-dim); font-size: 0.6rem; letter-spacing: 0.16em; }
+
+/* mobile / no-hover fallback: hide the map, show the record cards */
+.sm-fallback { display: none; }
+.scene.sm-off #starmap, .scene.sm-off #sm-fx, .scene.sm-off #sm-cursor { display: none; }
+@media (hover: none), (max-width: 720px) {
+  #starmap, #sm-fx, #sm-cursor, #record-overlay, .con-name, .star-name { display: none !important; }
+  .sm-fallback { display: block; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #starmap { transition: none; }
+  .sm-rr, #sm-cursor .r1, #sm-cursor .r2 { animation: none !important; }
+}
+
+.reticle { pointer-events: none; }
+
+/* ===== M2.1 — reticle hover glow, star profile card, mission-log overlay ===== */
+.reticle svg { transition: filter 0.35s; }
+.reticle.hot svg { filter: drop-shadow(0 0 8px rgba(65,227,255,0.55)); }
+.reticle.hot .arc2, .reticle.hot .arc5 { stroke-opacity: 0.62; }
+
+/* bigger "stellar profile" data record */
+.record-panel { width: min(540px, 46%); padding: 26px 30px; }
+.rec-eyebrow { color: var(--hud-cyan); font-size: 0.6rem; letter-spacing: 0.24em; margin-bottom: 0.5rem; }
+.rec-title { font-size: 1.35rem; }
+.rec-p { font-size: 0.86rem; }
+
+/* mission-log launcher (was telemetry) */
+.telemetry { cursor: pointer; }
+.mlog-hint { display: block; margin-top: 0.5rem; color: var(--hud-cyan); font-size: 0.56rem; letter-spacing: 0.16em; opacity: 0.78; }
+
+/* mission-log overlay */
+#missionlog-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 5vh 1rem; overflow: auto;
+  background: rgba(3,5,12,0.74); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); opacity: 0; visibility: hidden; transition: opacity 0.25s; }
+#missionlog-overlay.open { opacity: 1; visibility: visible; }
+.mlog-card { position: relative; width: min(660px, 94%); max-height: 84%; overflow: auto; padding: 26px 30px; background: rgba(12,20,38,0.96);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.mlog-card::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/30px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/2px 30px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/30px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/2px 30px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/30px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/2px 30px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/30px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/2px 30px no-repeat; }
+.mlog-close { position: sticky; top: 0; float: right; cursor: pointer; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.14em;
+  color: var(--hud-cyan); background: var(--bg-panel-solid); border: 1px solid var(--hud-line); padding: 0.3rem 0.6rem; }
+.mlog-card .id-tag { color: var(--hud-cyan); letter-spacing: 0.22em; font-size: 0.66rem; }
+.mlog-title { margin: 0.3rem 0 1rem; font-size: 1.5rem; font-weight: 800; color: var(--text-bright); letter-spacing: 0.06em; text-transform: uppercase; }
+.mlog-row { display: grid; grid-template-columns: 78px 1fr; gap: 1rem; padding: 0.55rem 0; border-bottom: 1px dashed rgba(65,227,255,0.14); font-size: 0.86rem; }
+.mlog-row .yr { color: var(--hud-amber); }
+.mlog-row .ev { color: var(--text); }
+.mlog-row .ev::before { content: "▸ "; color: var(--hud-cyan-dim); }
+
+/* ===== M2.3 — holographic transparent cards + scanlines (record / names / mlog) ===== */
+.record-panel, .mlog-card {
+  background:
+    repeating-linear-gradient(0deg, transparent 0 3px, rgba(65,227,255,0.05) 3px 4px),
+    rgba(12,20,38,0.62);
+}
+.con-name, .star-name {
+  overflow: hidden;
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  background:
+    repeating-linear-gradient(0deg, transparent 0 3px, rgba(65,227,255,0.06) 3px 4px),
+    rgba(12,20,38,0.68);
+}
+
+/* ===== M2.4 — free pan/zoom map; no scroll archive on desktop ===== */
+main.wrap { display: none; }
+#starmap { transition: none; }
+#starmap.sm-anim { transition: transform 0.8s cubic-bezier(.22,.61,.36,1); }
+.scene { cursor: grab; }
+.scene.sm-grab { cursor: grabbing; }
+.scene.sm-focus { cursor: none; }
+.scene.sm-star { cursor: default; }
+@media (hover: none), (max-width: 720px) {
+  main.wrap { display: block; }
+  .scene { cursor: auto; }
+}
+
+/* ===== M2.5 — world layer: ship + cockpit pan/zoom together with the map ===== */
+.world { position: absolute; inset: 0; transform-origin: 0 0; z-index: 1; will-change: transform; }
+.world.sm-anim { transition: transform 0.8s cubic-bezier(.22,.61,.36,1); }
+
+/* ===== M2.6 — kill sweep-induced scrollbar flicker on record / mlog cards ===== */
+.record-panel { display: flex; flex-direction: column; overflow: hidden; }
+.record-close { position: static; float: none; align-self: flex-end; margin-bottom: 8px; }
+#record-body { overflow-y: auto; overflow-x: hidden; min-height: 0; }
+.mlog-card { overflow: hidden; }
+
+/* ===== M3 — media gallery (thumbnail strip) + holographic lightbox ===== */
+.rec-media-wrap { margin-top: 1rem; }
+.media-head { font-size: 0.6rem; letter-spacing: 0.2em; color: var(--hud-cyan); margin-bottom: 0.55rem; }
+.media-strip { display: flex; flex-wrap: wrap; gap: 8px; }
+.media-thumb { position: relative; width: 94px; height: 66px; padding: 0; border: 0; cursor: pointer; overflow: hidden;
+  background: rgba(12,20,38,0.6); outline: 1px solid var(--hud-line); transition: outline-color 0.2s, box-shadow 0.2s; }
+.media-thumb img, .media-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.media-thumb::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/10px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/2px 10px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/10px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/2px 10px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/10px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/2px 10px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/10px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/2px 10px no-repeat; }
+.media-thumb:hover { outline-color: var(--hud-line-strong); box-shadow: 0 0 14px rgba(65,227,255,0.35); }
+.media-thumb.is-video::before { content: "VIDEO"; position: absolute; left: 4px; top: 4px; z-index: 1; font-size: 0.5rem; letter-spacing: 0.12em;
+  color: var(--hud-cyan); background: rgba(5,8,16,0.72); padding: 1px 4px; pointer-events: none; }
+.media-badge { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(5,8,16,0.55);
+  border: 1px solid var(--hud-cyan); color: var(--hud-cyan); font-size: 0.66rem; padding-left: 2px; pointer-events: none; }
+
+#media-lightbox { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  padding: 4vh 4vw; background: rgba(2,4,10,0.86); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  opacity: 0; visibility: hidden; transition: opacity 0.25s; }
+#media-lightbox.open { opacity: 1; visibility: visible; }
+.ml-stage { position: relative; display: flex; flex-direction: column; align-items: center; max-width: 88vw; max-height: 88vh; }
+.ml-frame { position: relative; padding: 10px; background: rgba(10,16,30,0.7); }
+.ml-frame::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/26px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 0/2px 26px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/26px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 0/2px 26px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/26px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 0 100%/2px 26px no-repeat,
+    linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/26px 2px no-repeat, linear-gradient(var(--hud-cyan),var(--hud-cyan)) 100% 100%/2px 26px no-repeat; }
+.ml-frame img, .ml-frame video { display: block; max-width: 84vw; max-height: 76vh; width: auto; height: auto; }
+.ml-cap { margin-top: 0.6rem; font-size: 0.72rem; letter-spacing: 0.05em; color: var(--text); text-align: center; max-width: 72ch; }
+.ml-cap .ix { color: var(--hud-cyan-dim); margin-right: 0.6rem; }
+.ml-close { position: absolute; top: 2.2vh; right: 2.4vw; z-index: 2; cursor: pointer; font-family: var(--font-mono);
+  font-size: 0.64rem; letter-spacing: 0.14em; color: var(--hud-cyan); background: rgba(5,8,16,0.7); border: 1px solid var(--hud-line); padding: 0.35rem 0.7rem; }
+.ml-nav { cursor: pointer; font-family: var(--font-mono); font-size: 1.7rem; line-height: 1; color: var(--hud-cyan);
+  background: rgba(5,8,16,0.5); border: 1px solid var(--hud-line); width: 46px; height: 70px; flex: none; transition: background 0.2s, border-color 0.2s; }
+.ml-nav:hover, .ml-close:hover { background: rgba(65,227,255,0.12); border-color: var(--hud-line-strong); }
+@media (hover: none), (max-width: 720px) { #media-lightbox { display: none !important; } }
+
+/* ===== M3.1 — holographic screen overlay on media + PDF viewer ===== */
+.holo-scan { position: absolute; inset: 0; pointer-events: none; z-index: 1; mix-blend-mode: screen;
+  background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(65,227,255,0.06) 2px 3px),
+    linear-gradient(180deg, rgba(65,227,255,0.05), transparent 45%); }
+.media-badge { z-index: 2; }
+.media-thumb.is-pdf::before { content: "PDF"; position: absolute; left: 4px; top: 4px; z-index: 2; font-size: 0.5rem;
+  letter-spacing: 0.12em; color: var(--hud-cyan); background: rgba(5,8,16,0.72); padding: 1px 4px; pointer-events: none; }
+.media-thumb.is-pdf img { object-position: top; }
+.ml-frame .holo-scan { z-index: 2; }
+.ml-frame iframe.ml-pdf { width: min(860px, 84vw); height: 80vh; border: 0; background: #fff; display: block; }
+
+/* ===== M3.2 — stronger holographic scanlines for PDFs (visible on white pages) ===== */
+.holo-scan.pdf, .media-thumb.is-pdf .holo-scan {
+  mix-blend-mode: normal;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 2px, rgba(18,58,72,0.13) 2px 3px),
+    linear-gradient(180deg, rgba(65,227,255,0.08), transparent 55%);
+}
+
+
+
+/* ===== M4 — compact cockpit cards (fit-view) ===== */
+.beacon { padding: 0.6rem 0.8rem; }
+.beacon .name { font-size: 0.92rem; }
+.beacon .code { font-size: 0.54rem; }
+.beacon .role { font-size: 0.56rem; }
+.beacon .status { font-size: 0.54rem; }
+.beacon-hint { font-size: 0.52rem; margin-top: 0.35rem; }
+.telemetry { padding: 0.55rem 0.7rem; }
+.telemetry h5 { font-size: 0.56rem; }
+.telemetry .row { font-size: 0.62rem; }
+.mlog-hint { font-size: 0.5rem; }
+
+/* ===== M4 — stellar record: bigger, larger type, closer to the star ===== */
+#record-overlay { padding-right: 6%; }
+.record-panel { width: min(660px, 52%); padding: 30px 34px; }
+.rec-eyebrow { font-size: 0.66rem; }
+.rec-type { font-size: 0.68rem; }
+.rec-title { font-size: 1.5rem; line-height: 1.22; }
+.rec-date { font-size: 0.76rem; }
+.rec-p { font-size: 0.95rem; line-height: 1.62; }
+.rec-tags .tag { font-size: 0.72rem; }
+.rec-assets .asset { font-size: 0.74rem; }
+.media-head { font-size: 0.64rem; }
+
+/* ===== M4 — boot reveal (first paint) ===== */
+.boot-veil { position: fixed; inset: 0; z-index: 90; background: var(--bg-void); pointer-events: none;
+  animation: bootFade 0.7s ease-out both; }
+.boot-veil::after { content: ""; position: absolute; left: 0; right: 0; height: 2px; top: 0;
+  background: linear-gradient(90deg, transparent, rgba(65,227,255,0.9) 50%, transparent);
+  box-shadow: 0 0 12px rgba(65,227,255,0.6); animation: bootScan 0.7s ease-out both; }
+@keyframes bootFade { 0% { opacity: 1; } 32% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+@keyframes bootScan { 0% { top: 0; opacity: 0; } 14% { opacity: 0.95; } 100% { top: 100%; opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .boot-veil { display: none; } }
+</style>
+</head><body>
+<div class="boot-veil" aria-hidden="true"></div>
+
+  <section class="scene" id="scene">
+    <canvas id="starfield"></canvas>
+    <div class="scene-grid"></div>
+    <div class="world" id="world">
+    <svg id="starmap" viewBox="0 -170 2400 1840" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><defs><radialGradient id="smGlow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="20%" stop-color="#dbe8ff" stop-opacity="0.7"/><stop offset="48%" stop-color="#8fb2ff" stop-opacity="0.34"/><stop offset="100%" stop-color="#5a82ff" stop-opacity="0"/></radialGradient><radialGradient id="smSpark" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffffff"/><stop offset="60%" stop-color="#eaf2ff" stop-opacity="0.95"/><stop offset="100%" stop-color="#a7c2ff" stop-opacity="0.75"/></radialGradient><radialGradient id="smFront" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/><stop offset="45%" stop-color="#eaf2ff" stop-opacity="0.35"/><stop offset="100%" stop-color="#cfe0ff" stop-opacity="0"/></radialGradient></defs><g class="sm-con" data-id="research" data-cx="2210" data-cy="250" data-r="102"><circle class="sm-hit" cx="2210" cy="250" r="102"/><g class="sm-reticle"><g class="sm-rr"><circle class="sm-ring" cx="2210" cy="250" r="102" stroke-width="1.5" stroke-dasharray="40 16 8 16"/></g><g class="sm-rr b"><circle class="sm-ring" cx="2210" cy="250" r="90" stroke-width="3" stroke-dasharray="70 240"/></g><g class="sm-rr c"><circle class="sm-ring" cx="2210" cy="250" r="78" stroke-width="1" stroke-dasharray="2 8"/></g></g><line class="sm-edgeGlow" x1="2210" y1="244" x2="2268" y2="212" stroke-width="4"/><line class="sm-edgeCore" x1="2210" y1="244" x2="2268" y2="212" stroke-width="1.1"/><line class="sm-edgeGlow" x1="2210" y1="244" x2="2250" y2="300" stroke-width="4"/><line class="sm-edgeCore" x1="2210" y1="244" x2="2250" y2="300" stroke-width="1.1"/><g class="sm-star" data-rid="formation-control-mpc" data-x="2210" data-y="244" data-mag="1.7"><circle cx="2210" cy="244" r="22.1" fill="url(#smGlow)" opacity="0.85"/><path d="M2210.0 237.9 L2211.6 242.4 L2216.1 244.0 L2211.6 245.6 L2210.0 250.1 L2208.4 245.6 L2203.9 244.0 L2208.4 242.4 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 2210 244)"/><path d="M2210.0 233.8 L2212.0 242.0 L2220.2 244.0 L2212.0 246.0 L2210.0 254.2 L2208.0 246.0 L2199.8 244.0 L2208.0 242.0 Z" fill="url(#smSpark)"/><circle cx="2210" cy="244" r="1.5" fill="#ffffff"/><circle cx="2210" cy="244" r="10.2" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="safe-impedance-control" data-x="2268" data-y="212" data-mag="1.3"><circle cx="2268" cy="212" r="16.9" fill="url(#smGlow)" opacity="0.85"/><path d="M2268.0 207.3 L2269.3 210.7 L2272.7 212.0 L2269.3 213.3 L2268.0 216.7 L2266.7 213.3 L2263.3 212.0 L2266.7 210.7 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 2268 212)"/><path d="M2268.0 204.2 L2269.6 210.4 L2275.8 212.0 L2269.6 213.6 L2268.0 219.8 L2266.4 213.6 L2260.2 212.0 L2266.4 210.4 Z" fill="url(#smSpark)"/><circle cx="2268" cy="212" r="1.2" fill="#ffffff"/><circle cx="2268" cy="212" r="7.8" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="high-order-safety-filters" data-x="2250" data-y="300" data-mag="1.3"><circle cx="2250" cy="300" r="16.9" fill="url(#smGlow)" opacity="0.85"/><path d="M2250.0 295.3 L2251.3 298.7 L2254.7 300.0 L2251.3 301.3 L2250.0 304.7 L2248.7 301.3 L2245.3 300.0 L2248.7 298.7 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 2250 300)"/><path d="M2250.0 292.2 L2251.6 298.4 L2257.8 300.0 L2251.6 301.6 L2250.0 307.8 L2248.4 301.6 L2242.2 300.0 L2248.4 298.4 Z" fill="url(#smSpark)"/><circle cx="2250" cy="300" r="1.2" fill="#ffffff"/><circle cx="2250" cy="300" r="7.8" fill="url(#smFront)" opacity="0.6"/></g></g><g class="sm-con" data-id="projects" data-cx="440" data-cy="405" data-r="132"><circle class="sm-hit" cx="440" cy="405" r="132"/><g class="sm-reticle"><g class="sm-rr"><circle class="sm-ring" cx="440" cy="405" r="132" stroke-width="1.5" stroke-dasharray="40 16 8 16"/></g><g class="sm-rr b"><circle class="sm-ring" cx="440" cy="405" r="120" stroke-width="3" stroke-dasharray="70 240"/></g><g class="sm-rr c"><circle class="sm-ring" cx="440" cy="405" r="108" stroke-width="1" stroke-dasharray="2 8"/></g></g><line class="sm-edgeGlow" x1="440" y1="393" x2="366" y2="359" stroke-width="4"/><line class="sm-edgeCore" x1="440" y1="393" x2="366" y2="359" stroke-width="1.1"/><line class="sm-edgeGlow" x1="440" y1="393" x2="356" y2="449" stroke-width="4"/><line class="sm-edgeCore" x1="440" y1="393" x2="356" y2="449" stroke-width="1.1"/><line class="sm-edgeGlow" x1="440" y1="393" x2="516" y2="359" stroke-width="4"/><line class="sm-edgeCore" x1="440" y1="393" x2="516" y2="359" stroke-width="1.1"/><line class="sm-edgeGlow" x1="440" y1="393" x2="510" y2="457" stroke-width="4"/><line class="sm-edgeCore" x1="440" y1="393" x2="510" y2="457" stroke-width="1.1"/><g class="sm-star" data-rid="tessellate" data-x="440" data-y="393" data-mag="2.2"><circle cx="440" cy="393" r="28.6" fill="url(#smGlow)" opacity="0.85"/><path d="M440.0 385.1 L442.1 390.9 L447.9 393.0 L442.1 395.1 L440.0 400.9 L437.9 395.1 L432.1 393.0 L437.9 390.9 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 440 393)"/><path d="M440.0 379.8 L442.6 390.4 L453.2 393.0 L442.6 395.6 L440.0 406.2 L437.4 395.6 L426.8 393.0 L437.4 390.4 Z" fill="url(#smSpark)"/><circle cx="440" cy="393" r="2.0" fill="#ffffff"/><circle cx="440" cy="393" r="13.2" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="double-inverted-pendulum" data-x="366" data-y="359" data-mag="1.5"><circle cx="366" cy="359" r="19.5" fill="url(#smGlow)" opacity="0.85"/><path d="M366.0 353.6 L367.4 357.6 L371.4 359.0 L367.4 360.4 L366.0 364.4 L364.6 360.4 L360.6 359.0 L364.6 357.6 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 366 359)"/><path d="M366.0 350.0 L367.8 357.2 L375.0 359.0 L367.8 360.8 L366.0 368.0 L364.2 360.8 L357.0 359.0 L364.2 357.2 Z" fill="url(#smSpark)"/><circle cx="366" cy="359" r="1.4" fill="#ffffff"/><circle cx="366" cy="359" r="9.0" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="line-following-robot" data-x="356" data-y="449" data-mag="1.4"><circle cx="356" cy="449" r="18.2" fill="url(#smGlow)" opacity="0.85"/><path d="M356.0 444.0 L357.3 447.7 L361.0 449.0 L357.3 450.3 L356.0 454.0 L354.7 450.3 L351.0 449.0 L354.7 447.7 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 356 449)"/><path d="M356.0 440.6 L357.7 447.3 L364.4 449.0 L357.7 450.7 L356.0 457.4 L354.3 450.7 L347.6 449.0 L354.3 447.3 Z" fill="url(#smSpark)"/><circle cx="356" cy="449" r="1.3" fill="#ffffff"/><circle cx="356" cy="449" r="8.4" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="maze-solving-buggy" data-x="516" data-y="359" data-mag="1.6"><circle cx="516" cy="359" r="20.8" fill="url(#smGlow)" opacity="0.85"/><path d="M516.0 353.2 L517.5 357.5 L521.8 359.0 L517.5 360.5 L516.0 364.8 L514.5 360.5 L510.2 359.0 L514.5 357.5 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 516 359)"/><path d="M516.0 349.4 L517.9 357.1 L525.6 359.0 L517.9 360.9 L516.0 368.6 L514.1 360.9 L506.4 359.0 L514.1 357.1 Z" fill="url(#smSpark)"/><circle cx="516" cy="359" r="1.4" fill="#ffffff"/><circle cx="516" cy="359" r="9.6" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="robotic-poker" data-x="510" data-y="457" data-mag="1.5"><circle cx="510" cy="457" r="19.5" fill="url(#smGlow)" opacity="0.85"/><path d="M510.0 451.6 L511.4 455.6 L515.4 457.0 L511.4 458.4 L510.0 462.4 L508.6 458.4 L504.6 457.0 L508.6 455.6 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 510 457)"/><path d="M510.0 448.0 L511.8 455.2 L519.0 457.0 L511.8 458.8 L510.0 466.0 L508.2 458.8 L501.0 457.0 L508.2 455.2 Z" fill="url(#smSpark)"/><circle cx="510" cy="457" r="1.4" fill="#ffffff"/><circle cx="510" cy="457" r="9.0" fill="url(#smFront)" opacity="0.6"/></g></g><g class="sm-con" data-id="hackathons" data-cx="360" data-cy="1185" data-r="138"><circle class="sm-hit" cx="360" cy="1185" r="138"/><g class="sm-reticle"><g class="sm-rr"><circle class="sm-ring" cx="360" cy="1185" r="138" stroke-width="1.5" stroke-dasharray="40 16 8 16"/></g><g class="sm-rr b"><circle class="sm-ring" cx="360" cy="1185" r="126" stroke-width="3" stroke-dasharray="70 240"/></g><g class="sm-rr c"><circle class="sm-ring" cx="360" cy="1185" r="114" stroke-width="1" stroke-dasharray="2 8"/></g></g><line class="sm-edgeGlow" x1="360" y1="1185" x2="428" y2="1151" stroke-width="4"/><line class="sm-edgeCore" x1="360" y1="1185" x2="428" y2="1151" stroke-width="1.1"/><line class="sm-edgeGlow" x1="428" y1="1151" x2="462" y2="1209" stroke-width="4"/><line class="sm-edgeCore" x1="428" y1="1151" x2="462" y2="1209" stroke-width="1.1"/><line class="sm-edgeGlow" x1="360" y1="1185" x2="394" y2="1249" stroke-width="4"/><line class="sm-edgeCore" x1="360" y1="1185" x2="394" y2="1249" stroke-width="1.1"/><line class="sm-edgeGlow" x1="360" y1="1185" x2="298" y2="1227" stroke-width="4"/><line class="sm-edgeCore" x1="360" y1="1185" x2="298" y2="1227" stroke-width="1.1"/><line class="sm-edgeGlow" x1="298" y1="1227" x2="280" y2="1155" stroke-width="4"/><line class="sm-edgeCore" x1="298" y1="1227" x2="280" y2="1155" stroke-width="1.1"/><g class="sm-star" data-rid="quanser-hackathon" data-x="360" data-y="1185" data-mag="1.8"><circle cx="360" cy="1185" r="23.4" fill="url(#smGlow)" opacity="0.85"/><path d="M360.0 1178.5 L361.7 1183.3 L366.5 1185.0 L361.7 1186.7 L360.0 1191.5 L358.3 1186.7 L353.5 1185.0 L358.3 1183.3 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 360 1185)"/><path d="M360.0 1174.2 L362.2 1182.8 L370.8 1185.0 L362.2 1187.2 L360.0 1195.8 L357.8 1187.2 L349.2 1185.0 L357.8 1182.8 Z" fill="url(#smSpark)"/><circle cx="360" cy="1185" r="1.6" fill="#ffffff"/><circle cx="360" cy="1185" r="10.8" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="swarmhack-2022" data-x="428" data-y="1151" data-mag="1.4"><circle cx="428" cy="1151" r="18.2" fill="url(#smGlow)" opacity="0.85"/><path d="M428.0 1146.0 L429.3 1149.7 L433.0 1151.0 L429.3 1152.3 L428.0 1156.0 L426.7 1152.3 L423.0 1151.0 L426.7 1149.7 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 428 1151)"/><path d="M428.0 1142.6 L429.7 1149.3 L436.4 1151.0 L429.7 1152.7 L428.0 1159.4 L426.3 1152.7 L419.6 1151.0 L426.3 1149.3 Z" fill="url(#smSpark)"/><circle cx="428" cy="1151" r="1.3" fill="#ffffff"/><circle cx="428" cy="1151" r="8.4" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="guh-2025-quant" data-x="462" data-y="1209" data-mag="1.3"><circle cx="462" cy="1209" r="16.9" fill="url(#smGlow)" opacity="0.85"/><path d="M462.0 1204.3 L463.3 1207.7 L466.7 1209.0 L463.3 1210.3 L462.0 1213.7 L460.7 1210.3 L457.3 1209.0 L460.7 1207.7 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 462 1209)"/><path d="M462.0 1201.2 L463.6 1207.4 L469.8 1209.0 L463.6 1210.6 L462.0 1216.8 L460.4 1210.6 L454.2 1209.0 L460.4 1207.4 Z" fill="url(#smSpark)"/><circle cx="462" cy="1209" r="1.2" fill="#ffffff"/><circle cx="462" cy="1209" r="7.8" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="hackabot-2025" data-x="394" data-y="1249" data-mag="1.4"><circle cx="394" cy="1249" r="18.2" fill="url(#smGlow)" opacity="0.85"/><path d="M394.0 1244.0 L395.3 1247.7 L399.0 1249.0 L395.3 1250.3 L394.0 1254.0 L392.7 1250.3 L389.0 1249.0 L392.7 1247.7 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 394 1249)"/><path d="M394.0 1240.6 L395.7 1247.3 L402.4 1249.0 L395.7 1250.7 L394.0 1257.4 L392.3 1250.7 L385.6 1249.0 L392.3 1247.3 Z" fill="url(#smSpark)"/><circle cx="394" cy="1249" r="1.3" fill="#ffffff"/><circle cx="394" cy="1249" r="8.4" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="guh-2022-bet365" data-x="298" data-y="1227" data-mag="1.3"><circle cx="298" cy="1227" r="16.9" fill="url(#smGlow)" opacity="0.85"/><path d="M298.0 1222.3 L299.3 1225.7 L302.7 1227.0 L299.3 1228.3 L298.0 1231.7 L296.7 1228.3 L293.3 1227.0 L296.7 1225.7 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 298 1227)"/><path d="M298.0 1219.2 L299.6 1225.4 L305.8 1227.0 L299.6 1228.6 L298.0 1234.8 L296.4 1228.6 L290.2 1227.0 L296.4 1225.4 Z" fill="url(#smSpark)"/><circle cx="298" cy="1227" r="1.2" fill="#ffffff"/><circle cx="298" cy="1227" r="7.8" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="hackabot-2026" data-x="280" data-y="1155" data-mag="1.5"><circle cx="280" cy="1155" r="19.5" fill="url(#smGlow)" opacity="0.85"/><path d="M280.0 1149.6 L281.4 1153.6 L285.4 1155.0 L281.4 1156.4 L280.0 1160.4 L278.6 1156.4 L274.6 1155.0 L278.6 1153.6 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 280 1155)"/><path d="M280.0 1146.0 L281.8 1153.2 L289.0 1155.0 L281.8 1156.8 L280.0 1164.0 L278.2 1156.8 L271.0 1155.0 L278.2 1153.2 Z" fill="url(#smSpark)"/><circle cx="280" cy="1155" r="1.4" fill="#ffffff"/><circle cx="280" cy="1155" r="9.0" fill="url(#smFront)" opacity="0.6"/></g></g><g class="sm-con" data-id="experience" data-cx="1200" data-cy="10" data-r="82"><circle class="sm-hit" cx="1200" cy="10" r="82"/><g class="sm-reticle"><g class="sm-rr"><circle class="sm-ring" cx="1200" cy="10" r="82" stroke-width="1.5" stroke-dasharray="40 16 8 16"/></g><g class="sm-rr b"><circle class="sm-ring" cx="1200" cy="10" r="70" stroke-width="3" stroke-dasharray="70 240"/></g><g class="sm-rr c"><circle class="sm-ring" cx="1200" cy="10" r="58" stroke-width="1" stroke-dasharray="2 8"/></g></g><line class="sm-edgeGlow" x1="1162" y1="14" x2="1246" y2="-6" stroke-width="4"/><line class="sm-edgeCore" x1="1162" y1="14" x2="1246" y2="-6" stroke-width="1.1"/><g class="sm-star" data-rid="fpga-engineer-altera" data-x="1162" data-y="14" data-mag="1.6"><circle cx="1162" cy="14" r="20.8" fill="url(#smGlow)" opacity="0.85"/><path d="M1162.0 8.2 L1163.5 12.5 L1167.8 14.0 L1163.5 15.5 L1162.0 19.8 L1160.5 15.5 L1156.2 14.0 L1160.5 12.5 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 1162 14)"/><path d="M1162.0 4.4 L1163.9 12.1 L1171.6 14.0 L1163.9 15.9 L1162.0 23.6 L1160.1 15.9 L1152.4 14.0 L1160.1 12.1 Z" fill="url(#smSpark)"/><circle cx="1162" cy="14" r="1.4" fill="#ffffff"/><circle cx="1162" cy="14" r="9.6" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="robotics-research-assistant" data-x="1246" data-y="-6" data-mag="1.5"><circle cx="1246" cy="-6" r="19.5" fill="url(#smGlow)" opacity="0.85"/><path d="M1246.0 -11.4 L1247.4 -7.4 L1251.4 -6.0 L1247.4 -4.6 L1246.0 -0.6 L1244.6 -4.6 L1240.6 -6.0 L1244.6 -7.4 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 1246 -6)"/><path d="M1246.0 -15.0 L1247.8 -7.8 L1255.0 -6.0 L1247.8 -4.2 L1246.0 3.0 L1244.2 -4.2 L1237.0 -6.0 L1244.2 -7.8 Z" fill="url(#smSpark)"/><circle cx="1246" cy="-6" r="1.4" fill="#ffffff"/><circle cx="1246" cy="-6" r="9.0" fill="url(#smFront)" opacity="0.6"/></g></g><g class="sm-con" data-id="awards" data-cx="2025" data-cy="1170" data-r="132"><circle class="sm-hit" cx="2025" cy="1170" r="132"/><g class="sm-reticle"><g class="sm-rr"><circle class="sm-ring" cx="2025" cy="1170" r="132" stroke-width="1.5" stroke-dasharray="40 16 8 16"/></g><g class="sm-rr b"><circle class="sm-ring" cx="2025" cy="1170" r="120" stroke-width="3" stroke-dasharray="70 240"/></g><g class="sm-rr c"><circle class="sm-ring" cx="2025" cy="1170" r="108" stroke-width="1" stroke-dasharray="2 8"/></g></g><line class="sm-edgeGlow" x1="1941" y1="1144" x2="1947" y2="1198" stroke-width="4"/><line class="sm-edgeCore" x1="1941" y1="1144" x2="1947" y2="1198" stroke-width="1.1"/><line class="sm-edgeGlow" x1="1947" y1="1198" x2="1999" y2="1210" stroke-width="4"/><line class="sm-edgeCore" x1="1947" y1="1198" x2="1999" y2="1210" stroke-width="1.1"/><line class="sm-edgeGlow" x1="1999" y1="1210" x2="1995" y2="1166" stroke-width="4"/><line class="sm-edgeCore" x1="1999" y1="1210" x2="1995" y2="1166" stroke-width="1.1"/><line class="sm-edgeGlow" x1="1995" y1="1166" x2="1941" y2="1144" stroke-width="4"/><line class="sm-edgeCore" x1="1995" y1="1166" x2="1941" y2="1144" stroke-width="1.1"/><line class="sm-edgeGlow" x1="1995" y1="1166" x2="2047" y2="1169" stroke-width="4"/><line class="sm-edgeCore" x1="1995" y1="1166" x2="2047" y2="1169" stroke-width="1.1"/><line class="sm-edgeGlow" x1="2047" y1="1169" x2="2091" y2="1150" stroke-width="4"/><line class="sm-edgeCore" x1="2047" y1="1169" x2="2091" y2="1150" stroke-width="1.1"/><line class="sm-edgeGlow" x1="2091" y1="1150" x2="2125" y2="1124" stroke-width="4"/><line class="sm-edgeCore" x1="2091" y1="1150" x2="2125" y2="1124" stroke-width="1.1"/><g class="sm-star" data-rid="outstanding-achievement-award" data-x="1941" data-y="1144" data-mag="1.9"><circle cx="1941" cy="1144" r="24.7" fill="url(#smGlow)" opacity="0.85"/><path d="M1941.0 1137.2 L1942.8 1142.2 L1947.8 1144.0 L1942.8 1145.8 L1941.0 1150.8 L1939.2 1145.8 L1934.2 1144.0 L1939.2 1142.2 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 1941 1144)"/><path d="M1941.0 1132.6 L1943.3 1141.7 L1952.4 1144.0 L1943.3 1146.3 L1941.0 1155.4 L1938.7 1146.3 L1929.6 1144.0 L1938.7 1141.7 Z" fill="url(#smSpark)"/><circle cx="1941" cy="1144" r="1.7" fill="#ffffff"/><circle cx="1941" cy="1144" r="11.4" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="best-in-eee" data-x="1947" data-y="1198" data-mag="1.5"><circle cx="1947" cy="1198" r="19.5" fill="url(#smGlow)" opacity="0.85"/><path d="M1947.0 1192.6 L1948.4 1196.6 L1952.4 1198.0 L1948.4 1199.4 L1947.0 1203.4 L1945.6 1199.4 L1941.6 1198.0 L1945.6 1196.6 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 1947 1198)"/><path d="M1947.0 1189.0 L1948.8 1196.2 L1956.0 1198.0 L1948.8 1199.8 L1947.0 1207.0 L1945.2 1199.8 L1938.0 1198.0 L1945.2 1196.2 Z" fill="url(#smSpark)"/><circle cx="1947" cy="1198" r="1.4" fill="#ffffff"/><circle cx="1947" cy="1198" r="9.0" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="top-10-faculty" data-x="1999" data-y="1210" data-mag="1.4"><circle cx="1999" cy="1210" r="18.2" fill="url(#smGlow)" opacity="0.85"/><path d="M1999.0 1205.0 L2000.3 1208.7 L2004.0 1210.0 L2000.3 1211.3 L1999.0 1215.0 L1997.7 1211.3 L1994.0 1210.0 L1997.7 1208.7 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 1999 1210)"/><path d="M1999.0 1201.6 L2000.7 1208.3 L2007.4 1210.0 L2000.7 1211.7 L1999.0 1218.4 L1997.3 1211.7 L1990.6 1210.0 L1997.3 1208.3 Z" fill="url(#smSpark)"/><circle cx="1999" cy="1210" r="1.3" fill="#ffffff"/><circle cx="1999" cy="1210" r="8.4" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="iet-future-talent" data-x="1995" data-y="1166" data-mag="1.4"><circle cx="1995" cy="1166" r="18.2" fill="url(#smGlow)" opacity="0.85"/><path d="M1995.0 1161.0 L1996.3 1164.7 L2000.0 1166.0 L1996.3 1167.3 L1995.0 1171.0 L1993.7 1167.3 L1990.0 1166.0 L1993.7 1164.7 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 1995 1166)"/><path d="M1995.0 1157.6 L1996.7 1164.3 L2003.4 1166.0 L1996.7 1167.7 L1995.0 1174.4 L1993.3 1167.7 L1986.6 1166.0 L1993.3 1164.3 Z" fill="url(#smSpark)"/><circle cx="1995" cy="1166" r="1.3" fill="#ffffff"/><circle cx="1995" cy="1166" r="8.4" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="stellify-award" data-x="2047" data-y="1169" data-mag="1.5"><circle cx="2047" cy="1169" r="19.5" fill="url(#smGlow)" opacity="0.85"/><path d="M2047.0 1163.6 L2048.4 1167.6 L2052.4 1169.0 L2048.4 1170.4 L2047.0 1174.4 L2045.6 1170.4 L2041.6 1169.0 L2045.6 1167.6 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 2047 1169)"/><path d="M2047.0 1160.0 L2048.8 1167.2 L2056.0 1169.0 L2048.8 1170.8 L2047.0 1178.0 L2045.2 1170.8 L2038.0 1169.0 L2045.2 1167.2 Z" fill="url(#smSpark)"/><circle cx="2047" cy="1169" r="1.4" fill="#ffffff"/><circle cx="2047" cy="1169" r="9.0" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="pgr-scholarship" data-x="2091" data-y="1150" data-mag="1.4"><circle cx="2091" cy="1150" r="18.2" fill="url(#smGlow)" opacity="0.85"/><path d="M2091.0 1145.0 L2092.3 1148.7 L2096.0 1150.0 L2092.3 1151.3 L2091.0 1155.0 L2089.7 1151.3 L2086.0 1150.0 L2089.7 1148.7 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 2091 1150)"/><path d="M2091.0 1141.6 L2092.7 1148.3 L2099.4 1150.0 L2092.7 1151.7 L2091.0 1158.4 L2089.3 1151.7 L2082.6 1150.0 L2089.3 1148.3 Z" fill="url(#smSpark)"/><circle cx="2091" cy="1150" r="1.3" fill="#ffffff"/><circle cx="2091" cy="1150" r="8.4" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="cambridge-top-nigeria-physics" data-x="2125" data-y="1124" data-mag="1.9"><circle cx="2125" cy="1124" r="24.7" fill="url(#smGlow)" opacity="0.85"/><path d="M2125.0 1117.2 L2126.8 1122.2 L2131.8 1124.0 L2126.8 1125.8 L2125.0 1130.8 L2123.2 1125.8 L2118.2 1124.0 L2123.2 1122.2 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 2125 1124)"/><path d="M2125.0 1112.6 L2127.3 1121.7 L2136.4 1124.0 L2127.3 1126.3 L2125.0 1135.4 L2122.7 1126.3 L2113.6 1124.0 L2122.7 1121.7 Z" fill="url(#smSpark)"/><circle cx="2125" cy="1124" r="1.7" fill="#ffffff"/><circle cx="2125" cy="1124" r="11.4" fill="url(#smFront)" opacity="0.6"/></g></g><g class="sm-con" data-id="education" data-cx="2240" data-cy="720" data-r="78"><circle class="sm-hit" cx="2240" cy="720" r="78"/><g class="sm-reticle"><g class="sm-rr"><circle class="sm-ring" cx="2240" cy="720" r="78" stroke-width="1.5" stroke-dasharray="40 16 8 16"/></g><g class="sm-rr b"><circle class="sm-ring" cx="2240" cy="720" r="66" stroke-width="3" stroke-dasharray="70 240"/></g><g class="sm-rr c"><circle class="sm-ring" cx="2240" cy="720" r="54" stroke-width="1" stroke-dasharray="2 8"/></g></g><line class="sm-edgeGlow" x1="2200" y1="736" x2="2284" y2="704" stroke-width="4"/><line class="sm-edgeCore" x1="2200" y1="736" x2="2284" y2="704" stroke-width="1.1"/><g class="sm-star" data-rid="phd-eee" data-x="2200" data-y="736" data-mag="1.7"><circle cx="2200" cy="736" r="22.1" fill="url(#smGlow)" opacity="0.85"/><path d="M2200.0 729.9 L2201.6 734.4 L2206.1 736.0 L2201.6 737.6 L2200.0 742.1 L2198.4 737.6 L2193.9 736.0 L2198.4 734.4 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 2200 736)"/><path d="M2200.0 725.8 L2202.0 734.0 L2210.2 736.0 L2202.0 738.0 L2200.0 746.2 L2198.0 738.0 L2189.8 736.0 L2198.0 734.0 Z" fill="url(#smSpark)"/><circle cx="2200" cy="736" r="1.5" fill="#ffffff"/><circle cx="2200" cy="736" r="10.2" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="beng-mechatronics" data-x="2284" data-y="704" data-mag="1.6"><circle cx="2284" cy="704" r="20.8" fill="url(#smGlow)" opacity="0.85"/><path d="M2284.0 698.2 L2285.5 702.5 L2289.8 704.0 L2285.5 705.5 L2284.0 709.8 L2282.5 705.5 L2278.2 704.0 L2282.5 702.5 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 2284 704)"/><path d="M2284.0 694.4 L2285.9 702.1 L2293.6 704.0 L2285.9 705.9 L2284.0 713.6 L2282.1 705.9 L2274.4 704.0 L2282.1 702.1 Z" fill="url(#smSpark)"/><circle cx="2284" cy="704" r="1.4" fill="#ffffff"/><circle cx="2284" cy="704" r="9.6" fill="url(#smFront)" opacity="0.6"/></g></g><g class="sm-con" data-id="skills" data-cx="1200" data-cy="1525" data-r="124"><circle class="sm-hit" cx="1200" cy="1525" r="124"/><g class="sm-reticle"><g class="sm-rr"><circle class="sm-ring" cx="1200" cy="1525" r="124" stroke-width="1.5" stroke-dasharray="40 16 8 16"/></g><g class="sm-rr b"><circle class="sm-ring" cx="1200" cy="1525" r="112" stroke-width="3" stroke-dasharray="70 240"/></g><g class="sm-rr c"><circle class="sm-ring" cx="1200" cy="1525" r="100" stroke-width="1" stroke-dasharray="2 8"/></g></g><line class="sm-edgeGlow" x1="1106" y1="1535" x2="1153" y2="1499" stroke-width="4"/><line class="sm-edgeCore" x1="1106" y1="1535" x2="1153" y2="1499" stroke-width="1.1"/><line class="sm-edgeGlow" x1="1153" y1="1499" x2="1200" y2="1537" stroke-width="4"/><line class="sm-edgeCore" x1="1153" y1="1499" x2="1200" y2="1537" stroke-width="1.1"/><line class="sm-edgeGlow" x1="1200" y1="1537" x2="1247" y2="1499" stroke-width="4"/><line class="sm-edgeCore" x1="1200" y1="1537" x2="1247" y2="1499" stroke-width="1.1"/><line class="sm-edgeGlow" x1="1247" y1="1499" x2="1294" y2="1535" stroke-width="4"/><line class="sm-edgeCore" x1="1247" y1="1499" x2="1294" y2="1535" stroke-width="1.1"/><g class="sm-star" data-rid="skill-control" data-x="1106" data-y="1535" data-mag="1.6"><circle cx="1106" cy="1535" r="20.8" fill="url(#smGlow)" opacity="0.85"/><path d="M1106.0 1529.2 L1107.5 1533.5 L1111.8 1535.0 L1107.5 1536.5 L1106.0 1540.8 L1104.5 1536.5 L1100.2 1535.0 L1104.5 1533.5 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 1106 1535)"/><path d="M1106.0 1525.4 L1107.9 1533.1 L1115.6 1535.0 L1107.9 1536.9 L1106.0 1544.6 L1104.1 1536.9 L1096.4 1535.0 L1104.1 1533.1 Z" fill="url(#smSpark)"/><circle cx="1106" cy="1535" r="1.4" fill="#ffffff"/><circle cx="1106" cy="1535" r="9.6" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="skill-robotics" data-x="1153" data-y="1499" data-mag="1.4"><circle cx="1153" cy="1499" r="18.2" fill="url(#smGlow)" opacity="0.85"/><path d="M1153.0 1494.0 L1154.3 1497.7 L1158.0 1499.0 L1154.3 1500.3 L1153.0 1504.0 L1151.7 1500.3 L1148.0 1499.0 L1151.7 1497.7 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 1153 1499)"/><path d="M1153.0 1490.6 L1154.7 1497.3 L1161.4 1499.0 L1154.7 1500.7 L1153.0 1507.4 L1151.3 1500.7 L1144.6 1499.0 L1151.3 1497.3 Z" fill="url(#smSpark)"/><circle cx="1153" cy="1499" r="1.3" fill="#ffffff"/><circle cx="1153" cy="1499" r="8.4" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="skill-optimization" data-x="1200" data-y="1537" data-mag="1.7"><circle cx="1200" cy="1537" r="22.1" fill="url(#smGlow)" opacity="0.85"/><path d="M1200.0 1530.9 L1201.6 1535.4 L1206.1 1537.0 L1201.6 1538.6 L1200.0 1543.1 L1198.4 1538.6 L1193.9 1537.0 L1198.4 1535.4 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 1200 1537)"/><path d="M1200.0 1526.8 L1202.0 1535.0 L1210.2 1537.0 L1202.0 1539.0 L1200.0 1547.2 L1198.0 1539.0 L1189.8 1537.0 L1198.0 1535.0 Z" fill="url(#smSpark)"/><circle cx="1200" cy="1537" r="1.5" fill="#ffffff"/><circle cx="1200" cy="1537" r="10.2" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="skill-embedded" data-x="1247" data-y="1499" data-mag="1.4"><circle cx="1247" cy="1499" r="18.2" fill="url(#smGlow)" opacity="0.85"/><path d="M1247.0 1494.0 L1248.3 1497.7 L1252.0 1499.0 L1248.3 1500.3 L1247.0 1504.0 L1245.7 1500.3 L1242.0 1499.0 L1245.7 1497.7 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 1247 1499)"/><path d="M1247.0 1490.6 L1248.7 1497.3 L1255.4 1499.0 L1248.7 1500.7 L1247.0 1507.4 L1245.3 1500.7 L1238.6 1499.0 L1245.3 1497.3 Z" fill="url(#smSpark)"/><circle cx="1247" cy="1499" r="1.3" fill="#ffffff"/><circle cx="1247" cy="1499" r="8.4" fill="url(#smFront)" opacity="0.6"/></g><g class="sm-star" data-rid="skill-ml" data-x="1294" data-y="1535" data-mag="1.6"><circle cx="1294" cy="1535" r="20.8" fill="url(#smGlow)" opacity="0.85"/><path d="M1294.0 1529.2 L1295.5 1533.5 L1299.8 1535.0 L1295.5 1536.5 L1294.0 1540.8 L1292.5 1536.5 L1288.2 1535.0 L1292.5 1533.5 Z" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 1294 1535)"/><path d="M1294.0 1525.4 L1295.9 1533.1 L1303.6 1535.0 L1295.9 1536.9 L1294.0 1544.6 L1292.1 1536.9 L1284.4 1535.0 L1292.1 1533.1 Z" fill="url(#smSpark)"/><circle cx="1294" cy="1535" r="1.4" fill="#ffffff"/><circle cx="1294" cy="1535" r="9.6" fill="url(#smFront)" opacity="0.6"/></g></g></svg>
+    <div class="reticle"><svg viewBox="0 0 660 660" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g fill="none" stroke="#41e3ff"><circle class="arc arc1" cx="330" cy="330" r="250" stroke-opacity="0.05" stroke-width="12" stroke-dasharray="240 1500"/><circle class="arc arc2" cx="330" cy="330" r="238" stroke-opacity="0.35" stroke-width="2.5" stroke-dasharray="40 16 8 16"/><circle class="arc arc3" cx="330" cy="330" r="224" stroke-opacity="0.06" stroke-width="16" stroke-dasharray="300 900"/><circle class="arc arc4" cx="330" cy="330" r="212" stroke-opacity="0.22" stroke-width="2" stroke-dasharray="2 10"/><circle class="arc arc5" cx="330" cy="330" r="200" stroke-opacity="0.30" stroke-width="3" stroke-dasharray="120 700"/><g stroke-opacity="0.4" stroke-width="1.5"><path d="M330 80 v18 M330 580 v-18 M80 330 h18 M580 330 h-18"/></g></g><g stroke="#ffb648" stroke-opacity="0.85" stroke-width="1.5"><path d="M322 330 h16 M330 322 v16"/></g><circle cx="330" cy="330" r="3" fill="#ffb648"/></svg></div>
+    <div class="ship-rig"><div class="ship"><svg class="ship-svg" viewBox="0 0 300 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Starship FSL-01"><defs><linearGradient id="hull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a3b56"/><stop offset="1" stop-color="#0c1426"/></linearGradient><radialGradient id="thr" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#41e3ff"/><stop offset="1" stop-color="rgba(65,227,255,0)"/></radialGradient></defs><ellipse class="thruster" cx="38" cy="78" rx="34" ry="13" fill="url(#thr)"/><rect x="48" y="66" width="40" height="26" rx="6" fill="#16243c" stroke="#41e3ff" stroke-opacity="0.35"/><path d="M70 70 Q150 36 268 70 Q150 104 70 70 Z" fill="url(#hull)" stroke="#41e3ff" stroke-opacity="0.5" stroke-width="1.5"/><path d="M86 70 L250 70" stroke="#41e3ff" stroke-opacity="0.25"/><path d="M210 70 Q236 60 256 70 Q236 80 210 70 Z" fill="#ffb648" fill-opacity="0.85"/><path d="M120 58 L150 30 L165 56 Z" fill="#16243c" stroke="#41e3ff" stroke-opacity="0.4"/><line x1="150" y1="36" x2="150" y2="18" stroke="#41e3ff" stroke-opacity="0.6"/><circle class="navlight n3" cx="150" cy="16" r="3" fill="#41e3ff"/><path d="M120 82 L150 108 L165 84 Z" fill="#101b30" stroke="#41e3ff" stroke-opacity="0.3"/><circle class="navlight n1" cx="250" cy="70" r="3" fill="#ffb648"/><circle class="navlight n2" cx="96" cy="70" r="2.5" fill="#56e39f"/></svg></div></div>
+    <button class="beacon" type="button" data-link="left" aria-haspopup="dialog" aria-label="Open Commander Profile">
+      <span class="sweep"></span><span class="beacon-line code">FSL-01</span><span class="beacon-line name">Faisal Lawan</span>
+      <span class="beacon-line role">Control Systems Researcher</span><span class="beacon-line status"><i></i> STATUS: ACTIVE</span>
+      <span class="beacon-hint">&#9656; ACCESS DOSSIER</span>
+    </button>
+    <button class="telemetry" id="mlog-launch" type="button" data-link="right" aria-haspopup="dialog" aria-label="Open Mission Log">
+      <span class="sweep"></span><h5>MISSION LOG</h5>
+      <div class="row"><span>ENTRIES</span><span>09</span></div><div class="row"><span>LATEST</span><span>2026</span></div>
+      <div class="row"><span>SIGNAL</span><span>RECOVERED</span></div><span class="mlog-hint">&#9656; OPEN LOG</span><div class="hashbar"></div>
+    </button>
+    </div>
+    <svg class="scene-links" id="scene-links" aria-hidden="true"></svg>
+    <span class="hud-corner tl"></span><span class="hud-corner tr"></span><span class="hud-corner bl"></span><span class="hud-corner br"></span>
+    <div class="scene-hud"><div class="hud-tl">FSL-01 // NAV SYSTEM ONLINE</div><div class="hud-tr">SECTOR MAP // SELECT A CONSTELLATION</div></div>
+    <svg id="sm-fx" aria-hidden="true"></svg>
+    <div id="sm-cursor" aria-hidden="true"><div class="r1"></div><div class="r2"></div><div class="cx"></div><div class="cy"></div></div>
+    <div class="con-name" id="con-name"><span class="sweep"></span><div class="y"></div><div class="t"></div></div>
+    <div class="star-name" id="star-name"><span class="sweep"></span><div class="y"></div><div class="t"></div></div>
+    <div id="record-overlay" role="dialog" aria-modal="true" aria-label="Data Record">
+      <div class="record-panel"><span class="sweep"></span><button class="record-close" type="button">&#10005; CLOSE</button><div id="record-body"></div></div>
+    </div>
+    <script type="application/json" id="sm-records">{"formation-control-mpc":{"sector":1,"constellation":"Research Archive","recordType":"RESEARCH ARCHIVE","title":"Constrained torque-level formation control via consensus FBL-MPC","date":"2026 — TAROS (accepted, published Oct 2026)","summary":"A consensus-based, feedback-linearised MPC strategy for torque-level formation control of differential-drive robots, recast as a convex program that solves in real time.","body":["This work tackles distributed formation control for nonholonomic wheeled robots while respecting the limits of real motors. The nonlinear unicycle dynamics are feedback-linearised into a double-integrator model, and the torque and voltage constraints are carried through as convex inner approximations, so nothing the controller commands can exceed what the hardware is able to deliver.","Coordination across the swarm is handled with a consensus formulation, and the whole problem is cast as a Second-Order Cone Program that is solved at every control step. That keeps it light enough for real-time operation, which is usually the property that breaks once hard constraints are added to formation control.","Accepted to TAROS 2026 and published in October 2026."],"tags":["MPC","SOCP","Feedback linearisation","Multi-agent","Formation control"],"assets":[],"badge":"","media":[{"type":"pdf","src":"../public/assets/research/TAROS-2026-formation-control.pdf","thumb":"../public/assets/research/TAROS-2026-formation-control.thumb.jpg","alt":"TAROS 2026 paper","caption":"TAROS 2026 paper (accepted)"}]},"safe-impedance-control":{"sector":1,"constellation":"Research Archive","recordType":"RESEARCH ARCHIVE","title":"Safety-critical adaptive impedance control via Nonsmooth CBFs","date":"2026 — CDC (under review)","summary":"A safe, robust, adaptive impedance control framework for a 7-DOF manipulator, with guaranteed constraint satisfaction under state and input limits.","body":["The controller blends an Interval Type-2 Fuzzy Logic System with a smooth compensator so it stays robust under heavy parametric uncertainty, the kind found in tasks like nuclear decommissioning where the load and contact conditions are poorly known.","Safety and stability are enforced through a novel Nonsmooth Control Barrier Function, and Uniform Ultimate Boundedness of the closed loop is proved with composite Lyapunov analysis. Everything runs through a single soft-constrained QP solved online in roughly 54 microseconds per cycle, and the framework was deployed on KINOVA Gen3 and Franka Emika arms.","Submitted to CDC and available as an arXiv preprint."],"tags":["Control Barrier Functions","Adaptive control","IT2 Fuzzy","Lyapunov","QP"],"assets":[{"kind":"arxiv","label":"arXiv:2605.28367","href":"https://arxiv.org/abs/2605.28367"}],"badge":"","media":[{"type":"pdf","src":"../public/assets/research/CDC-impedance-control.pdf","thumb":"../public/assets/research/CDC-impedance-control.thumb.jpg","alt":"CDC paper","caption":"CDC paper (under review)"}]},"high-order-safety-filters":{"sector":1,"constellation":"Research Archive","recordType":"RESEARCH ARCHIVE","title":"High-order multi-constrained safety filters for linear systems","date":"In progress","summary":"Stability analysis and design of high-order, multi-constrained safety filters for linear systems.","body":["Active research. The work studies how to stack several high-order constraints into a single safety filter for linear systems without losing the stability guarantees that make safety filters worth using. Findings will be logged here as the project matures."],"tags":["Safety filters","Stability analysis","Linear systems"],"assets":[],"badge":"IN PROGRESS","media":[]},"tessellate":{"sector":2,"constellation":"Mission Records","recordType":"MISSION RECORD","title":"Tessellate — distributed formation control platform","date":"Oct 2025","summary":"A Python platform that demonstrates distributed formation control of nonholonomic robots using a consensus-based feedback-linearised MPC, solved as a real-time SOCP at 60 Hz.","body":["Tessellate is the demonstration platform behind the formation-control research. It runs a consensus-based feedback-linearised MPC reformulated as a Second-Order Cone Program and solved as a strict convex optimisation at every time step, holding 60 Hz with cvxpy backed by the ECOS and CLARABEL solvers.","Feedback linearisation turns the nonlinear unicycle dynamics into a double-integrator model, while the torque and voltage limits are preserved through convex inner approximations. A custom multi-layered A* planner adapts the safety radius to the current formation shape, which lets the leader thread narrow gaps without the trailing robots snagging on obstacles.","The communication graph can be rewired while the swarm is moving. Robots can be dropped in or out and formation nodes can be dragged to reshape the target on the fly. It is wrapped in a PySide6 interface with live telemetry plotting."],"tags":["Python","MPC","SOCP","cvxpy","A*","PySide6","Swarm"],"assets":[{"kind":"repo","label":"Source Archive","href":"https://github.com/Tessellate-Labs/tessellate-consensus-socp-mpc"}],"badge":"HERO PROJECT","media":[]},"double-inverted-pendulum":{"sector":2,"constellation":"Mission Records","recordType":"MISSION RECORD","title":"Double Inverted Pendulum — hybrid swing-up & stabilisation","date":"Apr 2025 — present","summary":"Simulation and hybrid control of a cart-mounted double inverted pendulum that moves between all four equilibrium configurations, now being rebuilt as physical hardware.","body":["A control framework for a cart-mounted double inverted pendulum that can reach all four equilibrium configurations in its task space. It pairs an energy-based swing-up controller with a stabiliser derived from linearisation and Lyapunov-based sliding-mode techniques.","The full nonlinear dynamics, covering cart translation, link coupling, viscous joint damping and actuator limits, were modelled symbolically in MATLAB and CasADi. The swing-up controller pumps energy into the system until it reaches the target manifold, then hands over to a stabiliser designed through the algebraic Riccati equation. ODE event detection triggers the switch, and closed-loop runs track the angles, position, velocities and total energy to confirm the handover.","The project is moving off the screen and onto the bench: a physical double inverted pendulum is being built from scratch and driven by a Raspberry Pi to validate the hybrid strategy on real hardware."],"tags":["MATLAB","CasADi","Sliding mode","Energy control","Hybrid systems","Raspberry Pi"],"assets":[],"badge":"IN PROGRESS","media":[]},"line-following-robot":{"sector":2,"constellation":"Mission Records","recordType":"MISSION RECORD","title":"Autonomous Line-Following Robot","date":"Sep 2022 — Jun 2023","summary":"A battery-powered autonomous buggy that follows a marked track, climbs an 18-degree incline, turns 180 degrees on a Bluetooth command and stops precisely, run by three PID loops on an STM32.","body":["Designed and built with a team of four. The buggy follows a marked track, climbs an 18-degree incline, performs a 180-degree turn when it receives a Bluetooth Low Energy command, and comes to a controlled stop at the end of the line. Three PID controllers run the show: two hold motor speed from Hall-effect encoder feedback, and one steers from a custom six-sensor TCRT5000 infrared array on a bespoke PCB with hardware signal conditioning.","The control software was written in C++ on an STM32 with Mbed using an object-oriented structure. A MATLAB and Simulink model tuned the PID gains ahead of time and reached better than 70 percent agreement with the real buggy at speeds up to 1.4 metres per second. Hardware refinements included a 3D-printed shield to keep ambient light off the sensors, deliberate weight distribution with castor wheels, and a gearbox balanced between torque and speed.","Awarded the second-year ESP prize for the most innovative features."],"tags":["STM32","C++","PID","Custom PCB","BLE","MATLAB/Simulink"],"assets":[{"kind":"repo","label":"Source Archive","href":"https://github.com/FHL-08/UOM-ESP2022-Group25"}],"badge":"ESP INNOVATIVE FEATURES PRIZE","media":[{"type":"image","src":"../public/assets/media/line-following-robot/m1.jpg","thumb":"../public/assets/media/line-following-robot/m1.thumb.jpg","alt":"CAD design of the line-following buggy","caption":"Chassis and PCB design"},{"type":"image","src":"../public/assets/media/line-following-robot/m2.jpg","thumb":"../public/assets/media/line-following-robot/m2.thumb.jpg","alt":"The four-person build team","caption":"Build team, Group 25"},{"type":"video","src":"../public/assets/media/line-following-robot/m3.mp4","poster":"../public/assets/media/line-following-robot/m3.poster.jpg","previewSrc":"../public/assets/media/line-following-robot/m3.preview.mp4","thumb":"../public/assets/media/line-following-robot/m3.poster.jpg","alt":"Line-following buggy demo run","caption":"Track run with incline and turn"},{"type":"pdf","src":"../public/assets/projects/line-follower-report.pdf","thumb":"../public/assets/projects/line-follower-report.thumb.jpg","alt":"Technical report","caption":"Final technical report"}]},"maze-solving-buggy":{"sector":2,"constellation":"Mission Records","recordType":"MISSION RECORD","title":"Autonomous Maze-Solving Buggy","date":"Oct 2021 — May 2022","summary":"An Arduino buggy with ultrasonic sensing and a PID controller that solves mazes on its own while avoiding collisions.","body":["A robotic buggy fitted with ultrasonic sensors for real-time obstacle detection. A PID control loop on an Arduino Uno turns the sensor readings into smooth motor commands for navigation and collision avoidance, and the buggy completes maze-solving runs with no outside help.","It was an early exercise in sensor integration, control tuning and autonomous decision making, and laid the groundwork for the more capable autonomous platforms logged later in this sector."],"tags":["Arduino","PID","Ultrasonic sensing","Autonomy"],"assets":[],"badge":"","media":[{"type":"image","src":"../public/assets/media/maze-solving-buggy/m1.jpg","thumb":"../public/assets/media/maze-solving-buggy/m1.thumb.jpg","alt":"The maze-solving buggy","caption":"Ultrasonic maze buggy"},{"type":"video","src":"../public/assets/media/maze-solving-buggy/m2.mp4","poster":"../public/assets/media/maze-solving-buggy/m2.poster.jpg","previewSrc":"../public/assets/media/maze-solving-buggy/m2.preview.mp4","thumb":"../public/assets/media/maze-solving-buggy/m2.poster.jpg","alt":"Autonomous maze run","caption":"Maze run"},{"type":"video","src":"../public/assets/media/maze-solving-buggy/m3.mp4","poster":"../public/assets/media/maze-solving-buggy/m3.poster.jpg","previewSrc":"../public/assets/media/maze-solving-buggy/m3.preview.mp4","thumb":"../public/assets/media/maze-solving-buggy/m3.poster.jpg","alt":"Autonomous maze run","caption":"Maze run, second attempt"}]},"robotic-poker":{"sector":2,"constellation":"Mission Records","recordType":"MISSION RECORD","title":"Robotic Poker Player & Dealer","date":"Sep 2025 — present","summary":"An end-to-end autonomous poker system on an SO-101 robot arm, fusing dual-camera vision, a ROS 2 control stack and game-theoretic decision making.","body":["A robot arm that can run a poker table from both sides. In dealer mode it picks up cards, shuffles, deals, and moves chips and the pot. In player mode it plays its own hand and manages its stack against opponents.","Perception comes from a dual-camera YOLOv8 pipeline, with an OAK-D Lite giving a birds-eye view for card detection and a Logitech C925e handling chip-colour segmentation. The control side is a ROS 2 stack: an LQR trajectory controller with CasADi inverse kinematics drives the SO-101 servo arm, a poker engine handles game logic and hand evaluation, and a PySide6 dashboard provides monitoring and manual control."],"tags":["ROS 2","Computer vision","YOLOv8","CasADi","LQR","SO-101"],"assets":[{"kind":"repo","label":"Source Archive","href":"https://github.com/jalliet/prap-25-26"}],"badge":"IN PROGRESS","media":[{"type":"video","src":"../public/assets/media/robotic-poker/m1.mp4","poster":"../public/assets/media/robotic-poker/m1.poster.jpg","previewSrc":"../public/assets/media/robotic-poker/m1.preview.mp4","thumb":"../public/assets/media/robotic-poker/m1.poster.jpg","alt":"Robotic poker dealer demo","caption":"Dealing and chip handling"}]},"quanser-hackathon":{"sector":3,"constellation":"Field Operations","recordType":"FIELD OPERATION","title":"AME × Quanser Robotics Hackathon","date":"Nov 2025","summary":"Won the Quanser hackathon by deriving inverse kinematics from first principles to pick and place coloured hoops on the QArm, with no IK libraries available because the venue internet was down.","body":["The brief was to pick hoops from fixed board positions and place them on their colour-matched stands, with direct joint-angle control as the only interface to the QArm. With the venue internet down and no standard libraries to fall back on, the team derived a geometric inverse-kinematics solution from scratch to compute the joint angles.","The solution was validated on a PyBullet digital twin of the QArm that mirrored the real arm before being run on hardware. It took first place."],"tags":["Inverse kinematics","QArm","PyBullet","Python"],"assets":[{"kind":"repo","label":"Source Archive","href":"https://github.com/FHL-08/quanser-hackathon"}],"badge":"1ST PLACE","media":[{"type":"image","src":"../public/assets/media/quanser-hackathon/m1.jpg","thumb":"../public/assets/media/quanser-hackathon/m1.thumb.jpg","alt":"AME x Quanser hackathon, first place","caption":"First place, AME x Quanser"},{"type":"video","src":"../public/assets/media/quanser-hackathon/m2.mp4","poster":"../public/assets/media/quanser-hackathon/m2.poster.jpg","previewSrc":"../public/assets/media/quanser-hackathon/m2.preview.mp4","thumb":"../public/assets/media/quanser-hackathon/m2.poster.jpg","alt":"QArm pick-and-place demo","caption":"QArm hoop pick-and-place"}]},"swarmhack-2022":{"sector":3,"constellation":"Field Operations","recordType":"FIELD OPERATION","title":"SwarmHack","date":"Jun 2022","summary":"Won best team solution for a distributed algorithm that aggregates any number of randomly moving robots into a single cluster, every time.","body":["The task was robot aggregation: take a group of robots that start scattered and moving at random, and get them to gather into one cluster inside an enclosed arena. The team designed and deployed a distributed algorithm that reaches 100 percent aggregation regardless of how many robots are in the arena, and it won the best team solution prize."],"tags":["Python","ROS","Swarm robotics","Distributed algorithms"],"assets":[],"badge":"1ST PLACE","media":[{"type":"image","src":"../public/assets/media/swarmhack-2022/m1.jpg","thumb":"../public/assets/media/swarmhack-2022/m1.thumb.jpg","alt":"SwarmHack, best team solution","caption":"SwarmHack win"},{"type":"video","src":"../public/assets/media/swarmhack-2022/m2.mp4","poster":"../public/assets/media/swarmhack-2022/m2.poster.jpg","previewSrc":"../public/assets/media/swarmhack-2022/m2.preview.mp4","thumb":"../public/assets/media/swarmhack-2022/m2.poster.jpg","alt":"Swarm aggregation demo","caption":"100% robot aggregation"}]},"guh-2025-quant":{"sector":3,"constellation":"Field Operations","recordType":"FIELD OPERATION","title":"Greater Uni Hackathon — Quant Trading Challenge","date":"Nov 2025","summary":"Won first place and 60 percent of the prize pool in the algorithmic-trading challenge with a quantitative market-making bot.","body":["The Greater Uni Hackathon 2025 ran several tracks, including Hackster, Housr, Reply and Quant. Competing in the Quant track, the team built a quantitative market-making bot for the Limex challenge and took first place, claiming 60 percent of the prize pool."],"tags":["Algorithmic trading","Market making","Python","Quant"],"assets":[{"kind":"repo","label":"Source Archive","href":"https://github.com/jonghunlee05/Greater_Uni_Hackathon_2025"},{"kind":"external","label":"LinkedIn Post","href":"https://www.linkedin.com/feed/update/urn:li:activity:7393758594871070721/"}],"badge":"1ST PLACE","media":[{"type":"image","src":"../public/assets/media/guh-2025-quant/m1.jpg","thumb":"../public/assets/media/guh-2025-quant/m1.thumb.jpg","alt":"GUH 2025 Quant challenge, first place","caption":"First place, Quant challenge"},{"type":"image","src":"../public/assets/media/guh-2025-quant/m2.jpg","thumb":"../public/assets/media/guh-2025-quant/m2.thumb.jpg","alt":"At the Greater Uni Hackathon"},{"type":"image","src":"../public/assets/media/guh-2025-quant/m3.jpg","thumb":"../public/assets/media/guh-2025-quant/m3.thumb.jpg","alt":"At the Greater Uni Hackathon"}]},"hackabot-2025":{"sector":3,"constellation":"Field Operations","recordType":"FIELD OPERATION","title":"Hack-a-Bot 2025 — Ice9 'Mona Delivery' Challenge","date":"Mar 2025","summary":"Second place: a computer-vision pipeline that drives a robot through a line maze from a single overhead camera, planning the shortest path and steering in real time.","body":["Built for the Ice9 Mona Delivery challenge at the UoM Robotics Society Hack-a-Bot 2025. A single fisheye camera overhead is calibrated and undistorted, then the system detects coloured waypoints and the robot's ArUco marker. The black maze lines are thresholded and thinned to a one-pixel skeleton whose corners and junctions become graph nodes.","Dijkstra's algorithm plans the shortest route from the robot to the red point and then the green point, and the robot is steered live over a serial link to an Arduino, pausing at each pickup and drop-off. It placed second."],"tags":["OpenCV","ArUco","Dijkstra","Skeletonisation","Arduino"],"assets":[{"kind":"repo","label":"Source Archive","href":"https://github.com/FHL-08/Hackabot-2025"}],"badge":"2ND PLACE","media":[{"type":"image","src":"../public/assets/media/hackabot-2025/m1.jpg","thumb":"../public/assets/media/hackabot-2025/m1.thumb.jpg","alt":"Planned shortest path through the line maze","caption":"Skeletonised maze with Dijkstra path"},{"type":"image","src":"../public/assets/media/hackabot-2025/m2.jpg","thumb":"../public/assets/media/hackabot-2025/m2.thumb.jpg","alt":"Hack-a-Bot 2025","caption":"Hack-a-Bot 2025"}]},"guh-2022-bet365":{"sector":3,"constellation":"Field Operations","recordType":"FIELD OPERATION","title":"Greater Uni Hackathon — Attack on Football (Bet365 Challenge)","date":"Nov 2022","summary":"Third in the Bet365 challenge with a web app that pulls live football data and presents it cleanly in real time.","body":["A web app inspired by bet365 that queries an API for live football data and lays it out cleanly for the user. It was built in Vue.js with the team collaborating through GitHub Codespaces, and most of the engineering effort went into shaping a noisy API into a readable, responsive front end. It placed third."],"tags":["Vue.js","REST API","Front-end"],"assets":[{"kind":"repo","label":"Source Archive","href":"https://github.com/FHL-08/GreatUniHack-2022/tree/master"},{"kind":"devpost","label":"Devpost","href":"https://devpost.com/software/attack-on-football"}],"badge":"3RD PLACE","media":[{"type":"image","src":"../public/assets/media/guh-2022-bet365/m1.jpg","thumb":"../public/assets/media/guh-2022-bet365/m1.thumb.jpg","alt":"Attack on Football web app","caption":"Live football data app"}]},"hackabot-2026":{"sector":3,"constellation":"Field Operations","recordType":"FIELD OPERATION","title":"Hack-a-Bot 2026 — Ice9 Swarm Challenge","date":"Mar 2026","summary":"Coordinating up to three MONA robots from a shared arena camera to push a trolley across the arena while avoiding obstacles. It worked in simulation but was foiled by hardware on the day.","body":["The challenge was to coordinate up to three MONA robots, localised by a shared arena camera, so they could push a trolley across the arena quickly while dodging obstacles. Both the swarm algorithm and the computer-vision tracking worked in simulation.","On the day, hardware faults stopped the vision system from being connected to the swarm controller in time, so the full pipeline never ran live. The simulation work and the integration lessons are logged for the next attempt."],"tags":["Swarm","Computer vision","ESP32","MONA","ArUco"],"assets":[{"kind":"repo","label":"Source Archive","href":"https://github.com/FHL-08/hackabot_26"}],"badge":"","media":[{"type":"image","src":"../public/assets/media/hackabot-2026/m1.jpg","thumb":"../public/assets/media/hackabot-2026/m1.thumb.jpg","alt":"Ice9 MONA swarm challenge arena","caption":"Arena and MONA robots"},{"type":"image","src":"../public/assets/media/hackabot-2026/m2.jpg","thumb":"../public/assets/media/hackabot-2026/m2.thumb.jpg","alt":"Swarm coordination in simulation","caption":"Swarm tracking in simulation"}]},"fpga-engineer-altera":{"sector":4,"constellation":"Service Record","recordType":"SERVICE RECORD","title":"FPGA Hardware Engineer — Altera (Intel PSG)","date":"Jul 2023 — Aug 2024","summary":"Architected an FPGA accelerator for Google's Snappy compression in SystemVerilog (10 percent better ratio, 30 percent more throughput) and delivered a 100x speed-up in duplicate MAC-address detection.","body":["A year in industry at Altera, formerly Intel PSG. The headline project was an FPGA hardware accelerator for Google's Snappy compression algorithm, architected and validated in SystemVerilog. It raised compression ratio by 10 percent and throughput by 30 percent over the software baseline, with a NIOS V embedded test platform and custom driver software built alongside it to stress-test the core.","A second strand benchmarked and redesigned the duplicate-MAC-address detection search used by VirtIO network devices, producing a data-driven recommendation that delivered a 100x efficiency improvement. The role also involved refactoring a legacy IPU management tool for readability and modularity, building a Python test framework to guard future changes, and demonstrating the Snappy design to engineering teams and stakeholders."],"tags":["SystemVerilog","FPGA","RTL design","NIOS V","Python"],"assets":[{"kind":"repo","label":"Bespoke Snappy (HW prototype)","href":"https://github.com/FHL-08/Bespoke_Snappy"}],"badge":"","media":[{"type":"image","src":"../public/assets/media/fpga-engineer-altera/m1.jpg","thumb":"../public/assets/media/fpga-engineer-altera/m1.thumb.jpg","alt":"On site at Altera (Intel PSG)","caption":"Year in industry at Altera"},{"type":"pdf","src":"../public/assets/experience/intel-internship-report.pdf","thumb":"../public/assets/experience/intel-internship-report.thumb.jpg","alt":"Internship report","caption":"Altera internship report"}]},"robotics-research-assistant":{"sector":4,"constellation":"Service Record","recordType":"SERVICE RECORD","title":"Robotics Research Assistant — RAICo Programme","date":"Aug 2025 — Apr 2026","summary":"Engineered a safety-critical adaptive impedance control framework for nuclear decommissioning, deployed on 7-DOF KINOVA and Franka arms with proven stability guarantees.","body":["Designed and analysed a safe, robust, adaptive impedance control framework aimed at nuclear decommissioning, where manipulators have to stay safe under severe uncertainty. It fuses an Interval Type-2 Fuzzy Logic System with a smooth compensator and a Nonsmooth Control Barrier Function to hold both safety and stability.","The framework runs as a unified soft-constrained QP solved online in roughly 54 microseconds per cycle, with Uniform Ultimate Boundedness proved through composite Lyapunov analysis, and was deployed on 7-DOF KINOVA Gen3 and Franka Emika manipulators. It is the basis for the CDC submission in the Research Archive."],"tags":["Adaptive control","CBFs","KINOVA","Franka","Lyapunov","QP"],"assets":[{"kind":"arxiv","label":"Related paper — arXiv:2605.28367","href":"https://arxiv.org/abs/2605.28367"}],"badge":"","media":[{"type":"image","src":"../public/assets/media/robotics-research-assistant/m1.jpg","thumb":"../public/assets/media/robotics-research-assistant/m1.thumb.jpg","alt":"Manipulator in the lab","caption":"Impedance control on a 7-DOF arm"}]},"outstanding-achievement-award":{"sector":5,"constellation":"Commendations","recordType":"COMMENDATION RECORD","title":"Outstanding Achievement Award","date":"2025","summary":"The University of Manchester's award for exceptional all-round performance, placing in the top 0.5 percent of the graduating cohort.","body":["The University of Manchester grants this award for exceptional all-round performance across the degree. It recognised both academic results and wider contribution, and placed Faisal in roughly the top 0.5 percent of the graduating cohort."],"tags":["University of Manchester","Top 0.5%"],"assets":[],"badge":"","media":[{"type":"image","src":"../public/assets/media/outstanding-achievement-award/m1.jpg","thumb":"../public/assets/media/outstanding-achievement-award/m1.thumb.jpg","alt":"Outstanding Achievement Award","caption":"Outstanding Achievement Award"},{"type":"image","src":"../public/assets/media/outstanding-achievement-award/m2.jpg","thumb":"../public/assets/media/outstanding-achievement-award/m2.thumb.jpg","alt":"Outstanding Achievement Award"}]},"best-in-eee":{"sector":5,"constellation":"Commendations","recordType":"COMMENDATION RECORD","title":"Best in EEE Department & Best Final-Year Project","date":"2025","summary":"First prize for the best overall performance in the cohort and for the best final-year project, EEE Department, University of Manchester.","body":["Two first prizes from the Department of Electrical and Electronic Engineering at the University of Manchester: one for the best overall performance in the cohort, and one for the best final-year project. The winning project was the safety-critical formation control work that later grew into the TAROS paper."],"tags":["1st prize","Best project"],"assets":[],"badge":"","media":[{"type":"image","src":"../public/assets/media/best-in-eee/m1.jpg","thumb":"../public/assets/media/best-in-eee/m1.thumb.jpg","alt":"Best in EEE Department award","caption":"Best in EEE Department"}]},"top-10-faculty":{"sector":5,"constellation":"Commendations","recordType":"COMMENDATION RECORD","title":"Top 10 in the Faculty of Science & Engineering","date":"","summary":"Recognised among the top 10 students across the Faculty of Science & Engineering for academic achievement.","body":["Recognition as one of the top 10 students across the entire Faculty of Science and Engineering, awarded for sustained academic achievement within a large and competitive cohort."],"tags":["Faculty award"],"assets":[],"badge":"","media":[{"type":"image","src":"../public/assets/media/top-10-faculty/m1.jpg","thumb":"../public/assets/media/top-10-faculty/m1.thumb.jpg","alt":"Top 10 in the Faculty of Science and Engineering","caption":"Faculty Top 10"}]},"iet-future-talent":{"sector":5,"constellation":"Commendations","recordType":"COMMENDATION RECORD","title":"IET Future Talent Award — Boost Scholarship","date":"2024","summary":"A merit scholarship from the Institution of Engineering & Technology for high-achieving students on IET-accredited degrees.","body":["A merit scholarship from the Institution of Engineering and Technology, awarded to high-achieving students holding a 70 percent average or above on IET-accredited degrees. It supported the final years of the mechatronics degree."],"tags":["IET","Merit scholarship"],"assets":[],"badge":"","media":[{"type":"image","src":"../public/assets/media/iet-future-talent/m1.jpg","thumb":"../public/assets/media/iet-future-talent/m1.thumb.jpg","alt":"IET Future Talent Award","caption":"IET Future Talent Award"},{"type":"image","src":"../public/assets/media/iet-future-talent/m2.jpg","thumb":"../public/assets/media/iet-future-talent/m2.thumb.jpg","alt":"IET Future Talent Award"}]},"stellify-award":{"sector":5,"constellation":"Commendations","recordType":"COMMENDATION RECORD","title":"Stellify Award","date":"2023","summary":"The University of Manchester's flagship social-responsibility award, earned alongside the degree.","body":["The University of Manchester's flagship social-responsibility award. Earning it meant completing three Ethical Grand Challenges, contributing more than 40 hours of volunteering, and taking on two leadership roles alongside the demands of the degree."],"tags":["Social responsibility","Leadership"],"assets":[],"badge":"","media":[{"type":"image","src":"../public/assets/media/stellify-award/m1.jpg","thumb":"../public/assets/media/stellify-award/m1.thumb.jpg","alt":"Stellify Award","caption":"Stellify Award"}]},"pgr-scholarship":{"sector":5,"constellation":"Commendations","recordType":"COMMENDATION RECORD","title":"School of Engineering PGR Scholarship","date":"Jan 2026","summary":"A fully-funded doctoral studentship for PhD research at the University of Manchester.","body":["A fully-funded postgraduate research studentship from the School of Engineering, covering the doctoral programme at the University of Manchester and the safety-critical control research it supports."],"tags":["Fully funded","PhD"],"assets":[],"badge":"","media":[]},"cambridge-top-nigeria-physics":{"sector":5,"constellation":"Commendations","recordType":"COMMENDATION RECORD","title":"Top in Nigeria — Cambridge AS-Level Physics","date":"2020","summary":"Cambridge Outstanding Learner Award for the highest mark in Nigeria in Cambridge International AS-Level Physics.","body":["A Cambridge Outstanding Learner Award for the single highest mark in Nigeria in Cambridge International AS-Level Physics."],"tags":["Cambridge","National top"],"assets":[],"badge":"","media":[{"type":"image","src":"../public/assets/media/cambridge-top-nigeria-physics/m1.jpg","thumb":"../public/assets/media/cambridge-top-nigeria-physics/m1.thumb.jpg","alt":"Cambridge Outstanding Learner Award","caption":"Top in Nigeria, AS-Level Physics"}]},"phd-eee":{"sector":6,"constellation":"Training Record","recordType":"TRAINING RECORD","title":"PhD, Electrical & Electronic Engineering","date":"Apr 2026 — present (expected 2030)","summary":"University of Manchester. Safety-critical Control Barrier Function methods for multi-agent autonomous systems. Fully funded.","body":["Doctoral research building provably safe and stable Control Barrier Function based control for multi-agent autonomous systems that operate in dynamic, uncertain environments. The focus is on nonlinear control algorithms light enough to run in real time on edge hardware, under tight computational and actuator budgets."],"tags":["University of Manchester","Control Barrier Functions","Fully funded"],"assets":[],"badge":"","media":[]},"beng-mechatronics":{"sector":6,"constellation":"Training Record","recordType":"TRAINING RECORD","title":"BEng (Hons) Mechatronic Engineering with Industrial Experience","date":"Jul 2021 — Jul 2025","summary":"University of Manchester. First-Class Honours, top 0.5 percent of the cohort. Dissertation on safety-critical consensus-based formation control of distributed mobile robots.","body":["A four-year mechatronic engineering degree with an integrated year in industry, graded First-Class Honours and finishing in roughly the top 0.5 percent of the cohort. The course spanned control, electronics, embedded systems, mechanics and software.","The final-year dissertation on safety-critical consensus-based formation control of distributed mobile robots later grew into the Tessellate platform and the TAROS paper."],"tags":["First-Class Honours","Top 0.5%"],"assets":[],"badge":"","media":[]},"skill-control":{"sector":7,"constellation":"Capability Matrix","recordType":"CAPABILITY","title":"Control Theory","date":"","summary":"Safety-critical control (CBFs and NCBFs), linear and nonlinear systems, robust, adaptive and optimal control (PID, LQR, H-infinity), and Lyapunov stability analysis.","body":["The core specialism. In practice it means designing controllers that come with guarantees: Control Barrier Functions and their nonsmooth variants for safety, Lyapunov analysis for stability, and robust, adaptive and optimal methods for performance under uncertainty. It runs the full range from classical PID and LQR through to modern safety filters on real manipulators and mobile robots."],"tags":["CBFs","MPC","LQR","Lyapunov","Adaptive"],"assets":[],"badge":"","media":[]},"skill-robotics":{"sector":7,"constellation":"Capability Matrix","recordType":"CAPABILITY","title":"Robotics","date":"","summary":"ROS and ROS 2, manipulation and mobile robots, multi-agent swarms and real-time perception, across KINOVA Gen3, Franka Emika, Quanser, SO-101 and SPOT.","body":["Hands-on robotics across manipulators, mobile robots and multi-robot swarms. This covers ROS and ROS 2 stacks, real-time perception, and the work of bringing controllers from simulation onto physical hardware. Platforms worked with include KINOVA Gen3 and Franka Emika arms, Quanser equipment, the SO-101 servo arm and the SPOT quadruped."],"tags":["ROS2","Manipulation","Swarms","Perception"],"assets":[],"badge":"","media":[]},"skill-optimization":{"sector":7,"constellation":"Capability Matrix","recordType":"CAPABILITY","title":"Optimisation","date":"","summary":"Convex optimisation, MPC, second-order cone and quadratic programming, real-time solvers (cvxpy, ECOS and CLARABEL), and CasADi.","body":["Optimisation is the engine under most of the control work. It means formulating controllers as convex programs, usually second-order cone or quadratic programs, and solving them fast enough to close the loop in real time. Tools in regular use include cvxpy with the ECOS and CLARABEL solvers, and CasADi for modelling and inverse kinematics."],"tags":["Convex","SOCP","QP","CasADi"],"assets":[],"badge":"","media":[]},"skill-embedded":{"sector":7,"constellation":"Capability Matrix","recordType":"CAPABILITY","title":"Embedded Systems","date":"","summary":"STM32, ESP32, ARM, Arduino and Raspberry Pi, FPGAs from Altera and Xilinx, the SystemVerilog, VHDL and Verilog HDLs, and real-time control on constrained hardware.","body":["Comfortable taking control algorithms all the way down to the metal. This spans microcontrollers such as STM32, ESP32 and Arduino, single-board computers like the Raspberry Pi, and FPGA work on both Altera and Xilinx parts using SystemVerilog, VHDL and Verilog. The recurring theme is making real-time control behave on hardware with tight timing and resource limits."],"tags":["STM32","FPGA","SystemVerilog","Real-time"],"assets":[],"badge":"","media":[]},"skill-ml":{"sector":7,"constellation":"Capability Matrix","recordType":"CAPABILITY","title":"Machine Learning","date":"","summary":"Applied machine learning for perception and decision making, including computer vision (YOLOv8), fuzzy-logic systems and learning-augmented control.","body":["Machine learning applied where it earns its place in a control or robotics system. That includes computer-vision pipelines built on YOLOv8 for detection and tracking, Interval Type-2 Fuzzy Logic Systems used inside adaptive controllers, and learning-augmented control where data helps cover the parts of a system that are hard to model."],"tags":["Computer vision","YOLOv8","Fuzzy logic"],"assets":[],"badge":"","media":[]}}</script>
+  </section>
+<main class="wrap">
+  <div class="sm-fallback"><section class="constellation" id="research"><header><div class="sector">SECTOR 01</div><h2>Research Archive</h2><div class="blurb">Peer-reviewed and in-progress research in safety-critical control.</div></header><div class="grid"><article class="record" id="formation-control-mpc"><span class="sweep"></span><div class="rtype">RESEARCH ARCHIVE</div><h3>Constrained torque-level formation control via consensus FBL-MPC</h3><div class="date">2026 — TAROS (accepted, published Oct 2026)</div><p class="summary">A consensus-based, feedback-linearised MPC strategy for torque-level formation control of differential-drive robots, recast as a convex program that solves in real time.</p><div class="tags"><span class="tag">MPC</span><span class="tag">SOCP</span><span class="tag">Feedback linearisation</span><span class="tag">Multi-agent</span><span class="tag">Formation control</span></div></article><article class="record" id="safe-impedance-control"><span class="sweep"></span><div class="rtype">RESEARCH ARCHIVE</div><h3>Safety-critical adaptive impedance control via Nonsmooth CBFs</h3><div class="date">2026 — CDC (under review)</div><p class="summary">A safe, robust, adaptive impedance control framework for a 7-DOF manipulator, with guaranteed constraint satisfaction under state and input limits.</p><div class="tags"><span class="tag">Control Barrier Functions</span><span class="tag">Adaptive control</span><span class="tag">IT2 Fuzzy</span><span class="tag">Lyapunov</span><span class="tag">QP</span></div><div class="assets"><a class="asset" href="https://arxiv.org/abs/2605.28367">arXiv:2605.28367</a></div></article><article class="record" id="high-order-safety-filters"><span class="sweep"></span><span class="badge">IN PROGRESS</span><div class="rtype">RESEARCH ARCHIVE</div><h3>High-order multi-constrained safety filters for linear systems</h3><div class="date">In progress</div><p class="summary">Stability analysis and design of high-order, multi-constrained safety filters for linear systems.</p><div class="tags"><span class="tag">Safety filters</span><span class="tag">Stability analysis</span><span class="tag">Linear systems</span></div></article></div></section><section class="constellation" id="projects"><header><div class="sector">SECTOR 02</div><h2>Mission Records</h2><div class="blurb">Robotics and control systems built end to end.</div></header><div class="grid"><article class="record" id="tessellate"><span class="sweep"></span><span class="badge">HERO PROJECT</span><div class="rtype">MISSION RECORD</div><h3>Tessellate — distributed formation control platform</h3><div class="date">Oct 2025</div><p class="summary">A Python platform that demonstrates distributed formation control of nonholonomic robots using a consensus-based feedback-linearised MPC, solved as a real-time SOCP at 60 Hz.</p><div class="tags"><span class="tag">Python</span><span class="tag">MPC</span><span class="tag">SOCP</span><span class="tag">cvxpy</span><span class="tag">A*</span><span class="tag">PySide6</span><span class="tag">Swarm</span></div><div class="assets"><a class="asset" href="https://github.com/Tessellate-Labs/tessellate-consensus-socp-mpc">Source Archive</a></div></article><article class="record" id="double-inverted-pendulum"><span class="sweep"></span><span class="badge">IN PROGRESS</span><div class="rtype">MISSION RECORD</div><h3>Double Inverted Pendulum — hybrid swing-up &amp; stabilisation</h3><div class="date">Apr 2025 — present</div><p class="summary">Simulation and hybrid control of a cart-mounted double inverted pendulum that moves between all four equilibrium configurations, now being rebuilt as physical hardware.</p><div class="tags"><span class="tag">MATLAB</span><span class="tag">CasADi</span><span class="tag">Sliding mode</span><span class="tag">Energy control</span><span class="tag">Hybrid systems</span><span class="tag">Raspberry Pi</span></div></article><article class="record" id="line-following-robot"><span class="sweep"></span><span class="badge">ESP INNOVATIVE FEATURES PRIZE</span><div class="rtype">MISSION RECORD</div><h3>Autonomous Line-Following Robot</h3><div class="date">Sep 2022 — Jun 2023</div><p class="summary">A battery-powered autonomous buggy that follows a marked track, climbs an 18-degree incline, turns 180 degrees on a Bluetooth command and stops precisely, run by three PID loops on an STM32.</p><div class="tags"><span class="tag">STM32</span><span class="tag">C++</span><span class="tag">PID</span><span class="tag">Custom PCB</span><span class="tag">BLE</span><span class="tag">MATLAB/Simulink</span></div><div class="assets"><a class="asset" href="https://github.com/FHL-08/UOM-ESP2022-Group25">Source Archive</a></div></article><article class="record" id="maze-solving-buggy"><span class="sweep"></span><div class="rtype">MISSION RECORD</div><h3>Autonomous Maze-Solving Buggy</h3><div class="date">Oct 2021 — May 2022</div><p class="summary">An Arduino buggy with ultrasonic sensing and a PID controller that solves mazes on its own while avoiding collisions.</p><div class="tags"><span class="tag">Arduino</span><span class="tag">PID</span><span class="tag">Ultrasonic sensing</span><span class="tag">Autonomy</span></div></article><article class="record" id="robotic-poker"><span class="sweep"></span><span class="badge">IN PROGRESS</span><div class="rtype">MISSION RECORD</div><h3>Robotic Poker Player &amp; Dealer</h3><div class="date">Sep 2025 — present</div><p class="summary">An end-to-end autonomous poker system on an SO-101 robot arm, fusing dual-camera vision, a ROS 2 control stack and game-theoretic decision making.</p><div class="tags"><span class="tag">ROS 2</span><span class="tag">Computer vision</span><span class="tag">YOLOv8</span><span class="tag">CasADi</span><span class="tag">LQR</span><span class="tag">SO-101</span></div><div class="assets"><a class="asset" href="https://github.com/jalliet/prap-25-26">Source Archive</a></div></article></div></section><section class="constellation" id="hackathons"><header><div class="sector">SECTOR 03</div><h2>Field Operations</h2><div class="blurb">Rapid-build robotics and software challenges, with several wins.</div></header><div class="grid"><article class="record" id="quanser-hackathon"><span class="sweep"></span><span class="badge">1ST PLACE</span><div class="rtype">FIELD OPERATION</div><h3>AME × Quanser Robotics Hackathon</h3><div class="date">Nov 2025</div><p class="summary">Won the Quanser hackathon by deriving inverse kinematics from first principles to pick and place coloured hoops on the QArm, with no IK libraries available because the venue internet was down.</p><div class="tags"><span class="tag">Inverse kinematics</span><span class="tag">QArm</span><span class="tag">PyBullet</span><span class="tag">Python</span></div><div class="assets"><a class="asset" href="https://github.com/FHL-08/quanser-hackathon">Source Archive</a></div></article><article class="record" id="swarmhack-2022"><span class="sweep"></span><span class="badge">1ST PLACE</span><div class="rtype">FIELD OPERATION</div><h3>SwarmHack</h3><div class="date">Jun 2022</div><p class="summary">Won best team solution for a distributed algorithm that aggregates any number of randomly moving robots into a single cluster, every time.</p><div class="tags"><span class="tag">Python</span><span class="tag">ROS</span><span class="tag">Swarm robotics</span><span class="tag">Distributed algorithms</span></div></article><article class="record" id="guh-2025-quant"><span class="sweep"></span><span class="badge">1ST PLACE</span><div class="rtype">FIELD OPERATION</div><h3>Greater Uni Hackathon — Quant Trading Challenge</h3><div class="date">Nov 2025</div><p class="summary">Won first place and 60 percent of the prize pool in the algorithmic-trading challenge with a quantitative market-making bot.</p><div class="tags"><span class="tag">Algorithmic trading</span><span class="tag">Market making</span><span class="tag">Python</span><span class="tag">Quant</span></div><div class="assets"><a class="asset" href="https://github.com/jonghunlee05/Greater_Uni_Hackathon_2025">Source Archive</a><a class="asset" href="https://www.linkedin.com/feed/update/urn:li:activity:7393758594871070721/">LinkedIn Post</a></div></article><article class="record" id="hackabot-2025"><span class="sweep"></span><span class="badge">2ND PLACE</span><div class="rtype">FIELD OPERATION</div><h3>Hack-a-Bot 2025 — Ice9 'Mona Delivery' Challenge</h3><div class="date">Mar 2025</div><p class="summary">Second place: a computer-vision pipeline that drives a robot through a line maze from a single overhead camera, planning the shortest path and steering in real time.</p><div class="tags"><span class="tag">OpenCV</span><span class="tag">ArUco</span><span class="tag">Dijkstra</span><span class="tag">Skeletonisation</span><span class="tag">Arduino</span></div><div class="assets"><a class="asset" href="https://github.com/FHL-08/Hackabot-2025">Source Archive</a></div></article><article class="record" id="guh-2022-bet365"><span class="sweep"></span><span class="badge">3RD PLACE</span><div class="rtype">FIELD OPERATION</div><h3>Greater Uni Hackathon — Attack on Football (Bet365 Challenge)</h3><div class="date">Nov 2022</div><p class="summary">Third in the Bet365 challenge with a web app that pulls live football data and presents it cleanly in real time.</p><div class="tags"><span class="tag">Vue.js</span><span class="tag">REST API</span><span class="tag">Front-end</span></div><div class="assets"><a class="asset" href="https://github.com/FHL-08/GreatUniHack-2022/tree/master">Source Archive</a><a class="asset" href="https://devpost.com/software/attack-on-football">Devpost</a></div></article><article class="record" id="hackabot-2026"><span class="sweep"></span><div class="rtype">FIELD OPERATION</div><h3>Hack-a-Bot 2026 — Ice9 Swarm Challenge</h3><div class="date">Mar 2026</div><p class="summary">Coordinating up to three MONA robots from a shared arena camera to push a trolley across the arena while avoiding obstacles. It worked in simulation but was foiled by hardware on the day.</p><div class="tags"><span class="tag">Swarm</span><span class="tag">Computer vision</span><span class="tag">ESP32</span><span class="tag">MONA</span><span class="tag">ArUco</span></div><div class="assets"><a class="asset" href="https://github.com/FHL-08/hackabot_26">Source Archive</a></div></article></div></section><section class="constellation" id="experience"><header><div class="sector">SECTOR 04</div><h2>Service Record</h2><div class="blurb">Industry and research roles.</div></header><div class="grid"><article class="record" id="fpga-engineer-altera"><span class="sweep"></span><div class="rtype">SERVICE RECORD</div><h3>FPGA Hardware Engineer — Altera (Intel PSG)</h3><div class="date">Jul 2023 — Aug 2024</div><p class="summary">Architected an FPGA accelerator for Google's Snappy compression in SystemVerilog (10 percent better ratio, 30 percent more throughput) and delivered a 100x speed-up in duplicate MAC-address detection.</p><div class="tags"><span class="tag">SystemVerilog</span><span class="tag">FPGA</span><span class="tag">RTL design</span><span class="tag">NIOS V</span><span class="tag">Python</span></div><div class="assets"><a class="asset" href="https://github.com/FHL-08/Bespoke_Snappy">Bespoke Snappy (HW prototype)</a></div></article><article class="record" id="robotics-research-assistant"><span class="sweep"></span><div class="rtype">SERVICE RECORD</div><h3>Robotics Research Assistant — RAICo Programme</h3><div class="date">Aug 2025 — Apr 2026</div><p class="summary">Engineered a safety-critical adaptive impedance control framework for nuclear decommissioning, deployed on 7-DOF KINOVA and Franka arms with proven stability guarantees.</p><div class="tags"><span class="tag">Adaptive control</span><span class="tag">CBFs</span><span class="tag">KINOVA</span><span class="tag">Franka</span><span class="tag">Lyapunov</span><span class="tag">QP</span></div><div class="assets"><a class="asset" href="https://arxiv.org/abs/2605.28367">Related paper — arXiv:2605.28367</a></div></article></div></section><section class="constellation" id="awards"><header><div class="sector">SECTOR 05</div><h2>Commendations</h2><div class="blurb">Academic and industry recognition.</div></header><div class="grid"><article class="record" id="outstanding-achievement-award"><span class="sweep"></span><div class="rtype">COMMENDATION RECORD</div><h3>Outstanding Achievement Award</h3><div class="date">2025</div><p class="summary">The University of Manchester's award for exceptional all-round performance, placing in the top 0.5 percent of the graduating cohort.</p><div class="tags"><span class="tag">University of Manchester</span><span class="tag">Top 0.5%</span></div></article><article class="record" id="best-in-eee"><span class="sweep"></span><div class="rtype">COMMENDATION RECORD</div><h3>Best in EEE Department &amp; Best Final-Year Project</h3><div class="date">2025</div><p class="summary">First prize for the best overall performance in the cohort and for the best final-year project, EEE Department, University of Manchester.</p><div class="tags"><span class="tag">1st prize</span><span class="tag">Best project</span></div></article><article class="record" id="top-10-faculty"><span class="sweep"></span><div class="rtype">COMMENDATION RECORD</div><h3>Top 10 in the Faculty of Science &amp; Engineering</h3><p class="summary">Recognised among the top 10 students across the Faculty of Science &amp; Engineering for academic achievement.</p><div class="tags"><span class="tag">Faculty award</span></div></article><article class="record" id="iet-future-talent"><span class="sweep"></span><div class="rtype">COMMENDATION RECORD</div><h3>IET Future Talent Award — Boost Scholarship</h3><div class="date">2024</div><p class="summary">A merit scholarship from the Institution of Engineering &amp; Technology for high-achieving students on IET-accredited degrees.</p><div class="tags"><span class="tag">IET</span><span class="tag">Merit scholarship</span></div></article><article class="record" id="stellify-award"><span class="sweep"></span><div class="rtype">COMMENDATION RECORD</div><h3>Stellify Award</h3><div class="date">2023</div><p class="summary">The University of Manchester's flagship social-responsibility award, earned alongside the degree.</p><div class="tags"><span class="tag">Social responsibility</span><span class="tag">Leadership</span></div></article><article class="record" id="pgr-scholarship"><span class="sweep"></span><div class="rtype">COMMENDATION RECORD</div><h3>School of Engineering PGR Scholarship</h3><div class="date">Jan 2026</div><p class="summary">A fully-funded doctoral studentship for PhD research at the University of Manchester.</p><div class="tags"><span class="tag">Fully funded</span><span class="tag">PhD</span></div></article><article class="record" id="cambridge-top-nigeria-physics"><span class="sweep"></span><div class="rtype">COMMENDATION RECORD</div><h3>Top in Nigeria — Cambridge AS-Level Physics</h3><div class="date">2020</div><p class="summary">Cambridge Outstanding Learner Award for the highest mark in Nigeria in Cambridge International AS-Level Physics.</p><div class="tags"><span class="tag">Cambridge</span><span class="tag">National top</span></div></article></div></section><section class="constellation" id="education"><header><div class="sector">SECTOR 06</div><h2>Training Record</h2><div class="blurb">Academic background.</div></header><div class="grid"><article class="record" id="phd-eee"><span class="sweep"></span><div class="rtype">TRAINING RECORD</div><h3>PhD, Electrical &amp; Electronic Engineering</h3><div class="date">Apr 2026 — present (expected 2030)</div><p class="summary">University of Manchester. Safety-critical Control Barrier Function methods for multi-agent autonomous systems. Fully funded.</p><div class="tags"><span class="tag">University of Manchester</span><span class="tag">Control Barrier Functions</span><span class="tag">Fully funded</span></div></article><article class="record" id="beng-mechatronics"><span class="sweep"></span><div class="rtype">TRAINING RECORD</div><h3>BEng (Hons) Mechatronic Engineering with Industrial Experience</h3><div class="date">Jul 2021 — Jul 2025</div><p class="summary">University of Manchester. First-Class Honours, top 0.5 percent of the cohort. Dissertation on safety-critical consensus-based formation control of distributed mobile robots.</p><div class="tags"><span class="tag">First-Class Honours</span><span class="tag">Top 0.5%</span></div></article></div></section><section class="constellation" id="skills"><header><div class="sector">SECTOR 07</div><h2>Capability Matrix</h2><div class="blurb">Core domains of expertise.</div></header><div class="grid"><article class="record" id="skill-control"><span class="sweep"></span><div class="rtype">CAPABILITY</div><h3>Control Theory</h3><p class="summary">Safety-critical control (CBFs and NCBFs), linear and nonlinear systems, robust, adaptive and optimal control (PID, LQR, H-infinity), and Lyapunov stability analysis.</p><div class="tags"><span class="tag">CBFs</span><span class="tag">MPC</span><span class="tag">LQR</span><span class="tag">Lyapunov</span><span class="tag">Adaptive</span></div></article><article class="record" id="skill-robotics"><span class="sweep"></span><div class="rtype">CAPABILITY</div><h3>Robotics</h3><p class="summary">ROS and ROS 2, manipulation and mobile robots, multi-agent swarms and real-time perception, across KINOVA Gen3, Franka Emika, Quanser, SO-101 and SPOT.</p><div class="tags"><span class="tag">ROS2</span><span class="tag">Manipulation</span><span class="tag">Swarms</span><span class="tag">Perception</span></div></article><article class="record" id="skill-optimization"><span class="sweep"></span><div class="rtype">CAPABILITY</div><h3>Optimisation</h3><p class="summary">Convex optimisation, MPC, second-order cone and quadratic programming, real-time solvers (cvxpy, ECOS and CLARABEL), and CasADi.</p><div class="tags"><span class="tag">Convex</span><span class="tag">SOCP</span><span class="tag">QP</span><span class="tag">CasADi</span></div></article><article class="record" id="skill-embedded"><span class="sweep"></span><div class="rtype">CAPABILITY</div><h3>Embedded Systems</h3><p class="summary">STM32, ESP32, ARM, Arduino and Raspberry Pi, FPGAs from Altera and Xilinx, the SystemVerilog, VHDL and Verilog HDLs, and real-time control on constrained hardware.</p><div class="tags"><span class="tag">STM32</span><span class="tag">FPGA</span><span class="tag">SystemVerilog</span><span class="tag">Real-time</span></div></article><article class="record" id="skill-ml"><span class="sweep"></span><div class="rtype">CAPABILITY</div><h3>Machine Learning</h3><p class="summary">Applied machine learning for perception and decision making, including computer vision (YOLOv8), fuzzy-logic systems and learning-augmented control.</p><div class="tags"><span class="tag">Computer vision</span><span class="tag">YOLOv8</span><span class="tag">Fuzzy logic</span></div></article></div></section></div>
+  <section class="missionlog"><div class="sector">TRANSMISSION ARCHIVE</div><h2>Mission Log</h2>
+    <div class="logrow"><div class="yr">2026</div><div>Initiated PhD research in safety-critical multi-agent control.</div></div><div class="logrow"><div class="yr">2026</div><div>Formation-control paper accepted to TAROS; CDC paper under review.</div></div><div class="logrow"><div class="yr">2025</div><div>Robotics Research Assistant (RAICo); graduated First-Class, top 0.5%.</div></div><div class="logrow"><div class="yr">2025</div><div>Won the AME × Quanser hackathon and the GUH Quant challenge.</div></div><div class="logrow"><div class="yr">2024</div><div>IET Future Talent (Boost) Scholarship; completed year in industry at Altera/Intel.</div></div><div class="logrow"><div class="yr">2023</div><div>Built award-winning autonomous line-following robot; began FPGA role at Altera.</div></div><div class="logrow"><div class="yr">2022</div><div>Won SwarmHack with a 100% robot-aggregation algorithm.</div></div><div class="logrow"><div class="yr">2021</div><div>Completed a robotics internship at Createc.</div></div><div class="logrow"><div class="yr">2020</div><div>Top in Nigeria — Cambridge AS-Level Physics.</div></div>
+  </section>
+</main>
+
+  <div class="profile-overlay" role="dialog" aria-modal="true" aria-label="Commander Profile"><div class="profile-panel">
+    <button class="profile-close" type="button">&#10005; CLOSE</button>
+    <section class="dossier"><span class="sweep"></span>
+      <div class="dossier-head"><div class="portrait-wrap"><img class="portrait" src="../public/assets/img/commander.jpg" alt="Faisal Lawan" decoding="async"/><span class="scan"></span></div>
+        <div><div class="id-tag">PERSONNEL DOSSIER // FSL-01</div><h1>Faisal Lawan<span class="status-pill">ACTIVE</span></h1><div class="class">Control Systems Researcher</div><div class="directive">Build control systems that are provably safe and still work on real hardware.</div></div></div>
+      <div class="dossier-grid">
+        <div class="dblock"><h4>IDENTIFICATION</h4><dl class="fields"><dt>Designation</dt><dd>FSL-01</dd><dt>Name</dt><dd>Faisal Lawan</dd><dt>Class</dt><dd>Control Systems Researcher</dd><dt>Origin</dt><dd>Nigeria</dd><dt>Station</dt><dd>University of Manchester, UK</dd><dt>Commission</dt><dd>Doctoral Researcher, 2026 (expected 2030)</dd><dt>Status</dt><dd>Active</dd></dl></div>
+        <div class="dblock"><h4>SPECIALISATIONS</h4><div class="skill"><div class="skill-row"><span>Control Theory</span><span class="lv">5/5</span></div><div class="pips"><span class="pip on"></span><span class="pip on"></span><span class="pip on"></span><span class="pip on"></span><span class="pip on"></span></div></div><div class="skill"><div class="skill-row"><span>Robotics</span><span class="lv">4/5</span></div><div class="pips"><span class="pip on"></span><span class="pip on"></span><span class="pip on"></span><span class="pip on"></span><span class="pip "></span></div></div><div class="skill"><div class="skill-row"><span>Optimisation</span><span class="lv">4/5</span></div><div class="pips"><span class="pip on"></span><span class="pip on"></span><span class="pip on"></span><span class="pip on"></span><span class="pip "></span></div></div><div class="skill"><div class="skill-row"><span>Embedded Systems</span><span class="lv">4/5</span></div><div class="pips"><span class="pip on"></span><span class="pip on"></span><span class="pip on"></span><span class="pip on"></span><span class="pip "></span></div></div><div class="skill"><div class="skill-row"><span>Machine Learning</span><span class="lv">3/5</span></div><div class="pips"><span class="pip on"></span><span class="pip on"></span><span class="pip on"></span><span class="pip "></span><span class="pip "></span></div></div></div>
+        <div class="dblock"><h4>FIELD RECORD</h4><ul class="reclist"><li>First-Class Honours, Mechatronic Engineering. Top 0.5% of cohort.</li><li>Outstanding Achievement Award, University of Manchester.</li><li>Winner: SwarmHack, Quanser Robotics Hackathon, GUH Quant Challenge.</li><li>FPGA accelerator for Google Snappy at Altera (+10% ratio, +30% throughput).</li><li>Research author: formation control (TAROS 2026); adaptive impedance control (CDC, under review).</li></ul></div>
+        <div class="dblock"><h4>TOOLSET</h4><div class="toolgroup"><div class="tlabel">Languages</div><div class="titems"><span class="chip">Python</span><span class="chip">C/C++</span><span class="chip">SystemVerilog</span><span class="chip">MATLAB</span><span class="chip">TypeScript</span></div></div><div class="toolgroup"><div class="tlabel">Control &amp; Optimisation</div><div class="titems"><span class="chip">ROS2</span><span class="chip">MPC</span><span class="chip">CBFs</span><span class="chip">CasADi</span><span class="chip">cvxpy</span></div></div><div class="toolgroup"><div class="tlabel">Hardware</div><div class="titems"><span class="chip">STM32</span><span class="chip">ESP32</span><span class="chip">FPGA</span><span class="chip">Raspberry Pi</span><span class="chip">KINOVA</span><span class="chip">Franka</span></div></div></div>
+      </div>
+      <div class="contacts"><a href="../public/assets/cv/Faisal_Lawan_CV_2026.pdf">&#8615; Personnel Dossier (CV)</a><a href="mailto:faisallawan08@gmail.com">Email</a><a href="https://github.com/FHL-08">GitHub</a><a href="https://www.linkedin.com/in/faisal-lawan/">LinkedIn</a><a href="https://arxiv.org/abs/2605.28367">arXiv</a></div>
+    </section></div></div>
+<div id="missionlog-overlay" role="dialog" aria-modal="true" aria-label="Mission Log">
+  <div class="mlog-card"><span class="sweep"></span><button class="mlog-close" type="button">&#10005; CLOSE</button>
+    <div class="id-tag">TRANSMISSION ARCHIVE // RECOVERED</div><h2 class="mlog-title">Mission Log</h2>
+    <div class="mlog-row"><div class="yr">2026</div><div class="ev">Initiated PhD research in safety-critical multi-agent control.</div></div><div class="mlog-row"><div class="yr">2026</div><div class="ev">Formation-control paper accepted to TAROS; CDC paper under review.</div></div><div class="mlog-row"><div class="yr">2025</div><div class="ev">Robotics Research Assistant (RAICo); graduated First-Class, top 0.5%.</div></div><div class="mlog-row"><div class="yr">2025</div><div class="ev">Won the AME × Quanser hackathon and the GUH Quant challenge.</div></div><div class="mlog-row"><div class="yr">2024</div><div class="ev">IET Future Talent (Boost) Scholarship; completed year in industry at Altera/Intel.</div></div><div class="mlog-row"><div class="yr">2023</div><div class="ev">Built award-winning autonomous line-following robot; began FPGA role at Altera.</div></div><div class="mlog-row"><div class="yr">2022</div><div class="ev">Won SwarmHack with a 100% robot-aggregation algorithm.</div></div><div class="mlog-row"><div class="yr">2021</div><div class="ev">Completed a robotics internship at Createc.</div></div><div class="mlog-row"><div class="yr">2020</div><div class="ev">Top in Nigeria — Cambridge AS-Level Physics.</div></div>
+  </div>
+</div>
+<div id="media-lightbox" role="dialog" aria-modal="true" aria-label="Media viewer">
+  <button class="ml-close" type="button">✕ CLOSE</button>
+  <button class="ml-nav ml-prev" type="button" aria-label="Previous">‹</button>
+  <div class="ml-stage"><div class="ml-frame" id="ml-frame"></div><div class="ml-cap" id="ml-cap"></div></div>
+  <button class="ml-nav ml-next" type="button" aria-label="Next">›</button>
+</div>
+<script>/* scene.js — M1 immersive HUD scene.
+   Starfield (fractional coords → full field from frame 1), ship-rooted connector
+   leads, beacon→profile, enter-archive scroll. Vanilla; shared by Astro + preview. */
+(function () {
+  function ready(fn) {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn);
+    else fn();
+  }
+
+  ready(function () {
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var scene = document.getElementById("scene");
+
+    /* ---------- Starfield (resolution-independent) ---------- */
+    var canvas = document.getElementById("starfield");
+    var ctx = canvas && canvas.getContext ? canvas.getContext("2d") : null;
+    var w = 0, h = 0, dpr = 1, stars = [], raf = 0, t = 0, mx = 0, my = 0, built = false;
+    var LAYERS = [
+      { n: 80, sp: 0.012, min: 0.4, max: 0.9, alpha: 0.5 },
+      { n: 50, sp: 0.03, min: 0.7, max: 1.4, alpha: 0.7 },
+      { n: 24, sp: 0.06, min: 1.0, max: 2.0, alpha: 1.0 }
+    ];
+    function rnd(a, b) { return a + Math.random() * (b - a); }
+    function build() {
+      stars = [];
+      for (var li = 0; li < LAYERS.length; li++) {
+        var L = LAYERS[li];
+        for (var i = 0; i < L.n; i++) {
+          stars.push({ fx: Math.random(), fy: Math.random(), r: rnd(L.min, L.max),
+            a: L.alpha * rnd(0.5, 1), tw: Math.random() * Math.PI * 2, sp: L.sp, d: li + 1 });
+        }
+      }
+      built = true;
+    }
+    function resize() {
+      if (!canvas) return;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = canvas.clientWidth; h = canvas.clientHeight;
+      canvas.width = Math.max(1, w * dpr); canvas.height = Math.max(1, h * dpr);
+      if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (!built) build();
+    }
+    function draw() {
+      if (!ctx) return;
+      ctx.clearRect(0, 0, w, h);
+      for (var i = 0; i < stars.length; i++) {
+        var s = stars[i];
+        var tw = reduce ? 1 : (0.6 + 0.4 * Math.sin(t * 0.002 + s.tw));
+        var pan = window.__smpan || { x: 0, y: 0 };
+        var px = s.fx * w + mx * s.d * 4 + pan.x * 0.03 * s.d, py = s.fy * h + my * s.d * 4 + pan.y * 0.03 * s.d;
+        ctx.beginPath();
+        ctx.arc(px, py, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(205,238,255," + Math.min(1, s.a * tw * 1.45).toFixed(3) + ")";
+        ctx.fill();
+      }
+    }
+    function step() {
+      t += 16;
+      if (scene && !reduce) {
+        var by = Math.sin(t / 1400) * 6;
+        scene.style.setProperty("--bob", by.toFixed(2) + "px");
+        scene.style.setProperty("--bobrot", (Math.sin(t / 1400) * 0.5).toFixed(3) + "deg");
+        window.__bob = by;
+      }
+      drawLinks();
+      var fh = h || 1;
+      for (var i = 0; i < stars.length; i++) {
+        var s = stars[i];
+        s.fy += s.sp / fh; s.fx -= (s.sp * 0.5) / (w || 1);
+        if (s.fy > 1) s.fy = 0; if (s.fx < 0) s.fx = 1;
+      }
+      draw();
+      raf = requestAnimationFrame(step);
+    }
+
+    /* ---------- Connector leads (rooted at ship hull) ---------- */
+    var links = document.getElementById("scene-links");
+    function drawLinks() {
+      if (!scene || !links) return;
+      var ship = scene.querySelector(".ship");
+      if (!ship) return;
+      var R = scene.getBoundingClientRect();
+      var sr = ship.getBoundingClientRect();
+      var hx = sr.left + sr.width * 0.5 - R.left;
+      var hy = sr.top + sr.height * 0.52 - R.top;
+      links.setAttribute("viewBox", "0 0 " + R.width + " " + R.height);
+      var panels = scene.querySelectorAll("[data-link]");
+      var s = "";
+      for (var i = 0; i < panels.length; i++) {
+        var p = panels[i];
+        var pr = p.getBoundingClientRect();
+        var side = p.getAttribute("data-link");
+        var ax = (side === "left" ? pr.right : pr.left) - R.left;
+        var ay = pr.top + pr.height * 0.5 - R.top;
+        var bx = ax + (hx - ax) * 0.5;
+        s += '<path d="M' + ax + ' ' + ay + ' L' + bx + ' ' + ay + ' L' + hx + ' ' + hy + '" class="lnk" fill="none" stroke="#41e3ff" stroke-opacity="0.5" stroke-width="1.2" stroke-dasharray="5 5"/>';
+        s += '<circle cx="' + ax + '" cy="' + ay + '" r="3" fill="#41e3ff"/>';
+      }
+      s += '<circle cx="' + hx + '" cy="' + hy + '" r="10" fill="none" stroke="#41e3ff" stroke-opacity="0.4"/>';
+      s += '<circle cx="' + hx + '" cy="' + hy + '" r="4.5" fill="#41e3ff" stroke="var(--bg-void,#05070f)" stroke-width="2"/>';
+      links.innerHTML = s;
+    }
+    window.__drawLinks = drawLinks;
+    var worldEl = document.getElementById("world");
+    if (worldEl) worldEl.addEventListener("transitionend", drawLinks);
+
+    function onResize() { resize(); drawLinks(); }
+    window.addEventListener("resize", onResize);
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) { cancelAnimationFrame(raf); }
+      else if (!reduce) { raf = requestAnimationFrame(step); }
+    });
+    if (!reduce) {
+      window.addEventListener("pointermove", function (e) {
+        mx = e.clientX / window.innerWidth - 0.5;
+        my = e.clientY / window.innerHeight - 0.5;
+      }, { passive: true });
+    }
+    var reticleEl = document.querySelector(".reticle");
+    window.addEventListener("pointermove", function (e) {
+      if (!reticleEl || !scene) return;
+      if (scene.classList.contains("sm-focus") || scene.classList.contains("sm-star")) { reticleEl.classList.remove("hot"); return; }
+      var r = reticleEl.getBoundingClientRect();
+      var cx = r.left + r.width / 2, cy = r.top + r.height / 2, rad = r.width / 2;
+      reticleEl.classList.toggle("hot", Math.hypot(e.clientX - cx, e.clientY - cy) <= rad);
+    }, { passive: true });
+    resize();
+    drawLinks();
+    // re-measure after fonts/layout settle
+    setTimeout(drawLinks, 120);
+    setTimeout(drawLinks, 500);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawLinks);
+    if (canvas) { if (reduce) draw(); else raf = requestAnimationFrame(step); }
+
+    /* ---------- Beacon → Commander Profile ---------- */
+    var beacon = document.querySelector(".beacon");
+    var overlay = document.querySelector(".profile-overlay");
+    var closeBtn = document.querySelector(".profile-close");
+    var radar = document.querySelector(".reticle");
+    function openP() { if (overlay) { overlay.classList.add("open"); document.body.style.overflow = "hidden"; if (closeBtn) closeBtn.focus(); } }
+    function closeP() { if (overlay) { overlay.classList.remove("open"); document.body.style.overflow = ""; if (beacon) beacon.focus(); } }
+    if (beacon) {
+      beacon.addEventListener("click", openP);
+      beacon.addEventListener("mouseenter", function () { if (radar) radar.classList.add("scanning"); });
+      beacon.addEventListener("mouseleave", function () { if (radar) radar.classList.remove("scanning"); });
+    }
+    if (closeBtn) closeBtn.addEventListener("click", closeP);
+    if (overlay) overlay.addEventListener("click", function (e) { if (e.target === overlay) closeP(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeP(); });
+
+    /* ---------- Enter archive scroll ---------- */
+    var enter = document.querySelector(".enter-archive");
+    if (enter) enter.addEventListener("click", function () {
+      var el = document.querySelector(".constellation");
+      if (el) el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    });
+
+    /* ---------- Mission Log panel → holographic log ---------- */
+    var mlogBtn = document.getElementById("mlog-launch");
+    var mlog = document.getElementById("missionlog-overlay");
+    var mlogClose = mlog && mlog.querySelector(".mlog-close");
+    function openM() { if (mlog) { mlog.classList.add("open"); document.body.style.overflow = "hidden"; if (mlogClose) mlogClose.focus(); } }
+    function closeM() { if (mlog) { mlog.classList.remove("open"); document.body.style.overflow = ""; if (mlogBtn) mlogBtn.focus(); } }
+    if (mlogBtn) {
+      mlogBtn.addEventListener("click", openM);
+      mlogBtn.addEventListener("mouseenter", function () { if (radar) radar.classList.add("scanning"); });
+      mlogBtn.addEventListener("mouseleave", function () { if (radar) radar.classList.remove("scanning"); });
+    }
+    if (mlogClose) mlogClose.addEventListener("click", closeM);
+    if (mlog) mlog.addEventListener("click", function (e) { if (e.target === mlog) closeM(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeM(); });
+  });
+})();
+</script>
+<script>/* starmap.js — M2 constellation star-map engine (deterministic coordinate math).
+   Positions are computed from the #starmap viewBox (1600x1000, slice) so they are
+   independent of any in-flight CSS transform. Map hover -> focus -> star -> record. */
+(function () {
+  function ready(fn){ if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",fn); else fn(); }
+  ready(function () {
+    var scene=document.getElementById("scene"), sm=document.getElementById("starmap"), world=document.getElementById("world")||document.getElementById("starmap");
+    if(!scene||!sm) return;
+    if((window.matchMedia&&window.matchMedia("(hover: none)").matches)||window.innerWidth<720){ scene.classList.add("sm-off"); return; }
+
+    var fx=document.getElementById("sm-fx"), cursor=document.getElementById("sm-cursor"),
+        conName=document.getElementById("con-name"), starName=document.getElementById("star-name"),
+        overlay=document.getElementById("record-overlay"), recordBody=document.getElementById("record-body");
+    var ml=document.getElementById("media-lightbox"), mlFrame=ml&&ml.querySelector("#ml-frame"), mlCap=ml&&ml.querySelector("#ml-cap"), mlPrev=ml&&ml.querySelector(".ml-prev"), mlNext=ml&&ml.querySelector(".ml-next"), curMedia=[], mlIndex=0;
+    var links=document.getElementById("scene-links");
+    var NS="http://www.w3.org/2000/svg", VBW=2400, VBH=1840, VBMINY=-170;
+    function el(n,a){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);return e;}
+    function clearFx(){ while(fx.firstChild) fx.removeChild(fx.firstChild); }
+    function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+    var records={}; try{ records=JSON.parse(document.getElementById("sm-records").textContent); }catch(e){}
+
+    var cons=[].slice.call(sm.querySelectorAll(".sm-con")).map(function(g){
+      var first=g.querySelector(".sm-star"); var rid=first&&first.getAttribute("data-rid"); var r0=rid&&records[rid];
+      return {
+        g:g, cx:+g.getAttribute("data-cx"), cy:+g.getAttribute("data-cy"), r:+g.getAttribute("data-r"),
+        title:r0?r0.constellation:"", sector:r0?r0.sector:0,
+        stars:[].slice.call(g.querySelectorAll(".sm-star")).map(function(s){
+          return { el:s, x:+s.getAttribute("data-x"), y:+s.getAttribute("data-y"), mag:+s.getAttribute("data-mag"), rid:s.getAttribute("data-rid") };
+        })
+      };
+    });
+
+    var mode="map", curCon=null, hovStar=null, hovCon=null, lastM={x:-1,y:-1}, T={tx:0,ty:0,s:1}, hraf=0, hUntil=0, starSeqT1=0, starSeqT2=0;
+    window.__smT={tx:0,ty:0,s:1};
+
+    function metrics(){ var R=scene.getBoundingClientRect(); var s=Math.min(R.width/VBW, R.height/VBH);
+      return { W:R.width, H:R.height, s:s, ox:(R.width-VBW*s)/2, oy:(R.height-VBH*s)/2 }; }
+    function vb(vx,vy,m){ return { x:m.ox+vx*m.s, y:m.oy+(vy-VBMINY)*m.s }; } // identity screen pos
+    function cur2(p){ return { x:T.tx+T.s*p.x, y:T.ty+T.s*p.y }; }         // apply current transform
+    function setT(tx,ty,s){ T.tx=tx; T.ty=ty; T.s=s; world.style.transform="translate("+tx+"px,"+ty+"px) scale("+s+")"; window.__smT={tx:tx,ty:ty,s:s}; }
+
+    /* ---------- MAP ---------- */
+    function showConName(c){
+      var m=metrics(), c0=cur2(vb(c.cx,c.cy,m)), R=c.r*m.s*T.s, ang=-0.7, px=c0.x+Math.cos(ang)*R, py=c0.y+Math.sin(ang)*R;
+      conName.querySelector(".y").textContent="SECTOR "+(c.sector<10?"0":"")+c.sector;
+      conName.querySelector(".t").textContent=c.title;
+      conName.style.left=(px+28)+"px"; conName.style.top=(py-44)+"px"; conName.classList.add("show");
+      clearFx(); fx.setAttribute("viewBox","0 0 "+m.W+" "+m.H);
+      fx.appendChild(el("line",{x1:px,y1:py,x2:px+28,y2:py-14,stroke:"#41e3ff","stroke-opacity":"0.85","stroke-width":"1"}));
+    }
+    cons.forEach(function(c){
+      c.g.addEventListener("mouseenter",function(){ if(mode!=="map")return; c.g.classList.add("on"); hovCon=c; showConName(c); });
+      c.g.addEventListener("mouseleave",function(){ if(mode!=="map")return; hovCon=null; c.g.classList.remove("on"); conName.classList.remove("show"); clearFx(); });
+      c.g.addEventListener("click",function(ev){ if(mode==="map"){ if(dragged)return; ev.stopPropagation(); focusCon(c); } });
+    });
+
+    /* ---------- FOCUS ---------- */
+    function focusCon(c){
+      mode="focus"; curCon=c; world.classList.add("sm-anim"); scene.classList.add("sm-focus"); scene.classList.remove("sm-star");
+      c.g.classList.remove("on"); conName.classList.remove("show"); clearFx(); clearStarHover();
+      var m=metrics(), c0=vb(c.cx,c.cy,m);
+      var target=Math.min(m.W,m.H)*0.34, S=Math.max(1.2,Math.min(3.2, target/(c.r*m.s)));
+      c.focusS=S; setT(m.W/2 - S*c0.x, m.H/2 - S*c0.y, S);
+      hUntil=performance.now()+1000; cancelAnimationFrame(hraf); hoverLoop(); updateHud();
+    }
+    function hoverLoop(){ checkStar(lastM.x,lastM.y); if(performance.now()<hUntil) hraf=requestAnimationFrame(hoverLoop); }
+    function setStarHover(si,scx,scy,mx,my){
+      if(hovStar!==si){ hovStar=si; cursor.classList.add("lock"); var r=records[si.rid]||{};
+        starName.querySelector(".y").textContent=r.recordType||""; starName.querySelector(".t").textContent=r.title||""; starName.classList.add("show"); }
+      var ax=scx+34, ay=scy-44, dx=ax-mx, dy=ay-my, len=Math.hypot(dx,dy)||1, rr=36, sx=mx+dx/len*rr, sy=my+dy/len*rr;
+      var m=metrics(); clearFx(); fx.setAttribute("viewBox","0 0 "+m.W+" "+m.H);
+      fx.appendChild(el("line",{x1:sx,y1:sy,x2:ax,y2:ay,stroke:"#41e3ff","stroke-opacity":"0.85","stroke-width":"1","stroke-dasharray":"4 4"}));
+      starName.style.left=(scx+38)+"px"; starName.style.top=(scy-60)+"px";
+    }
+    function clearStarHover(){ if(hovStar){ hovStar=null; cursor.classList.remove("lock"); starName.classList.remove("show"); clearFx(); } }
+    function checkStar(mx,my){
+      if(mode!=="focus"||!curCon)return; var m=metrics(), best=null, bestd=1e9, bx, by;
+      curCon.stars.forEach(function(si){ var c=cur2(vb(si.x,si.y,m)); var visR=si.mag*13*m.s*T.s, hr=Math.max(18,visR*0.5), d=Math.hypot(mx-c.x,my-c.y);
+        if(d<hr&&d<bestd){ bestd=d; best=si; bx=c.x; by=c.y; } });
+      if(best) setStarHover(best,bx,by,mx,my); else clearStarHover();
+    }
+
+    /* ---------- STAR + record ---------- */
+    function focusStar(si){
+      mode="star"; world.classList.add("sm-anim"); scene.classList.remove("sm-focus"); scene.classList.add("sm-star"); clearStarHover();
+      clearTimeout(starSeqT1); clearTimeout(starSeqT2);
+      var m=metrics(), id=vb(si.x,si.y,m), S=(curCon?curCon.focusS:2)*1.8;
+      setT(m.W*0.36 - S*id.x, m.H*0.5 - S*id.y, S);
+      renderRecord(records[si.rid]); updateHud();
+      starSeqT1=setTimeout(function(){ if(mode==="star") drawStarConnector(); }, 840);
+      starSeqT2=setTimeout(function(){ if(mode==="star") overlay.classList.add("show"); }, 1120);
+    }
+    function drawStarConnector(){
+      if(mode!=="star")return;
+      var m=metrics(), sx=m.W*0.36, sy=m.H*0.5;
+      var p=overlay&&overlay.querySelector(".record-panel"); if(!p)return;
+      var R=scene.getBoundingClientRect(), pr=p.getBoundingClientRect();
+      var cardL=pr.left-R.left, cardMidY=pr.top-R.top+pr.height/2, bx=cardL-48;
+      clearFx(); fx.setAttribute("viewBox","0 0 "+m.W+" "+m.H);
+      fx.appendChild(el("path",{d:"M"+sx+" "+sy+" L"+bx+" "+cardMidY+" L"+cardL+" "+cardMidY,fill:"none",stroke:"#41e3ff","stroke-opacity":"0.7","stroke-width":"1.4","stroke-dasharray":"5 4"}));
+      fx.appendChild(el("circle",{cx:sx,cy:sy,r:7,fill:"none",stroke:"#41e3ff","stroke-opacity":"0.85","stroke-width":"1.4"}));
+      fx.appendChild(el("circle",{cx:sx,cy:sy,r:2.6,fill:"#41e3ff"}));
+      fx.appendChild(el("circle",{cx:cardL,cy:cardMidY,r:3.4,fill:"#41e3ff"}));
+    }
+    function renderRecord(r){
+      if(!r){ recordBody.innerHTML=""; return; }
+      var h="";
+      if(r.badge) h+='<span class="rec-badge">'+esc(r.badge)+'</span>';
+      h+='<div class="rec-eyebrow">STELLAR RECORD // SECTOR '+(r.sector<10?"0":"")+r.sector+' · '+esc(r.constellation||"")+'</div>';
+      h+='<div class="rec-type">'+esc(r.recordType)+'</div><h3 class="rec-title">'+esc(r.title)+'</h3>';
+      if(r.date) h+='<div class="rec-date">'+esc(r.date)+'</div>';
+      (r.body||[]).forEach(function(p){ h+='<p class="rec-p">'+esc(p)+'</p>'; });
+      if(r.tags&&r.tags.length) h+='<div class="rec-tags">'+r.tags.map(function(t){return '<span class="tag">'+esc(t)+'</span>';}).join("")+'</div>';
+      if(r.assets&&r.assets.length) h+='<div class="rec-assets">'+r.assets.map(function(a){return '<a class="asset" href="'+esc(a.href)+'" target="_blank" rel="noopener">'+esc(a.label)+'</a>';}).join("")+'</div>';
+      if(r.media&&r.media.length){ curMedia=r.media;
+        var th=r.media.map(function(m,i){
+          var inner, cls="media-thumb";
+          if(m.type==="video"){ cls+=" is-video"; inner='<video src="'+esc(m.previewSrc||m.src)+'" muted loop autoplay playsinline poster="'+esc(m.poster||"")+'"></video><span class="media-badge">&#9654;</span>'; }
+          else if(m.type==="pdf"){ cls+=" is-pdf"; inner='<img src="'+esc(m.thumb||"")+'" alt="'+esc(m.alt||"")+'" loading="lazy" decoding="async"/><span class="media-badge">&#10530;</span>'; }
+          else { inner='<img src="'+esc(m.thumb||m.src)+'" alt="'+esc(m.alt||"")+'" loading="lazy" decoding="async"/>'; }
+          return '<button class="'+cls+'" type="button" data-mi="'+i+'">'+inner+'<span class="holo-scan"></span></button>';
+        }).join("");
+        h+='<div class="rec-media-wrap"><div class="media-head">MEDIA ARCHIVE // '+r.media.length+(r.media.length===1?" FILE":" FILES")+'</div><div class="media-strip">'+th+'</div></div>';
+      } else { curMedia=[]; h+='<div class="rec-media">MEDIA ARCHIVE // PENDING</div>'; }
+      recordBody.innerHTML=h;
+    }
+
+    function toFocus(){ clearTimeout(starSeqT1); clearTimeout(starSeqT2); overlay.classList.remove("show"); if(curCon) focusCon(curCon); }
+    function toMap(){ clearTimeout(starSeqT1); clearTimeout(starSeqT2); mode="map"; world.classList.add("sm-anim"); scene.classList.remove("sm-focus","sm-star"); overlay.classList.remove("show");
+      clearStarHover(); conName.classList.remove("show"); clearFx(); setT(0,0,1); curCon=null; updateHud(); }
+
+    /* ---------- input ---------- */
+    scene.addEventListener("pointermove",function(e){ var R=scene.getBoundingClientRect(), mx=e.clientX-R.left, my=e.clientY-R.top;
+      lastM.x=mx; lastM.y=my; cursor.style.left=mx+"px"; cursor.style.top=my+"px"; if(mode==="focus") checkStar(mx,my); },{passive:true});
+    if(overlay) overlay.addEventListener("click",function(e){ e.stopPropagation(); if(e.target===overlay) toFocus(); });
+    var rclose=document.querySelector(".record-close"); if(rclose) rclose.addEventListener("click",function(e){ e.stopPropagation(); toFocus(); });
+    var panel=overlay&&overlay.querySelector(".record-panel"); if(panel) panel.addEventListener("click",function(e){ e.stopPropagation(); });
+    scene.addEventListener("click",function(){ if(mode==="focus"){ if(hovStar) focusStar(hovStar); else toMap(); } });
+    /* ---------- pan + zoom (map mode) ---------- */
+    var drag=null, dragged=false;
+    function clampT(){
+      var m=metrics();
+      var Lx=T.s*m.ox, Wf=T.s*VBW*m.s, hiX=m.W*0.7-Lx, loX=m.W*0.3-Lx-Wf;
+      if(loX>hiX){ T.tx=(loX+hiX)/2; } else { if(T.tx>hiX)T.tx=hiX; if(T.tx<loX)T.tx=loX; }
+      var Ly=T.s*m.oy, Hf=T.s*VBH*m.s, hiY=m.H*0.7-Ly, loY=m.H*0.3-Ly-Hf;
+      if(loY>hiY){ T.ty=(loY+hiY)/2; } else { if(T.ty>hiY)T.ty=hiY; if(T.ty<loY)T.ty=loY; }
+    }
+    var panRaf=0, busyT=0;
+    function updateHud(){ var hr=document.querySelector(".scene-hud .hud-tr"); if(!hr)return;
+      hr.textContent = (mode==="map") ? "SECTOR MAP // X "+Math.round(-T.tx)+"  Y "+Math.round(-T.ty)+"  ZOOM "+T.s.toFixed(2)+"x" : "SECTOR MAP // SELECT A CONSTELLATION"; }
+    function writeT(){ panRaf=0; world.style.transform="translate("+T.tx+"px,"+T.ty+"px) scale("+T.s+")"; window.__smpan={x:T.tx,y:T.ty}; window.__smT={tx:T.tx,ty:T.ty,s:T.s}; updateHud(); if(mode==="map"&&hovCon) showConName(hovCon); }
+    function schedule(){ if(!panRaf) panRaf=requestAnimationFrame(writeT); }
+    function busy(){ scene.classList.add("sm-busy"); clearTimeout(busyT); busyT=setTimeout(function(){ scene.classList.remove("sm-busy"); },220); }
+    function applyPan(){ clampT(); schedule(); }
+    scene.addEventListener("pointerdown",function(e){ if(mode!=="map")return; drag={x:e.clientX,y:e.clientY,tx:T.tx,ty:T.ty}; dragged=false; });
+    window.addEventListener("pointermove",function(e){ if(!drag)return; var dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+      if(!dragged&&Math.hypot(dx,dy)>4){ dragged=true; world.classList.remove("sm-anim"); scene.classList.add("sm-grab"); }
+      if(dragged){ T.tx=drag.tx+dx; T.ty=drag.ty+dy; clampT(); schedule(); busy(); } });
+    window.addEventListener("pointerup",function(){ if(drag){ drag=null; scene.classList.remove("sm-grab"); setTimeout(function(){dragged=false;},0); } });
+    scene.addEventListener("wheel",function(e){ if(mode!=="map")return; e.preventDefault();
+      var R=scene.getBoundingClientRect(), mx=e.clientX-R.left, my=e.clientY-R.top;
+      var f=e.deltaY<0?1.12:0.89, ns=Math.max(0.55,Math.min(2.4,T.s*f)), k=ns/T.s;
+      T.tx=mx-(mx-T.tx)*k; T.ty=my-(my-T.ty)*k; T.s=ns; world.classList.remove("sm-anim"); clampT(); schedule(); busy(); },{passive:false});
+    function openLightbox(i){ if(!curMedia.length||!ml)return; mlIndex=(i+curMedia.length)%curMedia.length; renderLightbox(); ml.classList.add("open"); }
+    function renderLightbox(){ var m=curMedia[mlIndex]; if(!m||!mlFrame)return;
+      var inner;
+      if(m.type==="video") inner='<video src="'+esc(m.src)+'" poster="'+esc(m.poster||"")+'" muted controls autoplay playsinline></video>';
+      else if(m.type==="pdf") inner='<iframe class="ml-pdf" src="'+esc(m.src)+'#view=FitH" title="'+esc(m.alt||"document")+'"></iframe>';
+      else inner='<img src="'+esc(m.src)+'" alt="'+esc(m.alt||"")+'" decoding="async"/>';
+      mlFrame.innerHTML = inner + '<span class="holo-scan'+(m.type==="pdf"?" pdf":"")+'"></span>';
+      if(mlCap) mlCap.innerHTML='<span class="ix">'+(mlIndex+1)+' / '+curMedia.length+'</span>'+esc(m.caption||m.alt||"");
+      var d=curMedia.length>1?"":"none"; if(mlPrev)mlPrev.style.display=d; if(mlNext)mlNext.style.display=d; }
+    function closeLightbox(){ if(ml){ ml.classList.remove("open"); if(mlFrame) mlFrame.innerHTML=""; } }
+    if(recordBody) recordBody.addEventListener("click",function(e){ var b=e.target.closest&&e.target.closest(".media-thumb"); if(b){ e.stopPropagation(); openLightbox(+b.getAttribute("data-mi")); } });
+    if(ml){ ml.addEventListener("click",function(e){ if(e.target===ml) closeLightbox(); });
+      var mc=ml.querySelector(".ml-close"); if(mc) mc.addEventListener("click",closeLightbox);
+      if(mlPrev) mlPrev.addEventListener("click",function(){ openLightbox(mlIndex-1); });
+      if(mlNext) mlNext.addEventListener("click",function(){ openLightbox(mlIndex+1); }); }
+    document.addEventListener("keydown",function(e){ if(ml&&ml.classList.contains("open")){ if(e.key==="Escape") closeLightbox(); else if(e.key==="ArrowLeft") openLightbox(mlIndex-1); else if(e.key==="ArrowRight") openLightbox(mlIndex+1); return; } if(e.key==="Escape"){ if(mode==="star") toFocus(); else if(mode==="focus") toMap(); } });
+  });})();
+</script>
+</body></html>
