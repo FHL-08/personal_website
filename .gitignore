@@ -13,3 +13,10 @@ dist/
 # local backups
 *.tar.gz
 *.zip
+
+# LaTeX build artifacts
+*.aux
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+cv/*.out

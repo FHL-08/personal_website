@@ -19,9 +19,22 @@ function spike(x: number, y: number, R: number, ri: number) {
   return "M" + p.join(" L") + " Z";
 }
 
+function starReticle(x: number, y: number, mag: number) {
+  const o = mag * 15, m = mag * 11, i = mag * 6, t = mag * 4, tk = mag * 3;
+  return (
+    `<g class="sm-starret">` +
+    `<circle class="sm-sret-ring" cx="${x}" cy="${y}" r="${o.toFixed(1)}" stroke-width="${(mag * 0.55).toFixed(2)}" stroke-dasharray="1.4 ${(mag * 6).toFixed(1)}" stroke-opacity="0.5"/>` +
+    `<path class="sm-sret-ring" d="M${x} ${(y - o - tk).toFixed(1)} v${t.toFixed(1)} M${x} ${(y + o + tk).toFixed(1)} v-${t.toFixed(1)} M${(x - o - tk).toFixed(1)} ${y} h${t.toFixed(1)} M${(x + o + tk).toFixed(1)} ${y} h-${t.toFixed(1)}" stroke-width="${(mag * 0.6).toFixed(2)}" stroke-opacity="0.7"/>` +
+    `<circle class="sm-sret-core sm-sret-spin" cx="${x}" cy="${y}" r="${m.toFixed(1)}" stroke-width="${(mag * 0.7).toFixed(2)}" stroke-dasharray="${(mag * 7).toFixed(1)} ${(mag * 4).toFixed(1)} ${(mag * 2).toFixed(1)} ${(mag * 4).toFixed(1)}"/>` +
+    `<circle class="sm-sret-core sm-sret-spin rev" cx="${x}" cy="${y}" r="${i.toFixed(1)}" stroke-width="${(mag * 0.5).toFixed(2)}" stroke-dasharray="1.5 ${(mag * 4).toFixed(1)}"/>` +
+    `</g>`
+  );
+}
+
 function star(x: number, y: number, mag: number) {
   const R = mag * 6, ri = mag * 1.7;
   return (
+    starReticle(x, y, mag) +
     `<circle cx="${x}" cy="${y}" r="${(mag * 13).toFixed(1)}" fill="url(#smGlow)" opacity="0.85"/>` +
     `<path d="${spike(x, y, R * 0.6, ri * 0.8)}" fill="#cfe0ff" fill-opacity="0.5" transform="rotate(45 ${x} ${y})"/>` +
     `<path d="${spike(x, y, R, ri)}" fill="url(#smSpark)"/>` +
@@ -31,11 +44,14 @@ function star(x: number, y: number, mag: number) {
 }
 
 function reticle(cx: number, cy: number, R: number) {
+  const ri = Math.max(8, R - 24);
   return (
     `<g class="sm-reticle">` +
+    `<circle class="sm-ring" cx="${cx}" cy="${cy}" r="${R + 4}" stroke-width="3" stroke-dasharray="1.5 9"/>` +
+    `<path class="sm-ring" d="M${cx} ${cy - R - 9} v11 M${cx} ${cy + R + 9} v-11 M${cx - R - 9} ${cy} h11 M${cx + R + 9} ${cy} h-11" stroke-width="1.6"/>` +
     `<g class="sm-rr"><circle class="sm-ring" cx="${cx}" cy="${cy}" r="${R}" stroke-width="1.5" stroke-dasharray="40 16 8 16"/></g>` +
     `<g class="sm-rr b"><circle class="sm-ring" cx="${cx}" cy="${cy}" r="${R - 12}" stroke-width="3" stroke-dasharray="70 240"/></g>` +
-    `<g class="sm-rr c"><circle class="sm-ring" cx="${cx}" cy="${cy}" r="${Math.max(8, R - 24)}" stroke-width="1" stroke-dasharray="2 8"/></g>` +
+    `<g class="sm-rr c"><circle class="sm-ring" cx="${cx}" cy="${cy}" r="${ri}" stroke-width="1" stroke-dasharray="2 8"/></g>` +
     `</g>`
   );
 }

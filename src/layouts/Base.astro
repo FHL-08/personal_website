@@ -2,7 +2,7 @@
 // Base.astro — shared HTML shell.
 interface Props { title?: string; description?: string; }
 const {
-  title = "Faisal Lawan — Control Systems Researcher",
+  title = "Faisal Lawan",
   description = "The archived research, missions and achievements of Faisal Lawan — control systems researcher.",
 } = Astro.props;
 import "../styles/global.css";
@@ -20,6 +20,8 @@ import "../styles/global.css";
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/augmented-ui@2.0.0/augmented-ui.min.css" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
   </head>
   <body>

@@ -28,6 +28,8 @@ export interface Asset {
   label: string;
   /** External URL, or a path under /assets for local files. */
   href: string;
+  /** Optional icon key (for icon-only links like dossier contacts). */
+  icon?: string;
 }
 
 export interface MediaItem {
@@ -136,7 +138,6 @@ export const profile: Profile = {
     { label: "Designation", value: "FSL-01" },
     { label: "Name", value: "Faisal Lawan" },
     { label: "Class", value: "Control Systems Researcher" },
-    { label: "Origin", value: "Nigeria" },
     { label: "Station", value: "University of Manchester, UK" },
     { label: "Commission", value: "Doctoral Researcher, 2026 (expected 2030)" },
     { label: "Status", value: "Active" },
@@ -167,10 +168,10 @@ export const profile: Profile = {
     href: "/assets/cv/Faisal_Lawan_CV_2026.pdf",
   },
   contacts: [
-    { kind: "external", label: "Email", href: "mailto:faisallawan08@gmail.com" },
-    { kind: "repo", label: "GitHub", href: "https://github.com/FHL-08" },
-    { kind: "external", label: "LinkedIn", href: "https://www.linkedin.com/in/faisal-lawan/" },
-    { kind: "arxiv", label: "arXiv", href: "https://arxiv.org/abs/2605.28367" },
+    { kind: "external", label: "Email", href: "mailto:faisallawan08@gmail.com", icon: "email" },
+    { kind: "repo", label: "GitHub", href: "https://github.com/FHL-08", icon: "github" },
+    { kind: "external", label: "LinkedIn", href: "https://www.linkedin.com/in/faisal-lawan/", icon: "linkedin" },
+    { kind: "external", label: "Google Scholar", href: "https://scholar.google.com/citations?hl=en&user=kT_B0GsAAAAJ", icon: "scholar" },
   ],
 };
 
@@ -751,15 +752,20 @@ export interface OffDutyTab {
   id: string;
   label: string;
   blurb: string;
+  images: string[];
 }
 
 export const offDuty: { title: string; tabs: OffDutyTab[] } = {
   title: "Off-Duty Log",
   tabs: [
-    { id: "drawing", label: "Drawing", blurb: "Pencil and digital studies." },
-    { id: "cooking", label: "Cooking", blurb: "Experiments in the kitchen." },
-    { id: "travelling", label: "Travelling", blurb: "Places logged along the way." },
-    { id: "reading", label: "Reading", blurb: "Current and recent reads." },
+    { id: "drawing", label: "Drawing", blurb: "Pencil and digital studies.",
+      images: ["/assets/media/hobbies/drawing/01.jpg", "/assets/media/hobbies/drawing/02.jpg", "/assets/media/hobbies/drawing/03.jpg", "/assets/media/hobbies/drawing/04.jpg", "/assets/media/hobbies/drawing/05.jpg", "/assets/media/hobbies/drawing/06.jpg", "/assets/media/hobbies/drawing/07.jpg", "/assets/media/hobbies/drawing/08.jpg", "/assets/media/hobbies/drawing/09.jpg", "/assets/media/hobbies/drawing/10.jpg", "/assets/media/hobbies/drawing/11.jpg", "/assets/media/hobbies/drawing/12.jpg", "/assets/media/hobbies/drawing/13.jpg"] },
+    { id: "cooking", label: "Cooking", blurb: "Experiments in the kitchen.",
+      images: ["/assets/media/hobbies/cooking/01.jpg", "/assets/media/hobbies/cooking/02.jpg", "/assets/media/hobbies/cooking/03.jpg", "/assets/media/hobbies/cooking/04.jpg"] },
+    { id: "travelling", label: "Travelling", blurb: "Places logged along the way.",
+      images: ["/assets/media/hobbies/travelling/01.jpg", "/assets/media/hobbies/travelling/02.jpg", "/assets/media/hobbies/travelling/03.jpg", "/assets/media/hobbies/travelling/04.jpg", "/assets/media/hobbies/travelling/05.jpg", "/assets/media/hobbies/travelling/06.jpg", "/assets/media/hobbies/travelling/07.jpg", "/assets/media/hobbies/travelling/08.jpg"] },
+    { id: "reading", label: "Reading", blurb: "Current and recent reads.",
+      images: ["/assets/media/hobbies/reading/01.jpg", "/assets/media/hobbies/reading/02.jpg", "/assets/media/hobbies/reading/03.jpg", "/assets/media/hobbies/reading/04.jpg", "/assets/media/hobbies/reading/05.jpg", "/assets/media/hobbies/reading/06.jpg", "/assets/media/hobbies/reading/07.jpg", "/assets/media/hobbies/reading/08.jpg", "/assets/media/hobbies/reading/09.jpg"] },
   ],
 };
 

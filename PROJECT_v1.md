@@ -210,4 +210,4 @@ Free static host (Cloudflare Pages / Netlify / GitHub / Vercel Pages), custom do
 5. **Classic view** — ✅ dropped; immersive scene only, with reduced-motion static fallback.
 6. **Domain** — none yet; deploy first to free `*.pages.dev`/`*.netlify.app`, add a custom domain later.
 
-Nothing blocking. Next step is **M4**: scaffold Astro+React, build `content.ts` from the real material, and get every record rendering on localhost as the foundation for the scene.
+Nothing blocking. M4 completed. M5 remains.
