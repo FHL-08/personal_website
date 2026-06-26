@@ -1,0 +1,13 @@
+{
+  "name": "Faisal Lawan",
+  "short_name": "Faisal Lawan",
+  "description": "The archived research, missions and achievements of Faisal Lawan — control systems researcher.",
+  "icons": [
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ],
+  "theme_color": "#05070f",
+  "background_color": "#05070f",
+  "display": "standalone",
+  "start_url": "/"
+}
