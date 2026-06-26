@@ -20,3 +20,6 @@ dist/
 *.fdb_latexmk
 *.synctex.gz
 cv/*.out
+
+# CV LaTeX source (served PDF lives in public/assets/cv/)
+/cv/
