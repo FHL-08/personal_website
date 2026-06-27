@@ -10,7 +10,7 @@ Images are processed here (fast). Videos are emitted as jobs (slow, run in bash)
 import os, json, subprocess, sys
 from PIL import Image, ImageOps
 
-ROOT = "/sessions/charming-trusting-faraday/mnt/personal_website"
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC  = os.path.join(ROOT, "Context and media")
 OUT  = os.path.join(ROOT, "public/assets/media")
 WEB  = "/assets/media"
@@ -66,7 +66,11 @@ MANIFEST = [
     ("WhatsApp Image 2026-06-21 at 19.11.13 (1).jpeg", "image", "Outstanding Achievement Award", ""),
  ]),
  ("best-in-eee", "Awards/Top in EEE Department", [
-    ("WhatsApp Image 2026-06-21 at 19.11.14 (2).jpeg", "image", "Best in EEE Department award", "Best in EEE Department"),
+    ("Best Project Award.jpeg", "image", "Best Final-Year Project award", "Best Final-Year Project"),
+    ("Best in EEE Department.jpeg", "image", "Best in EEE Department award", "Best in EEE Department"),
+ ]),
+ ("beng-mechatronics", ".", [
+    ("Degree Certificate.png", "image", "BEng degree certificate", "BEng (Hons) Mechatronic Engineering"),
  ]),
  ("top-10-faculty", "Awards/Top 10 in Faculty of Science and Engineering", [
     ("WhatsApp Image 2026-06-21 at 19.11.14.jpeg", "image", "Top 10 in the Faculty of Science and Engineering", "Faculty Top 10"),

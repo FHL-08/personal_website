@@ -117,9 +117,16 @@ ${dossierOverlay()}
 </div>
 <div id="media-lightbox" role="dialog" aria-modal="true" aria-label="Media viewer">
   <button class="ml-close" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> CLOSE</button>
-  <button class="ml-nav ml-prev" type="button" aria-label="Previous"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
-  <div class="ml-stage"><div class="ml-frame" id="ml-frame" data-augmented-ui="tl-clip br-clip border"></div><div class="ml-cap" id="ml-cap"></div></div>
-  <button class="ml-nav ml-next" type="button" aria-label="Next"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></button>
+  <div class="ml-stage">
+    <div class="ml-media-wrap">
+      <div class="ml-frame" id="ml-frame" data-augmented-ui="tl-clip br-clip border">
+        <div class="ml-body" id="ml-body"></div>
+        <button class="ml-nav ml-prev" type="button" aria-label="Previous"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <button class="ml-nav ml-next" type="button" aria-label="Next"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></button>
+      </div>
+    </div>
+    <div class="ml-cap" id="ml-cap"></div>
+  </div>
 </div>
 <div id="offduty-overlay" role="dialog" aria-modal="true" aria-label="Off-Duty Log">
   <button class="od-close" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> CLOSE</button>
@@ -139,6 +146,7 @@ ${dossierOverlay()}
 </body></html>`;
 
 const previewHtml = html.replaceAll('"/assets/', '"../public/assets/');
+const previewVer = Date.now();
 mkdirSync(join(root, "preview"), { recursive: true });
 writeFileSync(join(root, "preview/index.html"), previewHtml);
 
@@ -173,7 +181,7 @@ const mobileHarness = `<!doctype html><html lang="en"><head><meta charset="utf-8
   .bezel iframe { border:0; display:block; background:#05070f; }
 </style></head><body>
   <h1>Mobile &amp; Tablet Preview</h1>
-  <div class="note">Both frames load <code>index.html?view=mobile</code>. The badge shows whether the <b>mobile</b> layout is active (frame width &le; 820px) or the <b>desktop</b> layout. Drag to pan, tap to select, press-and-hold to preview. For true pinch-zoom, you can also <a href="./index.html?view=mobile">open it directly</a> in your browser's device mode.</div>
+  <div class="note">Both frames load <code>index.html?view=mobile</code> (regenerated on each preview build). The badge shows whether the <b>mobile</b> layout is active (frame width &le; 820px) or the <b>desktop</b> layout. Use <b>Reload both</b> after rebuilding preview. For true pinch-zoom, <a id="direct-link" href="./index.html?view=mobile">open the mobile page directly</a> in your browser's device mode.</div>
   <div class="bar">
     <button id="rot-phone">Rotate phone</button>
     <button id="rot-tablet">Rotate tablet</button>
@@ -205,7 +213,7 @@ const mobileHarness = `<!doctype html><html lang="en"><head><meta charset="utf-8
           '<div class="slot" style="width:' + (bw * s) + 'px;height:' + (bh * s) + 'px">' +
             '<div class="bezel-scaler" style="transform:scale(' + s.toFixed(3) + ')">' +
               '<div class="bezel" style="width:' + bw + 'px;height:' + bh + 'px">' +
-                '<iframe src="./index.html?view=mobile" style="width:' + dm.w + 'px;height:' + dm.h + 'px" title="' + d.name + ' preview" loading="eager"></iframe>' +
+                '<iframe src="./index.html?view=mobile&v=' + ${previewVer} + '" style="width:' + dm.w + 'px;height:' + dm.h + 'px" title="' + d.name + ' preview" loading="eager"></iframe>' +
               '</div>' +
             '</div>' +
           '</div>';
@@ -215,6 +223,8 @@ const mobileHarness = `<!doctype html><html lang="en"><head><meta charset="utf-8
     document.getElementById('rot-phone').onclick = function(){ devices.phone.portrait = !devices.phone.portrait; render(); };
     document.getElementById('rot-tablet').onclick = function(){ devices.tablet.portrait = !devices.tablet.portrait; render(); };
     document.getElementById('reload').onclick = render;
+    var direct = document.getElementById('direct-link');
+    if (direct) direct.href = './index.html?view=mobile&v=' + ${previewVer};
     var rzT = 0; window.addEventListener('resize', function(){ clearTimeout(rzT); rzT = setTimeout(render, 150); });
     render();
   </script>

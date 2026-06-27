@@ -139,6 +139,10 @@ import { isMobileView } from "../lib/mobile.js";
       scene.classList.add("sm-mob");
       document.documentElement.classList.add("is-mob");
       ensureFgInWorld();
+      /* iOS clips fixed canvas inside overflow:hidden — mount starfield on body. */
+      if (canvas && canvas.parentElement !== document.body) {
+        document.body.insertBefore(canvas, scene);
+      }
       var mobCmd = document.getElementById("mob-cmd");
       if (!mobCmd) {
         mobCmd = document.createElement("div");
@@ -164,7 +168,7 @@ import { isMobileView } from "../lib/mobile.js";
     /* ---------- Starfield (resolution-independent) ---------- */
     var canvas = document.getElementById("starfield");
     var ctx = canvas && canvas.getContext ? canvas.getContext("2d", { alpha: true }) : null;
-    var w = 0, h = 0, dpr = 1, stars = [], raf = 0, t = 0, mx = 0, my = 0, built = false, crystTick = 0;
+    var w = 0, h = 0, dpr = 1, stars = [], raf = 0, t = 0, mx = 0, my = 0, built = false;
     var LAYERS = MOB
       ? [
         { n: 36, sp: 0.012, min: 0.4, max: 0.9, alpha: 0.5 },
@@ -191,16 +195,25 @@ import { isMobileView } from "../lib/mobile.js";
     function resize() {
       if (!canvas) return false;
       var nw = canvas.clientWidth, nh = canvas.clientHeight;
-      /* iOS often reports 0×0 on canvas until layout settles — fall back to #scene. */
+      /* iOS often reports 0×0 on canvas until layout settles — fall back to #scene, then viewport. */
       if ((nw < 2 || nh < 2) && scene) {
         var sr = scene.getBoundingClientRect();
         if (sr.width >= 2 && sr.height >= 2) { nw = sr.width; nh = sr.height; }
       }
+      if ((nw < 2 || nh < 2) && MOB) {
+        var vv = window.visualViewport;
+        nw = (vv && vv.width) || window.innerWidth || document.documentElement.clientWidth || 360;
+        nh = (vv && vv.height) || window.innerHeight || document.documentElement.clientHeight || 640;
+      }
       if (nw < 2 || nh < 2) return false;
-      dpr = Math.min(window.devicePixelRatio || 1, MOB ? 1.5 : 2);
+      dpr = Math.min(window.devicePixelRatio || 1, MOB ? 2 : 2);
       w = nw; h = nh;
       canvas.width = Math.max(1, Math.round(w * dpr));
       canvas.height = Math.max(1, Math.round(h * dpr));
+      if (MOB) {
+        canvas.style.width = w + "px";
+        canvas.style.height = h + "px";
+      }
       if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       if (!built) build();
       return true;
@@ -220,9 +233,10 @@ import { isMobileView } from "../lib/mobile.js";
         var tw = reduce ? 1 : (0.6 + 0.4 * Math.sin(t * 0.002 + s.tw));
         var pan = window.__smpan || { x: 0, y: 0 };
         var px = s.fx * w + mx * s.d * 4 + pan.x * 0.03 * s.d, py = s.fy * h + my * s.d * 4 + pan.y * 0.03 * s.d;
+        var rad = Math.max(MOB ? 0.85 : 0.4, s.r);
         ctx.beginPath();
-        ctx.arc(px, py, s.r, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(205,238,255," + Math.min(1, s.a * tw * 1.45).toFixed(3) + ")";
+        ctx.arc(px, py, rad, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(205,238,255," + Math.min(1, s.a * tw * (MOB ? 1.85 : 1.45)).toFixed(3) + ")";
         ctx.fill();
       }
     }
@@ -237,7 +251,7 @@ import { isMobileView } from "../lib/mobile.js";
     }
     var reduceDrawn = false;
     var ARC_PERIODS = { arc1: 46, arc2: 26, arc3: -17, arc4: 34, arc5: 13 };
-    function spinHudReticles() {
+    function spinHudReticles(now) {
       if (!MOB) return;
       var roots = [document.querySelector(".reticle"), scene && scene.querySelector(".ship-reticle")];
       for (var ri = 0; ri < roots.length; ri++) {
@@ -247,7 +261,7 @@ import { isMobileView } from "../lib/mobile.js";
         for (var ai = 0; ai < arcs.length; ai++) {
           var arc = arcs[ai], period = 30;
           for (var k in ARC_PERIODS) { if (arc.classList.contains(k)) { period = ARC_PERIODS[k]; break; } }
-          var ang = (t / (Math.abs(period) * 1000)) * 360 * (period < 0 ? -1 : 1);
+          var ang = (now / (Math.abs(period) * 1000)) * 360 * (period < 0 ? -1 : 1);
           arc.style.transform = "rotate(" + (ang % 360) + "deg)";
         }
       }
@@ -265,10 +279,9 @@ import { isMobileView } from "../lib/mobile.js";
           window.__bob = by;
         }
         updateOrbit();
-        if (MOB) spinHudReticles();
+        if (MOB) spinHudReticles(performance.now());
         drawLinks();
-        crystTick++;
-        if (!MOB || (crystTick & 1) === 0) updateCrystal();
+        updateCrystal();
         if (canvasReady) {
           if (!reduce) {
             var fh = h || 1;
@@ -327,6 +340,10 @@ import { isMobileView } from "../lib/mobile.js";
       var ro = new ResizeObserver(function () { resize(); });
       if (canvas) ro.observe(canvas);
       if (scene) ro.observe(scene);
+    }
+    if (MOB && window.visualViewport) {
+      window.visualViewport.addEventListener("resize", function () { resize(); });
+      window.visualViewport.addEventListener("scroll", function () { resize(); });
     }
     document.addEventListener("visibilitychange", function () {
       if (document.hidden) stopLoop();

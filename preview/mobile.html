@@ -27,7 +27,7 @@
   .bezel iframe { border:0; display:block; background:#05070f; }
 </style></head><body>
   <h1>Mobile &amp; Tablet Preview</h1>
-  <div class="note">Both frames load <code>index.html?view=mobile</code>. The badge shows whether the <b>mobile</b> layout is active (frame width &le; 820px) or the <b>desktop</b> layout. Drag to pan, tap to select, press-and-hold to preview. For true pinch-zoom, you can also <a href="./index.html?view=mobile">open it directly</a> in your browser's device mode.</div>
+  <div class="note">Both frames load <code>index.html?view=mobile</code> (regenerated on each preview build). The badge shows whether the <b>mobile</b> layout is active (frame width &le; 820px) or the <b>desktop</b> layout. Use <b>Reload both</b> after rebuilding preview. For true pinch-zoom, <a id="direct-link" href="./index.html?view=mobile">open the mobile page directly</a> in your browser's device mode.</div>
   <div class="bar">
     <button id="rot-phone">Rotate phone</button>
     <button id="rot-tablet">Rotate tablet</button>
@@ -59,7 +59,7 @@
           '<div class="slot" style="width:' + (bw * s) + 'px;height:' + (bh * s) + 'px">' +
             '<div class="bezel-scaler" style="transform:scale(' + s.toFixed(3) + ')">' +
               '<div class="bezel" style="width:' + bw + 'px;height:' + bh + 'px">' +
-                '<iframe src="./index.html?view=mobile" style="width:' + dm.w + 'px;height:' + dm.h + 'px" title="' + d.name + ' preview" loading="eager"></iframe>' +
+                '<iframe src="./index.html?view=mobile&v=' + 1782599022115 + '" style="width:' + dm.w + 'px;height:' + dm.h + 'px" title="' + d.name + ' preview" loading="eager"></iframe>' +
               '</div>' +
             '</div>' +
           '</div>';
@@ -69,6 +69,8 @@
     document.getElementById('rot-phone').onclick = function(){ devices.phone.portrait = !devices.phone.portrait; render(); };
     document.getElementById('rot-tablet').onclick = function(){ devices.tablet.portrait = !devices.tablet.portrait; render(); };
     document.getElementById('reload').onclick = render;
+    var direct = document.getElementById('direct-link');
+    if (direct) direct.href = './index.html?view=mobile&v=' + 1782599022115;
     var rzT = 0; window.addEventListener('resize', function(){ clearTimeout(rzT); rzT = setTimeout(render, 150); });
     render();
   </script>

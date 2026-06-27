@@ -192,9 +192,16 @@ const contactIcons = {
   <!-- ===================== MEDIA LIGHTBOX ===================== -->
   <div id="media-lightbox" role="dialog" aria-modal="true" aria-label="Media viewer">
     <button class="ml-close" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> CLOSE</button>
-    <button class="ml-nav ml-prev" type="button" aria-label="Previous"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
-    <div class="ml-stage"><div class="ml-frame" id="ml-frame" data-augmented-ui="tl-clip br-clip border"></div><div class="ml-cap" id="ml-cap"></div></div>
-    <button class="ml-nav ml-next" type="button" aria-label="Next"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></button>
+    <div class="ml-stage">
+      <div class="ml-media-wrap">
+        <div class="ml-frame" id="ml-frame" data-augmented-ui="tl-clip br-clip border">
+          <div class="ml-body" id="ml-body"></div>
+          <button class="ml-nav ml-prev" type="button" aria-label="Previous"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
+          <button class="ml-nav ml-next" type="button" aria-label="Next"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></button>
+        </div>
+      </div>
+      <div class="ml-cap" id="ml-cap"></div>
+    </div>
   </div>
 
   <!-- ===================== OFF-DUTY (HOBBIES) ===================== -->

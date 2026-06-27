@@ -554,7 +554,8 @@ export const constellations: Constellation[] = [
       {
         id: "best-in-eee",
         media: [
-          { type: "image", src: "/assets/media/best-in-eee/m1.jpg", thumb: "/assets/media/best-in-eee/m1.thumb.jpg", alt: "Best in EEE Department award", caption: "Best in EEE Department" },
+          { type: "image", src: "/assets/media/best-in-eee/m1.jpg", thumb: "/assets/media/best-in-eee/m1.thumb.jpg", alt: "Best Final-Year Project award", caption: "Best Final-Year Project" },
+          { type: "image", src: "/assets/media/best-in-eee/m2.jpg", thumb: "/assets/media/best-in-eee/m2.thumb.jpg", alt: "Best in EEE Department award", caption: "Best in EEE Department" },
         ],
         title: "Best in EEE Department & Best Final-Year Project",
         recordType: "COMMENDATION RECORD",
@@ -663,6 +664,9 @@ export const constellations: Constellation[] = [
       },
       {
         id: "beng-mechatronics",
+        media: [
+          { type: "image", src: "/assets/media/beng-mechatronics/m1.jpg", thumb: "/assets/media/beng-mechatronics/m1.thumb.jpg", alt: "BEng degree certificate", caption: "BEng (Hons) Mechatronic Engineering" },
+        ],
         title: "BEng (Hons) Mechatronic Engineering with Industrial Experience",
         recordType: "TRAINING RECORD",
         date: "Jul 2021 — Jul 2025",

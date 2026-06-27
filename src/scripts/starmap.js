@@ -24,7 +24,7 @@ import { isMobileView } from "../lib/mobile.js";
     var fx=document.getElementById("sm-fx"), cursor=document.getElementById("sm-cursor"),
         conName=document.getElementById("con-name"), starName=document.getElementById("star-name"),
         overlay=document.getElementById("record-overlay"), recordBody=document.getElementById("record-body");
-    var ml=document.getElementById("media-lightbox"), mlFrame=ml&&ml.querySelector("#ml-frame"), mlCap=ml&&ml.querySelector("#ml-cap"), mlPrev=ml&&ml.querySelector(".ml-prev"), mlNext=ml&&ml.querySelector(".ml-next"), curMedia=[], mlIndex=0;
+    var ml=document.getElementById("media-lightbox"), mlFrame=ml&&ml.querySelector("#ml-frame"), mlBody=ml&&ml.querySelector("#ml-body"), mlCap=ml&&ml.querySelector("#ml-cap"), mlPrev=ml&&ml.querySelector(".ml-prev"), mlNext=ml&&ml.querySelector(".ml-next"), curMedia=[], mlIndex=0;
     var links=document.getElementById("scene-links");
     var NS="http://www.w3.org/2000/svg", VBW=2400, VBH=1840, VBMINY=-170;
     function el(n,a){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);return e;}
@@ -258,6 +258,48 @@ import { isMobileView } from "../lib/mobile.js";
     function writeT(){ panRaf=0; applyTransform(); }
     function schedule(){ if(!panRaf) panRaf=requestAnimationFrame(writeT); }
     function busy(){ scene.classList.add("sm-busy"); clearTimeout(busyT); busyT=setTimeout(function(){ scene.classList.remove("sm-busy"); },220); }
+
+    /* Mobile: CSS spin on SVG reticles breaks inside panned/zoomed map — drive via transform attr. */
+    var smSpinRaf = 0, SM_SPIN_RATE = 2; /* 2× faster than desktop CSS equivalents */
+    function smSpinPeriod(el, def, rev, held) {
+      var p;
+      if (held) p = el.classList.contains("rev") ? 1200 : 1800;
+      else if (el.classList.contains("rev")) p = rev;
+      else if (el.classList.contains("b")) p = 16000;
+      else if (el.classList.contains("c")) p = 34000;
+      else p = def;
+      return p / SM_SPIN_RATE;
+    }
+    function smSpinDir(el) {
+      return (el.classList.contains("rev") || el.classList.contains("b")) ? -1 : 1;
+    }
+    function spinMapReticles(now) {
+      if (!MOB || !sm) return;
+      var spins = sm.querySelectorAll(".sm-rr-spin");
+      for (var i = 0; i < spins.length; i++) {
+        var spin = spins[i], host = spin.closest(".sm-rr");
+        if (!host) continue;
+        var period = smSpinPeriod(host, 24000, 4500, false);
+        var ang = (now / period) * 360 * smSpinDir(host);
+        spin.setAttribute("transform", "rotate(" + (ang % 360).toFixed(2) + ")");
+      }
+      if (mode === "focus" && scene.classList.contains("sm-focus")) {
+        var starSpins = sm.querySelectorAll(".sm-sret-spin");
+        for (var j = 0; j < starSpins.length; j++) {
+          var el = starSpins[j], held = el.closest(".sm-star.held");
+          var p2 = smSpinPeriod(el, 6000, 4500, !!held);
+          var ang2 = (now / p2) * 360 * smSpinDir(el);
+          el.setAttribute("transform", "rotate(" + (ang2 % 360).toFixed(2) + ")");
+        }
+      }
+    }
+    function smSpinLoop() {
+      smSpinRaf = requestAnimationFrame(function () {
+        spinMapReticles(performance.now());
+        smSpinLoop();
+      });
+    }
+    if (MOB) smSpinLoop();
     function isHudTarget(el) {
       if (!el || !el.closest) return false;
       if (MOB && el.closest && el.closest(".crystal-hit")) return false;
@@ -330,15 +372,15 @@ import { isMobileView } from "../lib/mobile.js";
       var f=e.deltaY<0?1.12:0.89, ns=Math.max(ZMIN,Math.min(ZMAX,T.s*f)), k=ns/T.s;
       T.tx=mx-(mx-T.tx)*k; T.ty=my-(my-T.ty)*k; T.s=ns; world.classList.remove("sm-anim"); clampT(); applyTransform(); busy(); },{passive:false});
     function openLightbox(i){ if(!curMedia.length||!ml)return; mlIndex=(i+curMedia.length)%curMedia.length; renderLightbox(); ml.classList.add("open"); }
-    function renderLightbox(){ var m=curMedia[mlIndex]; if(!m||!mlFrame)return;
+    function renderLightbox(){ var m=curMedia[mlIndex]; if(!m||!mlBody)return;
       var inner;
       if(m.type==="video") inner='<video src="'+esc(m.src)+'" poster="'+esc(m.poster||"")+'" muted controls autoplay playsinline></video>';
       else if(m.type==="pdf") inner='<iframe class="ml-pdf" src="'+esc(m.src)+'#view=FitH" title="'+esc(m.alt||"document")+'"></iframe>';
       else inner='<img src="'+esc(m.src)+'" alt="'+esc(m.alt||"")+'" decoding="async"/>';
-      mlFrame.innerHTML = inner + '<span class="holo-scan'+(m.type==="pdf"?" pdf":"")+'"></span>';
+      mlBody.innerHTML = inner + '<span class="holo-scan'+(m.type==="pdf"?" pdf":"")+'"></span>';
       if(mlCap) mlCap.innerHTML='<span class="ix">'+(mlIndex+1)+' / '+curMedia.length+'</span>'+esc(m.caption||m.alt||"");
       var d=curMedia.length>1?"":"none"; if(mlPrev)mlPrev.style.display=d; if(mlNext)mlNext.style.display=d; }
-    function closeLightbox(){ if(ml){ ml.classList.remove("open"); if(mlFrame) mlFrame.innerHTML=""; } }
+    function closeLightbox(){ if(ml){ ml.classList.remove("open"); if(mlBody) mlBody.innerHTML=""; } }
     if(recordBody){
       if(!MOB) recordBody.addEventListener("click",function(e){ var b=e.target.closest&&e.target.closest(".media-thumb"); if(b){ e.stopPropagation(); openLightbox(+b.getAttribute("data-mi")); } });
       else { var mdDown=null;
