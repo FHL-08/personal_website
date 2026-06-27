@@ -338,8 +338,11 @@ import { isMobileView } from "../lib/mobile.js";
     document.addEventListener("keydown",function(e){ if(ml&&ml.classList.contains("open")){ if(e.key==="Escape") closeLightbox(); else if(e.key==="ArrowLeft") openLightbox(mlIndex-1); else if(e.key==="ArrowRight") openLightbox(mlIndex+1); return; } if(e.key==="Escape"){ if(mode==="star") toFocus(); else if(mode==="focus") toMap(); } });
     buildConLabels();
     defaultT(); updateHud();
-    if(MOB) showConLabels(true);
-    setTimeout(function(){ if(mode==="map"){ defaultT(); if(MOB) showConLabels(true); } }, 220);
-    setTimeout(function(){ if(mode==="map"){ defaultT(); if(MOB) showConLabels(true); } }, 700);
+    if (MOB) showConLabels(true);
+    setTimeout(function () {
+      if (mode !== "map") return;
+      if (typeof window.__placeFgInWorld === "function") window.__placeFgInWorld();
+      if (MOB) { placeConLabels(); showConLabels(true); }
+    }, 280);
     var rzT=0; window.addEventListener("resize", function(){ clearTimeout(rzT); rzT=setTimeout(function(){ PHONE=isPhone(); if(typeof window.__placeFgInWorld==="function") window.__placeFgInWorld(); if(mode==="map"){ defaultT(); if(MOB){ placeConLabels(); showConLabels(true); } } }, 150); });
   });})();
