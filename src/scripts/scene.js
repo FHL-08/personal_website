@@ -297,7 +297,7 @@ import { isMobileView } from "../lib/mobile.js";
         updateOrbit();
         if (MOB) {
           spinHudReticles(now);
-          if (typeof window.__spinMapReticles === "function") window.__spinMapReticles(now);
+          if (!window.__mapGesturing && typeof window.__spinMapReticles === "function") window.__spinMapReticles(now);
         }
         if (!MOB) drawLinks();
         updateCrystal();
@@ -567,6 +567,7 @@ import { isMobileView } from "../lib/mobile.js";
     }
     function updateCrystal() {
       if (!crystFront) return;
+      if (MOB && window.__mapGesturing) return;
       if (MOB) {
         var now = performance.now();
         if (now - crystLast < CRYST_MOB_MS) return;

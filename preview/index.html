@@ -1308,7 +1308,7 @@ function isMobileView() {
         updateOrbit();
         if (MOB) {
           spinHudReticles(now);
-          if (typeof window.__spinMapReticles === "function") window.__spinMapReticles(now);
+          if (!window.__mapGesturing && typeof window.__spinMapReticles === "function") window.__spinMapReticles(now);
         }
         if (!MOB) drawLinks();
         updateCrystal();
@@ -1578,6 +1578,7 @@ function isMobileView() {
     }
     function updateCrystal() {
       if (!crystFront) return;
+      if (MOB && window.__mapGesturing) return;
       if (MOB) {
         var now = performance.now();
         if (now - crystLast < CRYST_MOB_MS) return;
@@ -1753,14 +1754,20 @@ function isMobileView() {
       if(world) world.style.transform="";
       return true;
     }
-    function applyTransform(){
+    function applyTransformLite(){
       if(!applyGTransform()&&world) world.style.transform="translate("+T.tx+"px,"+T.ty+"px) scale("+T.s+")";
       window.__smpan={x:T.tx,y:T.ty}; window.__smT={tx:T.tx,ty:T.ty,s:T.s};
+    }
+    function applyTransformLayout(){
       if(conLabels&&mode==="map") placeConLabels();
       if(typeof window.__placeFgInWorld==="function") window.__placeFgInWorld();
       updateHud();
       if(typeof window.__drawLinks==="function") window.__drawLinks();
       if(mode==="map"&&hovCon&&hovCon.g.classList.contains("on")) showConName(hovCon);
+    }
+    function applyTransform(){
+      applyTransformLite();
+      applyTransformLayout();
     }
     var tweenRaf=0;
     function tweenTo(tx,ty,s,ms){
@@ -1932,9 +1939,58 @@ function isMobileView() {
 
     /* ---------- pan + zoom (map mode) ---------- */
     var drag=null, dragged=false, pts={}, pinch=null, holdT=0, downPt=null, held=false, tapStart=null;
+    var gesturing=false, PINCH_MIN_D=32, PINCH_ZOOM_THRESH=0.04;
     function nearestCon(mx,my){ var m=metrics(), best=null,bd=1e9; cons.forEach(function(c){ var p=cur2(vb(c.cx,c.cy,m)), rr=c.r*m.s*T.s+26, d=Math.hypot(mx-p.x,my-p.y); if(d<rr&&d<bd){bd=d;best=c;} }); return best; }
     function clearHold(){ if(holdT){ clearTimeout(holdT); holdT=0; } }
     function nPts(){ var n=0; for(var k in pts) n++; return n; }
+    function ptrPair(){
+      var id=Object.keys(pts); if(id.length<2) return null;
+      return { a:pts[id[0]], b:pts[id[1]] };
+    }
+    function beginGesture(){
+      gesturing=true;
+      window.__mapGesturing=true;
+      cancelAnimationFrame(tweenRaf);
+      world.classList.remove("sm-anim");
+    }
+    function endGesture(){
+      if(!gesturing) return;
+      gesturing=false;
+      window.__mapGesturing=false;
+      applyTransform();
+    }
+    function initPinch(){
+      var pair=ptrPair(); if(!pair) return;
+      var R=scene.getBoundingClientRect(), a=pair.a, b=pair.b;
+      var d0=Math.max(PINCH_MIN_D, Math.hypot(a.x-b.x, a.y-b.y));
+      pinch={
+        d0:d0, zooming:false,
+        cx0:(a.x+b.x)/2-R.left, cy0:(a.y+b.y)/2-R.top,
+        tx0:T.tx, ty0:T.ty, s0:T.s
+      };
+      beginGesture();
+    }
+    function applyPinch(){
+      if(!pinch) return;
+      var pair=ptrPair(); if(!pair) return;
+      var R=scene.getBoundingClientRect(), a=pair.a, b=pair.b;
+      var nd=Math.max(PINCH_MIN_D, Math.hypot(a.x-b.x, a.y-b.y));
+      var cx=(a.x+b.x)/2-R.left, cy=(a.y+b.y)/2-R.top;
+      if(!pinch.zooming && Math.abs(nd/pinch.d0-1)>PINCH_ZOOM_THRESH) pinch.zooming=true;
+      if(pinch.zooming){
+        var ns=Math.max(ZMIN, Math.min(ZMAX, pinch.s0*(nd/pinch.d0))), k=ns/pinch.s0;
+        T.s=ns;
+        T.tx=cx-k*(pinch.cx0-pinch.tx0);
+        T.ty=cy-k*(pinch.cy0-pinch.ty0);
+      } else {
+        T.s=pinch.s0;
+        T.tx=pinch.tx0+(cx-pinch.cx0);
+        T.ty=pinch.ty0+(cy-pinch.cy0);
+      }
+      clampT();
+      schedule();
+      busy();
+    }
     function clampT(){
       var m=metrics();
       var Lx=T.s*m.ox, Wf=T.s*VBW*m.s, hiX=m.W*0.7-Lx, loX=m.W*0.3-Lx-Wf;
@@ -1945,7 +2001,15 @@ function isMobileView() {
     var panRaf=0, busyT=0;
     function updateHud(){ var hr=document.querySelector(".scene-hud .hud-tr"); if(!hr)return;
       hr.textContent = (mode==="map") ? "SECTOR MAP // X "+Math.round(-T.tx)+"  Y "+Math.round(-T.ty)+"  ZOOM "+T.s.toFixed(2)+"x" : "SECTOR MAP // SELECT A CONSTELLATION"; }
-    function writeT(){ panRaf=0; applyTransform(); }
+    function writeT(){
+      panRaf=0;
+      applyTransformLite();
+      if(conLabels&&mode==="map") placeConLabels();
+      if(!gesturing||!MOB){
+        if(typeof window.__placeFgInWorld==="function") window.__placeFgInWorld();
+      }
+      updateHud();
+    }
     function schedule(){ if(!panRaf) panRaf=requestAnimationFrame(writeT); }
     function busy(){ scene.classList.add("sm-busy"); clearTimeout(busyT); busyT=setTimeout(function(){ scene.classList.remove("sm-busy"); },220); }
 
@@ -2001,29 +2065,27 @@ function isMobileView() {
     function applyPan(){ clampT(); schedule(); }
     scene.addEventListener("pointerdown",function(e){
       if(isHudTarget(e.target)) return;
+      if(mode==="map"&&scene.setPointerCapture){
+        try{ scene.setPointerCapture(e.pointerId); }catch(err){}
+      }
       var R=scene.getBoundingClientRect(), px=e.clientX-R.left, py=e.clientY-R.top; held=false;
       if(mode==="map"){
         pts[e.pointerId]={x:e.clientX,y:e.clientY}; var n=nPts();
-        if(n===1){ drag={x:e.clientX,y:e.clientY,tx:T.tx,ty:T.ty}; dragged=false; tapStart={x:px,y:py};
+        if(n===1){ drag={x:e.clientX,y:e.clientY,tx:T.tx,ty:T.ty}; dragged=false; tapStart={x:px,y:py}; pinch=null;
           if(MOB){ var pc=nearestCon(px,py); if(pc){ pressCon=pc; pc.g.classList.add("pressing"); } }
           else { clearHold(); holdT=setTimeout(function(){ if(dragged)return; held=true; var c=nearestCon(px,py); if(c){ cons.forEach(function(o){o.g.classList.remove("on");}); c.g.classList.add("on"); hovCon=c; showConName(c); } },330); }
-        } else if(n===2){ drag=null; dragged=true; clearHold();
+        } else if(n===2){ drag=null; dragged=true; clearHold(); tapStart=null;
           if(pressCon){ pressCon.g.classList.remove("pressing"); pressCon=null; }
-          var id=Object.keys(pts), a=pts[id[0]], b=pts[id[1]];
-          pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1, cx:(a.x+b.x)/2, cy:(a.y+b.y)/2, tx:T.tx, ty:T.ty, s:T.s}; }
+          initPinch(); }
       } else if(mode==="focus"){ pts[e.pointerId]={x:e.clientX,y:e.clientY}; downPt={x:e.clientX,y:e.clientY,moved:false}; tapStart={x:px,y:py};
         if(MOB){ var ps=starAt(px,py); if(ps){ pressStar=ps; ps.el.classList.add("held"); } }
         else { clearHold(); holdT=setTimeout(function(){ if(downPt&&!downPt.moved){ held=true; checkStar(px,py); } },330); } }
     });
     window.addEventListener("pointermove",function(e){
       if(pts[e.pointerId]){ pts[e.pointerId].x=e.clientX; pts[e.pointerId].y=e.clientY; }
-      if(pinch && nPts()>=2){ var R=scene.getBoundingClientRect(), id=Object.keys(pts), a=pts[id[0]], b=pts[id[1]];
-        var nd=Math.hypot(a.x-b.x,a.y-b.y), cx=(a.x+b.x)/2-R.left, cy=(a.y+b.y)/2-R.top;
-        var ns=Math.max(ZMIN,Math.min(ZMAX, pinch.s*(nd/pinch.d))), k=ns/pinch.s;
-        T.s=ns; T.tx=cx-k*((pinch.cx-R.left)-pinch.tx); T.ty=cy-k*((pinch.cy-R.top)-pinch.ty);
-        world.classList.remove("sm-anim"); clampT(); applyTransform(); busy(); return; }
+      if(pinch&&nPts()>=2){ applyPinch(); return; }
       if(drag){ var dx=e.clientX-drag.x, dy=e.clientY-drag.y;
-        if(!dragged&&Math.hypot(dx,dy)>5){ dragged=true; clearHold(); world.classList.remove("sm-anim"); scene.classList.add("sm-grab");
+        if(!dragged&&Math.hypot(dx,dy)>5){ dragged=true; clearHold(); beginGesture(); scene.classList.add("sm-grab");
           if(MOB&&pressCon){ pressCon.g.classList.remove("pressing"); pressCon=null; }
           if(!MOB&&hovCon){ hovCon.g.classList.remove("on"); hovCon=null; conName.classList.remove("show"); clearFx(); } }
         if(dragged){ T.tx=drag.tx+dx; T.ty=drag.ty+dy; clampT(); schedule(); busy(); } }
@@ -2031,9 +2093,12 @@ function isMobileView() {
         if(MOB&&pressStar){ pressStar.el.classList.remove("held"); pressStar=null; } }
     });
     function endPtr(e){
-      if(isHudTarget(e.target)){ tapStart=null; if(pts[e.pointerId]) delete pts[e.pointerId]; if(nPts()<2) pinch=null; if(nPts()===0){ drag=null; scene.classList.remove("sm-grab"); } clearHold(); downPt=null; return; }
+      if(scene.releasePointerCapture){
+        try{ scene.releasePointerCapture(e.pointerId); }catch(err){}
+      }
+      if(isHudTarget(e.target)){ tapStart=null; if(pts[e.pointerId]) delete pts[e.pointerId]; if(nPts()<2) pinch=null; if(nPts()===0){ drag=null; scene.classList.remove("sm-grab"); endGesture(); } clearHold(); downPt=null; return; }
       var R=scene.getBoundingClientRect(), ux=e.clientX-R.left, uy=e.clientY-R.top;
-      var isTap = MOB && tapStart && nPts()===1 && Math.hypot(ux-tapStart.x, uy-tapStart.y)<16;
+      var isTap = MOB && tapStart && nPts()===1 && !dragged && Math.hypot(ux-tapStart.x, uy-tapStart.y)<16;
       if(isTap){
         if(mode==="map"){
           if(crystalAt(tapStart.x, tapStart.y) || crystalAt(ux, uy)){
@@ -2048,7 +2113,17 @@ function isMobileView() {
       if(pressCon){ pressCon.g.classList.remove("pressing"); pressCon=null; }
       if(pressStar){ pressStar.el.classList.remove("held"); pressStar=null; }
       tapStart=null;
-      if(pts[e.pointerId]) delete pts[e.pointerId]; if(nPts()<2) pinch=null; if(nPts()===0){ drag=null; scene.classList.remove("sm-grab"); } clearHold(); downPt=null; setTimeout(function(){ if(nPts()===0) dragged=false; },0); }
+      if(pts[e.pointerId]) delete pts[e.pointerId];
+      if(nPts()===1&&pinch){
+        pinch=null;
+        var rem=Object.keys(pts)[0];
+        if(rem){ drag={x:pts[rem].x,y:pts[rem].y,tx:T.tx,ty:T.ty}; dragged=true; }
+      }
+      if(nPts()<2) pinch=null;
+      if(nPts()===0){ drag=null; scene.classList.remove("sm-grab"); endGesture(); }
+      clearHold(); downPt=null;
+      setTimeout(function(){ if(nPts()===0) dragged=false; },0);
+    }
     window.addEventListener("pointerup",endPtr);
     window.addEventListener("pointercancel",endPtr);
     scene.addEventListener("wheel",function(e){ if(mode!=="map")return; e.preventDefault();
