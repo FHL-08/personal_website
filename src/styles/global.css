@@ -794,7 +794,9 @@ main.wrap { display: none; }
    Mobile layout keyed off the JS-set html.is-mob class (not just media queries),
    so it holds in every orientation regardless of viewport width or hover support.
    ============================================================ */
-html.is-mob .crystal-hit { pointer-events: none; }
+html.is-mob .crystal-hit { pointer-events: auto; touch-action: manipulation; z-index: 6; }
+html.is-mob .reticle .arc,
+html.is-mob .ship-reticle .arc { animation: none !important; }
 
 html.is-mob { overflow: hidden; height: 100%; }
 html.is-mob body { overflow: hidden; height: 100%; }

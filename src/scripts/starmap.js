@@ -259,7 +259,18 @@ import { isMobileView } from "../lib/mobile.js";
     function schedule(){ if(!panRaf) panRaf=requestAnimationFrame(writeT); }
     function busy(){ scene.classList.add("sm-busy"); clearTimeout(busyT); busyT=setTimeout(function(){ scene.classList.remove("sm-busy"); },220); }
     function isHudTarget(el) {
-      return el && el.closest && el.closest(".beacon,.telemetry,.mob-btn,.crystal,.crystal-hit,.ship-hud-card,button");
+      if (!el || !el.closest) return false;
+      if (MOB && el.closest && el.closest(".crystal-hit")) return false;
+      return el.closest(".beacon,.telemetry,.mob-btn,.crystal,.crystal-hit,.ship-hud-card,button");
+    }
+    function crystalAt(mx, my) {
+      var hit = document.getElementById("crystal-hit");
+      if (!hit || !scene) return false;
+      var r = hit.getBoundingClientRect(), R = scene.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) return false;
+      var cx = r.left + r.width * 0.5 - R.left, cy = r.top + r.height * 0.5 - R.top;
+      var rad = Math.max(r.width, r.height) * 0.5;
+      return Math.hypot(mx - cx, my - cy) <= rad;
     }
     function applyPan(){ clampT(); schedule(); }
     scene.addEventListener("pointerdown",function(e){
@@ -299,9 +310,13 @@ import { isMobileView } from "../lib/mobile.js";
       var isTap = MOB && tapStart && nPts()===1 && Math.hypot(ux-tapStart.x, uy-tapStart.y)<16;
       if(isTap){
         if(mode==="map"){
-          var mm=metrics(), cc=cur2(vb(1472,639,mm)), rr=(MOB?155*1.5:155)*mm.s*T.s;
-          if(Math.hypot(tapStart.x-cc.x, tapStart.y-cc.y)<=rr){ if(window.__openOffDuty) window.__openOffDuty(); }
-          else { var con=pressCon||nearestCon(tapStart.x, tapStart.y); if(con) focusCon(con); }
+          if(crystalAt(tapStart.x, tapStart.y) || crystalAt(ux, uy)){
+            if(window.__openOffDuty) window.__openOffDuty();
+          } else {
+            var mm=metrics(), cc=cur2(vb(1472,639,mm)), rr=(MOB?155*1.5:155)*mm.s*T.s;
+            if(Math.hypot(tapStart.x-cc.x, tapStart.y-cc.y)<=rr){ if(window.__openOffDuty) window.__openOffDuty(); }
+            else { var con=pressCon||nearestCon(tapStart.x, tapStart.y); if(con) focusCon(con); }
+          }
         } else if(mode==="focus"){ var si=pressStar||starAt(tapStart.x, tapStart.y); if(si) focusStar(si); else toMap(); }
       }
       if(pressCon){ pressCon.g.classList.remove("pressing"); pressCon=null; }
@@ -344,5 +359,5 @@ import { isMobileView } from "../lib/mobile.js";
       if (typeof window.__placeFgInWorld === "function") window.__placeFgInWorld();
       if (MOB) { placeConLabels(); showConLabels(true); }
     }, 280);
-    var rzT=0; window.addEventListener("resize", function(){ clearTimeout(rzT); rzT=setTimeout(function(){ PHONE=isPhone(); if(typeof window.__placeFgInWorld==="function") window.__placeFgInWorld(); if(mode==="map"){ defaultT(); if(MOB){ placeConLabels(); showConLabels(true); } } }, 150); });
+    var rzT=0; window.addEventListener("resize", function(){ clearTimeout(rzT); rzT=setTimeout(function(){ MOB=isMobileView(); PHONE=isPhone(); if(typeof window.__placeFgInWorld==="function") window.__placeFgInWorld(); if(mode==="map"){ defaultT(); if(MOB){ placeConLabels(); showConLabels(true); } } }, 150); });
   });})();

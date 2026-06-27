@@ -12,6 +12,7 @@ import { isMobileView } from "../lib/mobile.js";
     var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     var scene = document.getElementById("scene");
     var MOB = isMobileView();
+    window.__openOffDuty = function () {};
     /* viewBox units — ~15% larger than typical constellation reticles (R≈132) */
     var RETICLE_R_VB = 155, CRYSTAL_W_VB = 50, SHIP_W_VB = 100, SHIP_RET_D_VB = 135, ORBIT_VB = 140;
     var CRYSTAL_LBL_DIST_VB = 50; /* dist ≈32% of reticle R */
@@ -190,6 +191,11 @@ import { isMobileView } from "../lib/mobile.js";
     function resize() {
       if (!canvas) return false;
       var nw = canvas.clientWidth, nh = canvas.clientHeight;
+      /* iOS often reports 0×0 on canvas until layout settles — fall back to #scene. */
+      if ((nw < 2 || nh < 2) && scene) {
+        var sr = scene.getBoundingClientRect();
+        if (sr.width >= 2 && sr.height >= 2) { nw = sr.width; nh = sr.height; }
+      }
       if (nw < 2 || nh < 2) return false;
       dpr = Math.min(window.devicePixelRatio || 1, MOB ? 1.5 : 2);
       w = nw; h = nh;
@@ -221,7 +227,7 @@ import { isMobileView } from "../lib/mobile.js";
       }
     }
     function startLoop() {
-      if (reduce || !canvas) return;
+      if (!scene) return;
       if (raf) cancelAnimationFrame(raf);
       raf = requestAnimationFrame(step);
     }
@@ -229,11 +235,28 @@ import { isMobileView } from "../lib/mobile.js";
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
     }
+    var reduceDrawn = false;
+    var ARC_PERIODS = { arc1: 46, arc2: 26, arc3: -17, arc4: 34, arc5: 13 };
+    function spinHudReticles() {
+      if (!MOB) return;
+      var roots = [document.querySelector(".reticle"), scene && scene.querySelector(".ship-reticle")];
+      for (var ri = 0; ri < roots.length; ri++) {
+        var root = roots[ri];
+        if (!root) continue;
+        var arcs = root.querySelectorAll(".arc");
+        for (var ai = 0; ai < arcs.length; ai++) {
+          var arc = arcs[ai], period = 30;
+          for (var k in ARC_PERIODS) { if (arc.classList.contains(k)) { period = ARC_PERIODS[k]; break; } }
+          var ang = (t / (Math.abs(period) * 1000)) * 360 * (period < 0 ? -1 : 1);
+          arc.style.transform = "rotate(" + (ang % 360) + "deg)";
+        }
+      }
+    }
     function step() {
       raf = 0;
       try {
-        if (w < 2 || h < 2) resize();
-        if (w < 2 || h < 2) return;
+        var canvasReady = w >= 2 && h >= 2;
+        if (!canvasReady) canvasReady = resize();
         t += 16;
         if (scene && !reduce) {
           var by = Math.sin(t / 1400) * 6;
@@ -242,20 +265,28 @@ import { isMobileView } from "../lib/mobile.js";
           window.__bob = by;
         }
         updateOrbit();
+        if (MOB) spinHudReticles();
         drawLinks();
         crystTick++;
         if (!MOB || (crystTick & 1) === 0) updateCrystal();
-        var fh = h || 1;
-        for (var i = 0; i < stars.length; i++) {
-          var s = stars[i];
-          s.fy += s.sp / fh; s.fx -= (s.sp * 0.5) / (w || 1);
-          if (s.fy > 1) s.fy = 0; if (s.fx < 0) s.fx = 1;
+        if (canvasReady) {
+          if (!reduce) {
+            var fh = h || 1;
+            for (var i = 0; i < stars.length; i++) {
+              var s = stars[i];
+              s.fy += s.sp / fh; s.fx -= (s.sp * 0.5) / (w || 1);
+              if (s.fy > 1) s.fy = 0; if (s.fx < 0) s.fx = 1;
+            }
+            draw();
+          } else if (!reduceDrawn) {
+            draw();
+            reduceDrawn = true;
+          }
         }
-        draw();
       } catch (err) {
         console.error("scene step", err);
       }
-      if (!reduce) raf = requestAnimationFrame(step);
+      raf = requestAnimationFrame(step);
     }
 
     /* ---------- Connector leads (rooted at ship hull) ---------- */
@@ -292,9 +323,10 @@ import { isMobileView } from "../lib/mobile.js";
 
     function onResize() { resize(); placeFgInWorld(); drawLinks(); }
     window.addEventListener("resize", onResize);
-    if (typeof ResizeObserver !== "undefined" && canvas) {
+    if (typeof ResizeObserver !== "undefined") {
       var ro = new ResizeObserver(function () { resize(); });
-      ro.observe(canvas);
+      if (canvas) ro.observe(canvas);
+      if (scene) ro.observe(scene);
     }
     document.addEventListener("visibilitychange", function () {
       if (document.hidden) stopLoop();
@@ -328,13 +360,17 @@ import { isMobileView } from "../lib/mobile.js";
     setTimeout(drawLinks, 500);
     setTimeout(placeFgInWorld, 160); setTimeout(placeFgInWorld, 600);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawLinks);
-    if (canvas) {
-      if (reduce) { resize(); draw(); }
-      else {
-        startLoop();
-        requestAnimationFrame(function () { resize(); placeFgInWorld(); });
-      }
+    function bootCanvas() {
+      if (!canvas) { startLoop(); return; }
+      if (resize()) { startLoop(); return; }
+      var tries = 0;
+      (function retry() {
+        if (resize() || ++tries > 90) { placeFgInWorld(); startLoop(); return; }
+        requestAnimationFrame(retry);
+      })();
     }
+    bootCanvas();
+    requestAnimationFrame(function () { resize(); placeFgInWorld(); });
 
     /* ---------- Beacon → Commander Profile ---------- */
     var beacon = document.querySelector(".beacon");
@@ -532,11 +568,22 @@ import { isMobileView } from "../lib/mobile.js";
       crystHit.addEventListener("blur", function () { crystHover(false); });
     }
     if (MOB && crystHit) {
-      // press-hold glows the central reticle; opening is handled by the scene-level tap (starmap.js)
       var cretEl = scene.querySelector(".reticle");
-      crystHit.addEventListener("pointerdown", function () { if (cretEl) cretEl.classList.add("hot"); });
-      crystHit.addEventListener("pointerup", function () { if (cretEl) setTimeout(function () { cretEl.classList.remove("hot"); }, 160); });
-      crystHit.addEventListener("pointercancel", function () { if (cretEl) cretEl.classList.remove("hot"); });
+      function openCrystalTap(e) {
+        e.stopPropagation();
+        odOpen();
+      }
+      crystHit.addEventListener("click", openCrystalTap);
+      crystHit.addEventListener("pointerdown", function (e) {
+        e.stopPropagation();
+        if (cretEl) cretEl.classList.add("hot");
+      });
+      crystHit.addEventListener("pointerup", function (e) {
+        if (cretEl) setTimeout(function () { cretEl.classList.remove("hot"); }, 160);
+      });
+      crystHit.addEventListener("pointercancel", function () {
+        if (cretEl) cretEl.classList.remove("hot");
+      });
     }
 
     /* ---------- Ship orbit (HUD rig travels rigidly with the ship) ---------- */

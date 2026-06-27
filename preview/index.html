@@ -836,7 +836,9 @@ main.wrap { display: none; }
    Mobile layout keyed off the JS-set html.is-mob class (not just media queries),
    so it holds in every orientation regardless of viewport width or hover support.
    ============================================================ */
-html.is-mob .crystal-hit { pointer-events: none; }
+html.is-mob .crystal-hit { pointer-events: auto; touch-action: manipulation; z-index: 6; }
+html.is-mob .reticle .arc,
+html.is-mob .ship-reticle .arc { animation: none !important; }
 
 html.is-mob { overflow: hidden; height: 100%; }
 html.is-mob body { overflow: hidden; height: 100%; }
@@ -980,6 +982,7 @@ function isMobileView() {
     var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     var scene = document.getElementById("scene");
     var MOB = isMobileView();
+    window.__openOffDuty = function () {};
     /* viewBox units — ~15% larger than typical constellation reticles (R≈132) */
     var RETICLE_R_VB = 155, CRYSTAL_W_VB = 50, SHIP_W_VB = 100, SHIP_RET_D_VB = 135, ORBIT_VB = 140;
     var CRYSTAL_LBL_DIST_VB = 50; /* dist ≈32% of reticle R */
@@ -1158,6 +1161,11 @@ function isMobileView() {
     function resize() {
       if (!canvas) return false;
       var nw = canvas.clientWidth, nh = canvas.clientHeight;
+      /* iOS often reports 0×0 on canvas until layout settles — fall back to #scene. */
+      if ((nw < 2 || nh < 2) && scene) {
+        var sr = scene.getBoundingClientRect();
+        if (sr.width >= 2 && sr.height >= 2) { nw = sr.width; nh = sr.height; }
+      }
       if (nw < 2 || nh < 2) return false;
       dpr = Math.min(window.devicePixelRatio || 1, MOB ? 1.5 : 2);
       w = nw; h = nh;
@@ -1189,7 +1197,7 @@ function isMobileView() {
       }
     }
     function startLoop() {
-      if (reduce || !canvas) return;
+      if (!scene) return;
       if (raf) cancelAnimationFrame(raf);
       raf = requestAnimationFrame(step);
     }
@@ -1197,11 +1205,28 @@ function isMobileView() {
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
     }
+    var reduceDrawn = false;
+    var ARC_PERIODS = { arc1: 46, arc2: 26, arc3: -17, arc4: 34, arc5: 13 };
+    function spinHudReticles() {
+      if (!MOB) return;
+      var roots = [document.querySelector(".reticle"), scene && scene.querySelector(".ship-reticle")];
+      for (var ri = 0; ri < roots.length; ri++) {
+        var root = roots[ri];
+        if (!root) continue;
+        var arcs = root.querySelectorAll(".arc");
+        for (var ai = 0; ai < arcs.length; ai++) {
+          var arc = arcs[ai], period = 30;
+          for (var k in ARC_PERIODS) { if (arc.classList.contains(k)) { period = ARC_PERIODS[k]; break; } }
+          var ang = (t / (Math.abs(period) * 1000)) * 360 * (period < 0 ? -1 : 1);
+          arc.style.transform = "rotate(" + (ang % 360) + "deg)";
+        }
+      }
+    }
     function step() {
       raf = 0;
       try {
-        if (w < 2 || h < 2) resize();
-        if (w < 2 || h < 2) return;
+        var canvasReady = w >= 2 && h >= 2;
+        if (!canvasReady) canvasReady = resize();
         t += 16;
         if (scene && !reduce) {
           var by = Math.sin(t / 1400) * 6;
@@ -1210,20 +1235,28 @@ function isMobileView() {
           window.__bob = by;
         }
         updateOrbit();
+        if (MOB) spinHudReticles();
         drawLinks();
         crystTick++;
         if (!MOB || (crystTick & 1) === 0) updateCrystal();
-        var fh = h || 1;
-        for (var i = 0; i < stars.length; i++) {
-          var s = stars[i];
-          s.fy += s.sp / fh; s.fx -= (s.sp * 0.5) / (w || 1);
-          if (s.fy > 1) s.fy = 0; if (s.fx < 0) s.fx = 1;
+        if (canvasReady) {
+          if (!reduce) {
+            var fh = h || 1;
+            for (var i = 0; i < stars.length; i++) {
+              var s = stars[i];
+              s.fy += s.sp / fh; s.fx -= (s.sp * 0.5) / (w || 1);
+              if (s.fy > 1) s.fy = 0; if (s.fx < 0) s.fx = 1;
+            }
+            draw();
+          } else if (!reduceDrawn) {
+            draw();
+            reduceDrawn = true;
+          }
         }
-        draw();
       } catch (err) {
         console.error("scene step", err);
       }
-      if (!reduce) raf = requestAnimationFrame(step);
+      raf = requestAnimationFrame(step);
     }
 
     /* ---------- Connector leads (rooted at ship hull) ---------- */
@@ -1260,9 +1293,10 @@ function isMobileView() {
 
     function onResize() { resize(); placeFgInWorld(); drawLinks(); }
     window.addEventListener("resize", onResize);
-    if (typeof ResizeObserver !== "undefined" && canvas) {
+    if (typeof ResizeObserver !== "undefined") {
       var ro = new ResizeObserver(function () { resize(); });
-      ro.observe(canvas);
+      if (canvas) ro.observe(canvas);
+      if (scene) ro.observe(scene);
     }
     document.addEventListener("visibilitychange", function () {
       if (document.hidden) stopLoop();
@@ -1296,13 +1330,17 @@ function isMobileView() {
     setTimeout(drawLinks, 500);
     setTimeout(placeFgInWorld, 160); setTimeout(placeFgInWorld, 600);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawLinks);
-    if (canvas) {
-      if (reduce) { resize(); draw(); }
-      else {
-        startLoop();
-        requestAnimationFrame(function () { resize(); placeFgInWorld(); });
-      }
+    function bootCanvas() {
+      if (!canvas) { startLoop(); return; }
+      if (resize()) { startLoop(); return; }
+      var tries = 0;
+      (function retry() {
+        if (resize() || ++tries > 90) { placeFgInWorld(); startLoop(); return; }
+        requestAnimationFrame(retry);
+      })();
     }
+    bootCanvas();
+    requestAnimationFrame(function () { resize(); placeFgInWorld(); });
 
     /* ---------- Beacon → Commander Profile ---------- */
     var beacon = document.querySelector(".beacon");
@@ -1500,11 +1538,22 @@ function isMobileView() {
       crystHit.addEventListener("blur", function () { crystHover(false); });
     }
     if (MOB && crystHit) {
-      // press-hold glows the central reticle; opening is handled by the scene-level tap (starmap.js)
       var cretEl = scene.querySelector(".reticle");
-      crystHit.addEventListener("pointerdown", function () { if (cretEl) cretEl.classList.add("hot"); });
-      crystHit.addEventListener("pointerup", function () { if (cretEl) setTimeout(function () { cretEl.classList.remove("hot"); }, 160); });
-      crystHit.addEventListener("pointercancel", function () { if (cretEl) cretEl.classList.remove("hot"); });
+      function openCrystalTap(e) {
+        e.stopPropagation();
+        odOpen();
+      }
+      crystHit.addEventListener("click", openCrystalTap);
+      crystHit.addEventListener("pointerdown", function (e) {
+        e.stopPropagation();
+        if (cretEl) cretEl.classList.add("hot");
+      });
+      crystHit.addEventListener("pointerup", function (e) {
+        if (cretEl) setTimeout(function () { cretEl.classList.remove("hot"); }, 160);
+      });
+      crystHit.addEventListener("pointercancel", function () {
+        if (cretEl) cretEl.classList.remove("hot");
+      });
     }
 
     /* ---------- Ship orbit (HUD rig travels rigidly with the ship) ---------- */
@@ -1812,7 +1861,18 @@ function isMobileView() {
     function schedule(){ if(!panRaf) panRaf=requestAnimationFrame(writeT); }
     function busy(){ scene.classList.add("sm-busy"); clearTimeout(busyT); busyT=setTimeout(function(){ scene.classList.remove("sm-busy"); },220); }
     function isHudTarget(el) {
-      return el && el.closest && el.closest(".beacon,.telemetry,.mob-btn,.crystal,.crystal-hit,.ship-hud-card,button");
+      if (!el || !el.closest) return false;
+      if (MOB && el.closest && el.closest(".crystal-hit")) return false;
+      return el.closest(".beacon,.telemetry,.mob-btn,.crystal,.crystal-hit,.ship-hud-card,button");
+    }
+    function crystalAt(mx, my) {
+      var hit = document.getElementById("crystal-hit");
+      if (!hit || !scene) return false;
+      var r = hit.getBoundingClientRect(), R = scene.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) return false;
+      var cx = r.left + r.width * 0.5 - R.left, cy = r.top + r.height * 0.5 - R.top;
+      var rad = Math.max(r.width, r.height) * 0.5;
+      return Math.hypot(mx - cx, my - cy) <= rad;
     }
     function applyPan(){ clampT(); schedule(); }
     scene.addEventListener("pointerdown",function(e){
@@ -1852,9 +1912,13 @@ function isMobileView() {
       var isTap = MOB && tapStart && nPts()===1 && Math.hypot(ux-tapStart.x, uy-tapStart.y)<16;
       if(isTap){
         if(mode==="map"){
-          var mm=metrics(), cc=cur2(vb(1472,639,mm)), rr=(MOB?155*1.5:155)*mm.s*T.s;
-          if(Math.hypot(tapStart.x-cc.x, tapStart.y-cc.y)<=rr){ if(window.__openOffDuty) window.__openOffDuty(); }
-          else { var con=pressCon||nearestCon(tapStart.x, tapStart.y); if(con) focusCon(con); }
+          if(crystalAt(tapStart.x, tapStart.y) || crystalAt(ux, uy)){
+            if(window.__openOffDuty) window.__openOffDuty();
+          } else {
+            var mm=metrics(), cc=cur2(vb(1472,639,mm)), rr=(MOB?155*1.5:155)*mm.s*T.s;
+            if(Math.hypot(tapStart.x-cc.x, tapStart.y-cc.y)<=rr){ if(window.__openOffDuty) window.__openOffDuty(); }
+            else { var con=pressCon||nearestCon(tapStart.x, tapStart.y); if(con) focusCon(con); }
+          }
         } else if(mode==="focus"){ var si=pressStar||starAt(tapStart.x, tapStart.y); if(si) focusStar(si); else toMap(); }
       }
       if(pressCon){ pressCon.g.classList.remove("pressing"); pressCon=null; }
@@ -1897,7 +1961,7 @@ function isMobileView() {
       if (typeof window.__placeFgInWorld === "function") window.__placeFgInWorld();
       if (MOB) { placeConLabels(); showConLabels(true); }
     }, 280);
-    var rzT=0; window.addEventListener("resize", function(){ clearTimeout(rzT); rzT=setTimeout(function(){ PHONE=isPhone(); if(typeof window.__placeFgInWorld==="function") window.__placeFgInWorld(); if(mode==="map"){ defaultT(); if(MOB){ placeConLabels(); showConLabels(true); } } }, 150); });
+    var rzT=0; window.addEventListener("resize", function(){ clearTimeout(rzT); rzT=setTimeout(function(){ MOB=isMobileView(); PHONE=isPhone(); if(typeof window.__placeFgInWorld==="function") window.__placeFgInWorld(); if(mode==="map"){ defaultT(); if(MOB){ placeConLabels(); showConLabels(true); } } }, 150); });
   });})();
 </script>
 </body></html>
