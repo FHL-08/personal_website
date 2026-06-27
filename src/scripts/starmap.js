@@ -258,15 +258,11 @@ import { isMobileView } from "../lib/mobile.js";
     }
     function beginGesture(){
       gesturing=true;
-      window.__mapGesturing=true;
       cancelAnimationFrame(tweenRaf);
       world.classList.remove("sm-anim");
     }
     function endGesture(){
-      if(!gesturing) return;
       gesturing=false;
-      window.__mapGesturing=false;
-      applyTransform();
     }
     function initPinch(){
       var pair=ptrPair(); if(!pair) return;
@@ -310,15 +306,7 @@ import { isMobileView } from "../lib/mobile.js";
     var panRaf=0, busyT=0;
     function updateHud(){ var hr=document.querySelector(".scene-hud .hud-tr"); if(!hr)return;
       hr.textContent = (mode==="map") ? "SECTOR MAP // X "+Math.round(-T.tx)+"  Y "+Math.round(-T.ty)+"  ZOOM "+T.s.toFixed(2)+"x" : "SECTOR MAP // SELECT A CONSTELLATION"; }
-    function writeT(){
-      panRaf=0;
-      applyTransformLite();
-      if(conLabels&&mode==="map") placeConLabels();
-      if(!gesturing||!MOB){
-        if(typeof window.__placeFgInWorld==="function") window.__placeFgInWorld();
-      }
-      updateHud();
-    }
+    function writeT(){ panRaf=0; applyTransform(); }
     function schedule(){ if(!panRaf) panRaf=requestAnimationFrame(writeT); }
     function busy(){ scene.classList.add("sm-busy"); clearTimeout(busyT); busyT=setTimeout(function(){ scene.classList.remove("sm-busy"); },220); }
 
