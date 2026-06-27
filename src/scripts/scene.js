@@ -1,5 +1,7 @@
 /* scene.js — immersive HUD scene: starfield, orbiting ship + crystal, beacon→profile,
    mission-log + off-duty launchers, ship-rooted connector leads. Vanilla; shared by Astro + preview. */
+import { isMobileView } from "../lib/mobile.js";
+
 (function () {
   function ready(fn) {
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn);
@@ -9,25 +11,154 @@
   ready(function () {
     var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     var scene = document.getElementById("scene");
-    var MOB = /[?&]view=mobile/.test(location.search) || (window.matchMedia && (window.matchMedia("(pointer: coarse)").matches || window.matchMedia("(hover: none)").matches));
-    // Mobile: ship + crystal stay IN the world (so they zoom/pan with everything and clear out of
-    // focus view), but are anchored + sized in viewBox space so they align with the constellations.
-    var SM_VBW = 2400, SM_VBH = 1840, SM_VBMINY = -170, SM_CVBX = 1472, SM_CVBY = 639, SM_RVB = 400, SM_LABELVB = 178, mobOrbit = 120;
-    // foreground sizes in viewBox units so on-screen ratios match the desktop layout
-    var SM_W = { ".crystal": 84, ".ship": 300, ".crystal-hit": 380 };
-    var SM_WH = { ".reticle": 380 };
-    function smMet() { var R = scene.getBoundingClientRect(); var s = Math.min(R.width / SM_VBW, R.height / SM_VBH); return { s: s, ox: (R.width - SM_VBW * s) / 2, oy: (R.height - SM_VBH * s) / 2 }; }
-    function placeMobileFG() { if (!MOB || !scene) return; var m = smMet(), ax = m.ox + SM_CVBX * m.s, ay = m.oy + (SM_CVBY - SM_VBMINY) * m.s; mobOrbit = SM_RVB * m.s;
-      [".crystal-rig", ".ship-rig", ".reticle", "#crystal-name"].forEach(function (q) { var el = scene.querySelector(q); if (el) { el.style.left = ax.toFixed(1) + "px"; el.style.top = ay.toFixed(1) + "px"; } });
-      var q, el;
-      for (q in SM_W) { el = scene.querySelector(q); if (el) el.style.width = (SM_W[q] * m.s).toFixed(1) + "px"; }
-      for (q in SM_WH) { el = scene.querySelector(q); if (el) { el.style.width = (SM_WH[q] * m.s).toFixed(1) + "px"; el.style.height = (SM_WH[q] * m.s).toFixed(1) + "px"; } }
-      var sr = scene.querySelector(".ship-reticle"); if (sr) sr.style.width = (420 * m.s).toFixed(1) + "px";
-      var g = scene.querySelector(".crystal-glow"); if (g) { var gw = 196 * m.s, gh = 221 * m.s; g.style.width = gw.toFixed(1) + "px"; g.style.height = gh.toFixed(1) + "px"; g.style.left = (-gw / 2).toFixed(1) + "px"; g.style.top = (-gh / 2).toFixed(1) + "px"; }
-      var cn = document.getElementById("crystal-name"); if (cn) { var ph = (Math.min(window.innerWidth || 9999, window.innerHeight || 9999) <= 540); scene.classList.toggle("sm-phone", ph); var lblD = ph ? 165 : SM_LABELVB, lblF = ph ? 27 : 17; cn.style.transformOrigin = "50% 0"; cn.style.transform = "translate(-50%," + (lblD * m.s).toFixed(0) + "px)"; cn.style.fontSize = (lblF * m.s).toFixed(2) + "px"; } }
-    function mobileSetup() { if (!MOB || !scene) return; scene.classList.add("sm-mob"); document.documentElement.classList.add("is-mob");
-      [".beacon", ".telemetry"].forEach(function (q) { var el = scene.querySelector(q); if (el) { el.classList.add("mob-btn"); el.style.left = ""; el.style.top = ""; el.style.transform = ""; scene.appendChild(el); } });
-      placeMobileFG(); var cn0 = document.getElementById("crystal-name"); if (cn0) cn0.classList.add("show"); }
+    var MOB = isMobileView();
+    /* viewBox units — ~15% larger than typical constellation reticles (R≈132) */
+    var RETICLE_R_VB = 155, CRYSTAL_W_VB = 50, SHIP_W_VB = 100, SHIP_RET_D_VB = 135, ORBIT_VB = 140;
+    var CRYSTAL_LBL_DIST_VB = 50; /* dist ≈32% of reticle R */
+    var CRYSTAL_LBL_FONT_MOB = 20; /* matches .con-label base (20 * m.s * T.s) on touch */
+    var MOB_SHIP_SCALE = 2, MOB_ORBIT_SCALE = 2, MOB_FG_SCALE = 1.5, MOB_ORBIT_PERIOD = 5200;
+    var DESKTOP_CRYSTAL_SCALE = 1.5, DESKTOP_SHIP_SCALE = 2.4, DESKTOP_ORBIT_SCALE = 3.1, DESKTOP_HUD_CARD_DIST = 0.65;
+    var SM_VBW = 2400, SM_VBH = 1840, SM_VBMINY = -170, SM_CVX = 1472, SM_CVY = 639;
+    var SM_FG = [".crystal-rig", ".ship-rig", ".reticle"];
+
+    function smMet() {
+      if (!scene) return { W: 0, H: 0, s: 1, ox: 0, oy: 0 };
+      var R = scene.getBoundingClientRect();
+      var s = Math.min(R.width / SM_VBW, R.height / SM_VBH);
+      return { W: R.width, H: R.height, s: s, ox: (R.width - SM_VBW * s) / 2, oy: (R.height - SM_VBH * s) / 2 };
+    }
+    function smVb(vx, vy, m) {
+      return { x: m.ox + vx * m.s, y: m.oy + (vy - SM_VBMINY) * m.s };
+    }
+    function smCur2(p) {
+      var T = window.__smT || { tx: 0, ty: 0, s: 1 };
+      return { x: T.tx + T.s * p.x, y: T.ty + T.s * p.y };
+    }
+
+    function ensureFgInWorld() {
+      var world = document.getElementById("world");
+      if (!world) return;
+      SM_FG.forEach(function (q) {
+        var el = world.querySelector(q) || (scene && scene.querySelector(q));
+        if (el && el.parentElement !== world) world.appendChild(el);
+      });
+      var cr = world.querySelector(".crystal-rig");
+      var cn = document.getElementById("crystal-name") || (scene && scene.querySelector("#crystal-name"));
+      if (cr && cn && cn.parentElement !== cr) {
+        cn.classList.add("crystal-hud-card");
+        cr.appendChild(cn);
+      }
+    }
+
+    function applyFgSizes(m, T, world) {
+      var lp = m.s;
+      var px = lp * T.s * (MOB ? MOB_FG_SCALE : 1);
+      var ret = world.querySelector(".reticle");
+      var crystal = world.querySelector(".crystal");
+      var hit = world.querySelector(".crystal-hit");
+      var ship = world.querySelector(".ship");
+      var sr = world.querySelector(".ship-reticle");
+      var cr = world.querySelector(".crystal-rig");
+      var srg = world.querySelector(".ship-rig");
+      var retD = RETICLE_R_VB * 2 * px;
+      var cryScale = MOB ? 1 : DESKTOP_CRYSTAL_SCALE;
+      var cryW = CRYSTAL_W_VB * cryScale * px;
+      var shipMul = MOB ? MOB_SHIP_SCALE : DESKTOP_SHIP_SCALE;
+      var shipW = SHIP_W_VB * shipMul * px;
+      var srW = SHIP_RET_D_VB * shipMul * px;
+      var hitW = RETICLE_R_VB * 1.55 * px;
+      if (ret) { ret.style.width = retD.toFixed(1) + "px"; ret.style.height = retD.toFixed(1) + "px"; }
+      if (crystal) crystal.style.width = cryW.toFixed(1) + "px";
+      if (hit) { hit.style.width = hitW.toFixed(1) + "px"; hit.style.height = hitW.toFixed(1) + "px"; }
+      if (ship) ship.style.width = shipW.toFixed(1) + "px";
+      if (sr) sr.style.width = srW.toFixed(1) + "px";
+      var g = world.querySelector(".crystal-glow");
+      if (g) {
+        var gw = cryW * 2.33, gh = cryW * 2.63;
+        g.style.width = gw.toFixed(1) + "px";
+        g.style.height = gh.toFixed(1) + "px";
+        g.style.left = (-gw / 2).toFixed(1) + "px";
+        g.style.top = (-gh / 2).toFixed(1) + "px";
+      }
+      var cn = document.getElementById("crystal-name");
+      if (cn) {
+        if (MOB) {
+          cn.style.fontSize = (CRYSTAL_LBL_FONT_MOB * lp * T.s).toFixed(2) + "px";
+        } else {
+          cn.style.fontSize = "";
+        }
+        cn.style.transform = "";
+        scene.style.setProperty("--crystal-lbl-d", (CRYSTAL_LBL_DIST_VB * px).toFixed(1) + "px");
+      }
+      if (ret) ret.style.transform = "translate(-50%,-50%)";
+      if (cr) cr.style.transform = "";
+      if (srg) srg.style.transform = "";
+      scene.style.setProperty("--hud-card-inv", "1");
+    }
+
+    function placeFgInWorld() {
+      var world = document.getElementById("world");
+      if (!world || !scene) return;
+      ensureFgInWorld();
+      var m = smMet(), T = window.__smT || { tx: 0, ty: 0, s: 1 };
+      var c = smCur2(smVb(SM_CVX, SM_CVY, m));
+      var vmin = Math.min(m.W || 360, m.H || 640);
+      var ph = MOB && vmin <= 540;
+      if (scene) scene.classList.toggle("sm-phone", ph);
+
+      SM_FG.forEach(function (q) {
+        var el = world.querySelector(q);
+        if (!el) return;
+        el.style.left = c.x.toFixed(1) + "px";
+        el.style.top = c.y.toFixed(1) + "px";
+      });
+      applyFgSizes(m, T, world);
+      updateOrbit();
+    }
+    window.__placeFgInWorld = placeFgInWorld;
+
+    function desktopHudSetup() {
+      if (MOB || !scene) return;
+      var world = document.getElementById("world");
+      var rig = world && world.querySelector(".ship-rig");
+      if (!rig) return;
+      [".beacon", ".telemetry"].forEach(function (q) {
+        var el = scene.querySelector(q);
+        if (el && !el.classList.contains("mob-btn") && el.parentElement !== rig) {
+          el.classList.add("ship-hud-card");
+          el.style.left = "0";
+          el.style.top = "0";
+          rig.appendChild(el);
+        }
+      });
+    }
+
+    function mobileSetup() {
+      if (!MOB || !scene) return;
+      scene.classList.add("sm-mob");
+      document.documentElement.classList.add("is-mob");
+      ensureFgInWorld();
+      var mobCmd = document.getElementById("mob-cmd");
+      if (!mobCmd) {
+        mobCmd = document.createElement("div");
+        mobCmd.className = "mob-cmd";
+        mobCmd.id = "mob-cmd";
+        scene.appendChild(mobCmd);
+      }
+      [".beacon", ".telemetry"].forEach(function (q) {
+        var el = scene.querySelector(q);
+        if (el) {
+          el.classList.add("mob-btn");
+          el.style.left = "";
+          el.style.top = "";
+          el.style.transform = "";
+          mobCmd.appendChild(el);
+        }
+      });
+      placeFgInWorld();
+      var cn0 = document.getElementById("crystal-name");
+      if (cn0) cn0.classList.add("show");
+    }
 
     /* ---------- Starfield (resolution-independent) ---------- */
     var canvas = document.getElementById("starfield");
@@ -80,8 +211,8 @@
         scene.style.setProperty("--bobrot", (Math.sin(t / 1400) * 0.5).toFixed(3) + "deg");
         window.__bob = by;
       }
-      drawLinks();
       updateOrbit();
+      drawLinks();
       updateCrystal();
       var fh = h || 1;
       for (var i = 0; i < stars.length; i++) {
@@ -125,7 +256,7 @@
     var worldEl = document.getElementById("world");
     if (worldEl) worldEl.addEventListener("transitionend", drawLinks);
 
-    function onResize() { resize(); placeMobileFG(); drawLinks(); }
+    function onResize() { resize(); placeFgInWorld(); drawLinks(); }
     window.addEventListener("resize", onResize);
     document.addEventListener("visibilitychange", function () {
       if (document.hidden) { cancelAnimationFrame(raf); }
@@ -145,13 +276,16 @@
       var cx = r.left + r.width / 2, cy = r.top + r.height / 2, rad = r.width / 2;
       reticleEl.classList.toggle("hot", Math.hypot(e.clientX - cx, e.clientY - cy) <= rad);
     }, { passive: true });
+    ensureFgInWorld();
+    desktopHudSetup();
     mobileSetup();
+    placeFgInWorld();
     resize();
     drawLinks();
     // re-measure after fonts/layout settle
     setTimeout(drawLinks, 120);
     setTimeout(drawLinks, 500);
-    setTimeout(placeMobileFG, 160); setTimeout(placeMobileFG, 600);
+    setTimeout(placeFgInWorld, 160); setTimeout(placeFgInWorld, 600);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawLinks);
     if (canvas) { if (reduce) draw(); else raf = requestAnimationFrame(step); }
 
@@ -162,8 +296,10 @@
     var radar = document.querySelector(".ship-reticle");
     function openP() { if (overlay) { overlay.classList.add("open"); document.body.style.overflow = "hidden"; if (closeBtn) closeBtn.focus(); } }
     function closeP() { if (overlay) { overlay.classList.remove("open"); document.body.style.overflow = ""; if (beacon) beacon.focus(); } }
+    function blockMapPtr(e) { e.stopPropagation(); }
     if (beacon) {
-      beacon.addEventListener("click", openP);
+      beacon.addEventListener("click", function (e) { e.stopPropagation(); openP(); });
+      beacon.addEventListener("pointerdown", blockMapPtr);
       beacon.addEventListener("mouseenter", function () { if (radar) radar.classList.add("scanning"); });
       beacon.addEventListener("mouseleave", function () { if (radar) radar.classList.remove("scanning"); });
     }
@@ -185,7 +321,8 @@
     function openM() { if (mlog) { mlog.classList.add("open"); document.body.style.overflow = "hidden"; if (mlogClose) mlogClose.focus(); } }
     function closeM() { if (mlog) { mlog.classList.remove("open"); document.body.style.overflow = ""; if (mlogBtn) mlogBtn.focus(); } }
     if (mlogBtn) {
-      mlogBtn.addEventListener("click", openM);
+      mlogBtn.addEventListener("click", function (e) { e.stopPropagation(); openM(); });
+      mlogBtn.addEventListener("pointerdown", blockMapPtr);
       mlogBtn.addEventListener("mouseenter", function () { if (radar) radar.classList.add("scanning"); });
       mlogBtn.addEventListener("mouseleave", function () { if (radar) radar.classList.remove("scanning"); });
     }
@@ -356,11 +493,15 @@
     }
 
     /* ---------- Ship orbit (HUD rig travels rigidly with the ship) ---------- */
-    var ORX = 350, ORY = 350;
     function updateOrbit() {
       if (!scene) return;
-      var by2 = window.__bob || 0, ang = t / 7800;
-      var rad = MOB ? mobOrbit : ORX;
+      var by2 = window.__bob || 0, ang = t / (MOB ? MOB_ORBIT_PERIOD : 7800);
+      var m = smMet();
+      var Tz = (window.__smT && window.__smT.s) || 1;
+      /* size orbit/offsets in screen px (zoom baked in — no CSS scale on rigs, keeps SVGs crisp) */
+      var rad = ORBIT_VB * m.s * Tz;
+      if (MOB) rad *= MOB_ORBIT_SCALE * MOB_FG_SCALE;
+      else rad *= DESKTOP_ORBIT_SCALE;
       var ox = Math.cos(ang) * rad, oy = Math.sin(ang) * rad;
       var hd = Math.atan2(Math.cos(ang) * rad, -Math.sin(ang) * rad) * 180 / Math.PI;
       scene.style.setProperty("--ox", ox.toFixed(1) + "px");
@@ -369,7 +510,22 @@
       scene.style.setProperty("--shiprot", hd.toFixed(1) + "deg");
       scene.style.setProperty("--shiptiltx", (MOB ? 0 : -my * 10).toFixed(2) + "deg");
       scene.style.setProperty("--shiptilty", (MOB ? 0 : mx * 14).toFixed(2) + "deg");
+      var shipRetMul = MOB ? MOB_SHIP_SCALE * MOB_FG_SCALE : DESKTOP_SHIP_SCALE;
+      var srR = SHIP_RET_D_VB * shipRetMul * 0.5 * m.s * Tz, gap = 14 * m.s * Tz;
+      if (MOB) {
+        scene.style.setProperty("--bec-dx", (-srR - gap).toFixed(1) + "px");
+        scene.style.setProperty("--bec-dy", (-srR - gap * 0.65).toFixed(1) + "px");
+        scene.style.setProperty("--tel-dx", (srR + gap * 0.85).toFixed(1) + "px");
+        scene.style.setProperty("--tel-dy", (srR * 0.35 + gap * 0.45).toFixed(1) + "px");
+      } else {
+        var pad = 2 * m.s * Tz, k = 0.707, d = srR * DESKTOP_HUD_CARD_DIST;
+        scene.style.setProperty("--bec-dx", (-d * k - pad).toFixed(1) + "px");
+        scene.style.setProperty("--bec-dy", (-d * k - pad).toFixed(1) + "px");
+        scene.style.setProperty("--tel-dx", (d * k + pad).toFixed(1) + "px");
+        scene.style.setProperty("--tel-dy", (d * k + pad * 0.35).toFixed(1) + "px");
+      }
     }
+    window.__updateOrbit = updateOrbit;
     /* ship-reticle hover light-up (travels with ship) */
     var shipRetEl = scene && scene.querySelector(".ship-reticle");
     window.addEventListener("pointermove", function (e) {

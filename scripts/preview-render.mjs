@@ -13,8 +13,17 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const esc = (s = "") => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const tokens = readFileSync(join(root, "src/styles/tokens.css"), "utf8");
 const global = readFileSync(join(root, "src/styles/global.css"), "utf8").replace(/@import[^;]+;/, "");
+const mobileJs = readFileSync(join(root, "src/lib/mobile.js"), "utf8");
 const sceneJs = readFileSync(join(root, "src/scripts/scene.js"), "utf8");
 const starmapJs = readFileSync(join(root, "src/scripts/starmap.js"), "utf8");
+
+/** Preview is a single HTML file — inline scripts cannot use ES imports. */
+function bundleForPreview(js) {
+  return js.replace(/^import\s+\{[^}]+\}\s+from\s+["'][^"']+["'];\s*\n?/m, "");
+}
+const mobileInline = mobileJs.replace("export function isMobileView", "function isMobileView");
+const sceneBundled = bundleForPreview(sceneJs);
+const starmapBundled = bundleForPreview(starmapJs);
 const pad = (n) => String(n).padStart(2, "0");
 const contactIcons = {
   email: '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>',
@@ -35,8 +44,9 @@ const scene = () => `
     <div class="world" id="world">
     <svg id="starmap" viewBox="0 -170 2400 1840" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${renderStarmap(constellations)}</svg>
     <div class="reticle">${RETICLE}</div>
-    <div class="crystal-rig"><div class="crystal-glow"></div><button class="crystal" id="crystal" type="button" aria-label="Open Off-Duty Log"></button><button class="crystal-hit" id="crystal-hit" type="button" aria-label="Open Off-Duty Log"></button></div><div class="crystal-name" id="crystal-name"><span class="t">OFF-DUTY LOG</span></div>
+    <div class="crystal-rig"><div class="crystal-glow"></div><button class="crystal" id="crystal" type="button" aria-label="Open Off-Duty Log"></button><button class="crystal-hit" id="crystal-hit" type="button" aria-label="Open Off-Duty Log"></button><div class="crystal-name crystal-hud-card" id="crystal-name"><span class="t">OFF-DUTY LOG</span></div></div>
     <div class="ship-rig"><div class="ship-reticle" aria-hidden="true">${SHIPRET}</div><div class="ship">${SHIP}</div></div>
+    </div>
     <button class="beacon" type="button" data-link="left" aria-haspopup="dialog" aria-label="Open Commander Profile" data-augmented-ui="tl-clip br-clip border">
       <span class="sweep"></span><span class="beacon-line code">${esc(profile.callsign)}</span><span class="beacon-line name">${esc(profile.name)}</span>
       <span class="beacon-line role">${esc(profile.className)}</span><span class="beacon-line status"><i></i> STATUS: ${esc(profile.status)}</span>
@@ -45,9 +55,8 @@ const scene = () => `
     <button class="telemetry" id="mlog-launch" type="button" data-link="right" aria-haspopup="dialog" aria-label="Open Mission Log" data-augmented-ui="tl-clip br-clip border">
       <span class="sweep"></span><h5>MISSION LOG</h5>
       <div class="row"><span>ENTRIES</span><span>${pad(missionLog.length)}</span></div><div class="row"><span>LATEST</span><span>${esc(missionLog[0] ? missionLog[0].year : "")}</span></div>
-      <div class="row"><span>SIGNAL</span><span>RECOVERED</span></div><span class="mlog-hint"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg> OPEN LOG</span><div class="hashbar"></div>
+      <div class="row"><span>SIGNAL</span><span>RECOVERED</span></div><span class="mlog-hint"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg> OPEN LOG</span>      <div class="hashbar"></div>
     </button>
-    </div>
     <svg class="scene-links" id="scene-links" aria-hidden="true"></svg>
     <span class="hud-corner tl"></span><span class="hud-corner tr"></span><span class="hud-corner bl"></span><span class="hud-corner br"></span>
     <div class="scene-hud"><div class="hud-tl">FSL-01 // NAV SYSTEM ONLINE</div><div class="hud-tr">SECTOR MAP // SELECT A CONSTELLATION</div></div>
@@ -125,8 +134,8 @@ ${dossierOverlay()}
   </div>
 </div>
 <script type="application/json" id="offduty-data">${JSON.stringify(offDuty)}</script>
-<script>${sceneJs}</script>
-<script>${starmapJs}</script>
+<script>${mobileInline}\n${sceneBundled}</script>
+<script>${starmapBundled}</script>
 </body></html>`;
 
 const previewHtml = html.replaceAll('"/assets/', '"../public/assets/');

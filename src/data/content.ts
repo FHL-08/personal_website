@@ -197,10 +197,10 @@ export const constellations: Constellation[] = [
         recordType: "RESEARCH ARCHIVE",
         date: "2026 — TAROS (accepted, published Oct 2026)",
         summary:
-          "A consensus-based, feedback-linearised MPC strategy for torque-level formation control of differential-drive robots, recast as a convex program that solves in real time.",
+          "A consensus-based, feedback-linearised MPC for torque-level formation control of differential-drive robots, written as a convex program that solves in real time.",
         body: [
-          "This work tackles distributed formation control for nonholonomic wheeled robots while respecting the limits of real motors. The nonlinear unicycle dynamics are feedback-linearised into a double-integrator model, and the torque and voltage constraints are carried through as convex inner approximations, so nothing the controller commands can exceed what the hardware is able to deliver.",
-          "Coordination across the swarm is handled with a consensus formulation, and the whole problem is cast as a Second-Order Cone Program that is solved at every control step. That keeps it light enough for real-time operation, which is usually the property that breaks once hard constraints are added to formation control.",
+          "This is distributed formation control for nonholonomic wheeled robots that stays inside the limits of real motors. I feedback-linearise the unicycle dynamics into a double-integrator model and carry the torque and voltage constraints through as convex inner approximations, so the controller can't ask for more than the hardware can deliver.",
+          "Coordination across the swarm uses a consensus formulation, and the whole thing is a Second-Order Cone Program solved at every control step, fast enough to run in real time even with the hard limits in place.",
           "Accepted to TAROS 2026 and published in October 2026.",
         ],
         tags: ["MPC", "SOCP", "Feedback linearisation", "Multi-agent", "Formation control"],
@@ -216,8 +216,8 @@ export const constellations: Constellation[] = [
         summary:
           "A safe, robust, adaptive impedance control framework for a 7-DOF manipulator, with guaranteed constraint satisfaction under state and input limits.",
         body: [
-          "The controller blends an Interval Type-2 Fuzzy Logic System with a smooth compensator so it stays robust under heavy parametric uncertainty, the kind found in tasks like nuclear decommissioning where the load and contact conditions are poorly known.",
-          "Safety and stability are enforced through a novel Nonsmooth Control Barrier Function, and Uniform Ultimate Boundedness of the closed loop is proved with composite Lyapunov analysis. Everything runs through a single soft-constrained QP solved online in roughly 54 microseconds per cycle, and the framework was deployed on KINOVA Gen3 and Franka Emika arms.",
+          "The controller blends an Interval Type-2 Fuzzy Logic System with a smooth compensator to stay robust under heavy parametric uncertainty, the situation in something like nuclear decommissioning where you don't know the load or contact conditions well.",
+          "I enforce safety and stability with a new Nonsmooth Control Barrier Function, and prove Uniform Ultimate Boundedness of the closed loop using composite Lyapunov analysis. It all runs as a single soft-constrained QP, solved online in about 54 microseconds per cycle, and I deployed it on KINOVA Gen3 and Franka Emika arms.",
           "Submitted to CDC and available as an arXiv preprint.",
         ],
         tags: ["Control Barrier Functions", "Adaptive control", "IT2 Fuzzy", "Lyapunov", "QP"],
@@ -233,7 +233,7 @@ export const constellations: Constellation[] = [
         summary:
           "Stability analysis and design of high-order, multi-constrained safety filters for linear systems.",
         body: [
-          "Active research. The work studies how to stack several high-order constraints into a single safety filter for linear systems without losing the stability guarantees that make safety filters worth using. Findings will be logged here as the project matures.",
+          "Active research. I'm working out how to stack several high-order constraints into one safety filter for linear systems without losing the stability guarantees that make safety filters worth using. I'll add findings here as it develops.",
         ],
         tags: ["Safety filters", "Stability analysis", "Linear systems"],
         badge: "IN PROGRESS",
@@ -255,11 +255,11 @@ export const constellations: Constellation[] = [
         recordType: "MISSION RECORD",
         date: "Oct 2025",
         summary:
-          "A Python platform that demonstrates distributed formation control of nonholonomic robots using a consensus-based feedback-linearised MPC, solved as a real-time SOCP at 60 Hz.",
+          "A Python platform that runs distributed formation control of nonholonomic robots, using a consensus-based feedback-linearised MPC solved as a real-time SOCP at 60 Hz.",
         body: [
-          "Tessellate is the demonstration platform behind the formation-control research. It runs a consensus-based feedback-linearised MPC reformulated as a Second-Order Cone Program and solved as a strict convex optimisation at every time step, holding 60 Hz with cvxpy backed by the ECOS and CLARABEL solvers.",
-          "Feedback linearisation turns the nonlinear unicycle dynamics into a double-integrator model, while the torque and voltage limits are preserved through convex inner approximations. A custom multi-layered A* planner adapts the safety radius to the current formation shape, which lets the leader thread narrow gaps without the trailing robots snagging on obstacles.",
-          "The communication graph can be rewired while the swarm is moving. Robots can be dropped in or out and formation nodes can be dragged to reshape the target on the fly. It is wrapped in a PySide6 interface with live telemetry plotting.",
+          "Tessellate is the platform behind my formation-control research. It runs a consensus-based feedback-linearised MPC, reformulated as a Second-Order Cone Program and solved as a strict convex optimisation at every time step, holding 60 Hz with cvxpy on the ECOS and CLARABEL solvers.",
+          "Feedback linearisation turns the unicycle dynamics into a double-integrator model, and the torque and voltage limits are kept through convex inner approximations. I wrote a multi-layered A* planner that adapts the safety radius to the current formation shape, so the leader can thread narrow gaps without the trailing robots snagging on obstacles.",
+          "You can rewire the communication graph while the swarm is moving, drop robots in or out, and drag formation nodes to reshape the target on the fly. It's wrapped in a PySide6 interface with live telemetry plots.",
         ],
         tags: ["Python", "MPC", "SOCP", "cvxpy", "A*", "PySide6", "Swarm"],
         assets: [
@@ -277,11 +277,11 @@ export const constellations: Constellation[] = [
         recordType: "MISSION RECORD",
         date: "Apr 2025 — present",
         summary:
-          "Simulation and hybrid control of a cart-mounted double inverted pendulum that moves between all four equilibrium configurations, now being rebuilt as physical hardware.",
+          "Simulation and hybrid control of a cart-mounted double inverted pendulum that reaches all four equilibrium configurations, now being built as real hardware.",
         body: [
-          "A control framework for a cart-mounted double inverted pendulum that can reach all four equilibrium configurations in its task space. It pairs an energy-based swing-up controller with a stabiliser derived from linearisation and Lyapunov-based sliding-mode techniques.",
-          "The full nonlinear dynamics, covering cart translation, link coupling, viscous joint damping and actuator limits, were modelled symbolically in MATLAB and CasADi. The swing-up controller pumps energy into the system until it reaches the target manifold, then hands over to a stabiliser designed through the algebraic Riccati equation. ODE event detection triggers the switch, and closed-loop runs track the angles, position, velocities and total energy to confirm the handover.",
-          "The project is moving off the screen and onto the bench: a physical double inverted pendulum is being built from scratch and driven by a Raspberry Pi to validate the hybrid strategy on real hardware.",
+          "A control framework for a cart-mounted double inverted pendulum that can reach all four equilibrium configurations in its task space. I pair an energy-based swing-up controller with a stabiliser from linearisation and Lyapunov-based sliding-mode methods.",
+          "I modelled the full nonlinear dynamics symbolically in MATLAB and CasADi, covering cart translation, link coupling, viscous joint damping and actuator limits. The swing-up controller pumps energy in until the system hits the target manifold, then hands over to a stabiliser designed via the algebraic Riccati equation. ODE event detection fires the switch, and I track the angles, position, velocities and total energy across the run to confirm the handover.",
+          "I'm now building a physical version from scratch, driven by a Raspberry Pi, to test the hybrid strategy on real hardware.",
         ],
         tags: ["MATLAB", "CasADi", "Sliding mode", "Energy control", "Hybrid systems", "Raspberry Pi"],
         badge: "IN PROGRESS",
@@ -298,11 +298,11 @@ export const constellations: Constellation[] = [
         recordType: "MISSION RECORD",
         date: "Sep 2022 — Jun 2023",
         summary:
-          "A battery-powered autonomous buggy that follows a marked track, climbs an 18-degree incline, turns 180 degrees on a Bluetooth command and stops precisely, run by three PID loops on an STM32.",
+          "A battery-powered autonomous buggy that follows a track, climbs an 18-degree incline, turns 180 degrees on a Bluetooth command and stops on the line, run by three PID loops on an STM32.",
         body: [
-          "Designed and built with a team of four. The buggy follows a marked track, climbs an 18-degree incline, performs a 180-degree turn when it receives a Bluetooth Low Energy command, and comes to a controlled stop at the end of the line. Three PID controllers run the show: two hold motor speed from Hall-effect encoder feedback, and one steers from a custom six-sensor TCRT5000 infrared array on a bespoke PCB with hardware signal conditioning.",
-          "The control software was written in C++ on an STM32 with Mbed using an object-oriented structure. A MATLAB and Simulink model tuned the PID gains ahead of time and reached better than 70 percent agreement with the real buggy at speeds up to 1.4 metres per second. Hardware refinements included a 3D-printed shield to keep ambient light off the sensors, deliberate weight distribution with castor wheels, and a gearbox balanced between torque and speed.",
-          "Awarded the second-year ESP prize for the most innovative features.",
+          "Built with a team of four. The buggy follows a marked track, climbs an 18-degree incline, turns 180 degrees on a Bluetooth Low Energy command, and stops cleanly at the end of the line. Three PID controllers handle it: two hold motor speed from Hall-effect encoder feedback, and one steers off a custom six-sensor TCRT5000 infrared array on a bespoke PCB with hardware signal conditioning.",
+          "We wrote the control software in C++ on the STM32 with Mbed, object-oriented. A MATLAB and Simulink model tuned the PID gains beforehand and matched the real buggy to better than 70 percent at speeds up to 1.4 metres per second. On the hardware side we added a 3D-printed shield to keep ambient light off the sensors, set the weight distribution with castor wheels, and chose a gearbox that traded torque against speed.",
+          "It won the second-year ESP prize for the most innovative features.",
         ],
         tags: ["STM32", "C++", "PID", "Custom PCB", "BLE", "MATLAB/Simulink"],
         badge: "ESP INNOVATIVE FEATURES PRIZE",
@@ -321,10 +321,10 @@ export const constellations: Constellation[] = [
         recordType: "MISSION RECORD",
         date: "Oct 2021 — May 2022",
         summary:
-          "An Arduino buggy with ultrasonic sensing and a PID controller that solves mazes on its own while avoiding collisions.",
+          "An Arduino buggy with ultrasonic sensing and a PID controller that solves mazes on its own without hitting anything.",
         body: [
-          "A robotic buggy fitted with ultrasonic sensors for real-time obstacle detection. A PID control loop on an Arduino Uno turns the sensor readings into smooth motor commands for navigation and collision avoidance, and the buggy completes maze-solving runs with no outside help.",
-          "It was an early exercise in sensor integration, control tuning and autonomous decision making, and laid the groundwork for the more capable autonomous platforms logged later in this sector.",
+          "A buggy with ultrasonic sensors for real-time obstacle detection. A PID loop on an Arduino Uno turns the sensor readings into motor commands, and it finds its own way through a maze without hitting the walls.",
+          "This was one of my first proper goes at sensor integration and control tuning, and it led into the more capable autonomous robots further on.",
         ],
         tags: ["Arduino", "PID", "Ultrasonic sensing", "Autonomy"],
       },
@@ -337,10 +337,10 @@ export const constellations: Constellation[] = [
         recordType: "MISSION RECORD",
         date: "Sep 2025 — present",
         summary:
-          "An end-to-end autonomous poker system on an SO-101 robot arm, fusing dual-camera vision, a ROS 2 control stack and game-theoretic decision making.",
+          "An end-to-end autonomous poker system on an SO-101 robot arm, combining dual-camera vision, a ROS 2 control stack and game-theory decision-making.",
         body: [
-          "A robot arm that can run a poker table from both sides. In dealer mode it picks up cards, shuffles, deals, and moves chips and the pot. In player mode it plays its own hand and manages its stack against opponents.",
-          "Perception comes from a dual-camera YOLOv8 pipeline, with an OAK-D Lite giving a birds-eye view for card detection and a Logitech C925e handling chip-colour segmentation. The control side is a ROS 2 stack: an LQR trajectory controller with CasADi inverse kinematics drives the SO-101 servo arm, a poker engine handles game logic and hand evaluation, and a PySide6 dashboard provides monitoring and manual control.",
+          "A robot arm that runs a poker table from both sides. As the dealer it picks up, shuffles and deals cards and moves the chips and pot. As a player it plays its own hand and manages its stack against the others.",
+          "Perception is a dual-camera YOLOv8 pipeline: an OAK-D Lite overhead for card detection and a Logitech C925e for chip-colour segmentation. The control side is a ROS 2 stack, where an LQR trajectory controller with CasADi inverse kinematics drives the SO-101 arm, a poker engine handles the game logic and hand evaluation, and a PySide6 dashboard gives monitoring and manual control.",
         ],
         tags: ["ROS 2", "Computer vision", "YOLOv8", "CasADi", "LQR", "SO-101"],
         assets: [{ kind: "repo", label: "Source Archive", href: "https://github.com/jalliet/prap-25-26" }],
@@ -673,72 +673,6 @@ export const constellations: Constellation[] = [
           "The final-year dissertation on safety-critical consensus-based formation control of distributed mobile robots later grew into the Tessellate platform and the TAROS paper.",
         ],
         tags: ["First-Class Honours", "Top 0.5%"],
-      },
-    ],
-  },
-
-  // ===== SKILLS =====
-  {
-    id: "skills",
-    name: "Skills",
-    narrativeName: "Capability Matrix",
-    shape: "network",
-    blurb: "Core domains of expertise.",
-    stars: [
-      {
-        id: "skill-control",
-        title: "Control Theory",
-        recordType: "CAPABILITY",
-        summary:
-          "Safety-critical control (CBFs and NCBFs), linear and nonlinear systems, robust, adaptive and optimal control (PID, LQR, H-infinity), and Lyapunov stability analysis.",
-        body: [
-          "The core specialism. In practice it means designing controllers that come with guarantees: Control Barrier Functions and their nonsmooth variants for safety, Lyapunov analysis for stability, and robust, adaptive and optimal methods for performance under uncertainty. It runs the full range from classical PID and LQR through to modern safety filters on real manipulators and mobile robots.",
-        ],
-        tags: ["CBFs", "MPC", "LQR", "Lyapunov", "Adaptive"],
-      },
-      {
-        id: "skill-robotics",
-        title: "Robotics",
-        recordType: "CAPABILITY",
-        summary:
-          "ROS and ROS 2, manipulation and mobile robots, multi-agent swarms and real-time perception, across KINOVA Gen3, Franka Emika, Quanser, SO-101 and SPOT.",
-        body: [
-          "Hands-on robotics across manipulators, mobile robots and multi-robot swarms. This covers ROS and ROS 2 stacks, real-time perception, and the work of bringing controllers from simulation onto physical hardware. Platforms worked with include KINOVA Gen3 and Franka Emika arms, Quanser equipment, the SO-101 servo arm and the SPOT quadruped.",
-        ],
-        tags: ["ROS2", "Manipulation", "Swarms", "Perception"],
-      },
-      {
-        id: "skill-optimization",
-        title: "Optimisation",
-        recordType: "CAPABILITY",
-        summary:
-          "Convex optimisation, MPC, second-order cone and quadratic programming, real-time solvers (cvxpy, ECOS and CLARABEL), and CasADi.",
-        body: [
-          "Optimisation is the engine under most of the control work. It means formulating controllers as convex programs, usually second-order cone or quadratic programs, and solving them fast enough to close the loop in real time. Tools in regular use include cvxpy with the ECOS and CLARABEL solvers, and CasADi for modelling and inverse kinematics.",
-        ],
-        tags: ["Convex", "SOCP", "QP", "CasADi"],
-      },
-      {
-        id: "skill-embedded",
-        title: "Embedded Systems",
-        recordType: "CAPABILITY",
-        summary:
-          "STM32, ESP32, ARM, Arduino and Raspberry Pi, FPGAs from Altera and Xilinx, the SystemVerilog, VHDL and Verilog HDLs, and real-time control on constrained hardware.",
-        body: [
-          "Comfortable taking control algorithms all the way down to the metal. This spans microcontrollers such as STM32, ESP32 and Arduino, single-board computers like the Raspberry Pi, and FPGA work on both Altera and Xilinx parts using SystemVerilog, VHDL and Verilog. The recurring theme is making real-time control behave on hardware with tight timing and resource limits.",
-        ],
-        tags: ["STM32", "FPGA", "SystemVerilog", "Real-time"],
-      },
-      {
-        id: "skill-ml",
-        title: "Machine Learning",
-        recordType: "CAPABILITY",
-        summary:
-          "Applied machine learning for perception and decision making, including computer vision (YOLOv8), fuzzy-logic systems and learning-augmented control.",
-        body: [
-          "Machine learning applied where it earns its place in a control or robotics system. That includes computer-vision pipelines built on YOLOv8 for detection and tracking, Interval Type-2 Fuzzy Logic Systems used inside adaptive controllers, and learning-augmented control where data helps cover the parts of a system that are hard to model.",
-        ],
-        tags: ["Computer vision", "YOLOv8", "Fuzzy logic"],
       },
     ],
   },

@@ -65,8 +65,8 @@ export const SM_DEFS =
 
 /** Inner SVG content (defs + constellation groups) for the #starmap svg. */
 export function renderStarmap(constellations: Constellation[]): string {
-  let out = SM_DEFS;
-  constellations.forEach((c, ci) => {
+  let inner = "";
+  constellations.forEach((c) => {
     const L = starmap[c.id];
     if (!L) return;
     let g = `<g class="sm-con" data-id="${esc(c.id)}" data-cx="${L.cx}" data-cy="${L.cy}" data-r="${L.reticleR}">`;
@@ -84,9 +84,9 @@ export function renderStarmap(constellations: Constellation[]): string {
       g += `<g class="sm-star" data-rid="${esc(c.stars[i].id)}" data-x="${L.cx + s.dx}" data-y="${L.cy + s.dy}" data-mag="${s.mag}">${star(L.cx + s.dx, L.cy + s.dy, s.mag)}</g>`;
     });
     g += `</g>`;
-    out += g;
+    inner += g;
   });
-  return out;
+  return SM_DEFS + `<g id="sm-viewport">${inner}</g>`;
 }
 
 /** Flat record map keyed by star id, for the Data Record overlay. */

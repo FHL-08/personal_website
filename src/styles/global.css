@@ -136,7 +136,8 @@ a:hover { text-decoration: underline; }
 
 .ship-rig { position: absolute; left: 58%; top: 44%; transform: translate(-50%,-50%); z-index: 2; }
 .ship { position: relative; width: min(30vw, 270px); transform: translateY(var(--bob)) rotate(var(--bobrot)); filter: drop-shadow(0 0 22px rgba(65,227,255,0.18)); }
-.ship-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.ship-svg { width: 100%; height: auto; display: block; overflow: visible; shape-rendering: geometricPrecision; }
+.ship-reticle svg { shape-rendering: geometricPrecision; }
 @keyframes drift { 0%,100% { transform: translateY(-5px) rotate(-0.5deg); } 50% { transform: translateY(5px) rotate(0.5deg); } }
 .thruster { transform-box: fill-box; transform-origin: center; animation: thrust 1.6s ease-in-out infinite; }
 @keyframes thrust { 0%,100% { opacity: 0.55; transform: scaleX(0.85); } 50% { opacity: 1; transform: scaleX(1.15); } }
@@ -151,6 +152,15 @@ a:hover { text-decoration: underline; }
 .beacon { position: absolute; left: 58%; top: 49%; transform: translate(var(--ox,0px), var(--oy,0px)) translate(calc(-100% - 40px), calc(-100% - 26px)) translateY(var(--bob)); width: min(38vw, 168px); z-index: 4; cursor: pointer; text-align: left;
   font-family: var(--font-mono); color: var(--text); padding: 0.8rem 1.1rem;
   box-shadow: 0 0 30px rgba(65,227,255,0.10); transition: box-shadow 0.25s; }
+/* Desktop: cards ride inside ship-rig, diagonally adjacent to ship reticle */
+.ship-rig .beacon.ship-hud-card,
+.ship-rig .telemetry.ship-hud-card { left: 0; top: 0; pointer-events: auto; box-sizing: border-box; }
+.ship-rig .beacon.ship-hud-card {
+  width: 168px; min-width: 168px;
+  transform: translate(var(--ox,0px), var(--oy,0px)) translate(var(--bec-dx, -200px), var(--bec-dy, -200px)) translate(-100%, -100%) translateY(var(--bob, 0px)) scale(var(--hud-card-inv, 1)); transform-origin: 100% 100%; }
+.ship-rig .telemetry.ship-hud-card {
+  width: 132px; min-width: 132px;
+  transform: translate(var(--ox,0px), var(--oy,0px)) translate(var(--tel-dx, 200px), var(--tel-dy, 80px)) translateY(var(--bob, 0px)) scale(var(--hud-card-inv, 1)); transform-origin: 0 0; }
 .beacon:hover, .beacon:focus-visible { box-shadow: 0 0 44px rgba(65,227,255,0.30); outline: none; }
 .beacon:hover::before, .beacon:focus-visible::before { filter: drop-shadow(0 0 6px rgba(65,227,255,0.7)); }
 .beacon-line { display: block; }
@@ -211,8 +221,8 @@ a:hover { text-decoration: underline; }
 /* ============================================================
    Constellation star map
    ============================================================ */
-#starmap { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; overflow: visible;
-  transform-origin: 0 0; transition: transform 0.8s cubic-bezier(.22,.61,.36,1); }
+#starmap { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; overflow: visible; }
+#starmap, #starmap * { shape-rendering: geometricPrecision; }
 .sm-hit { fill: #000; fill-opacity: 0; pointer-events: all; cursor: pointer; }
 .sm-rr { transform-box: fill-box; transform-origin: center; animation: smspin 24s linear infinite; }
 .sm-rr.b { animation-duration: 16s; animation-direction: reverse; } .sm-rr.c { animation-duration: 34s; }
@@ -287,22 +297,25 @@ a:hover { text-decoration: underline; }
 .rec-media { margin-top: 1rem; height: 64px; border: 1px dashed var(--hud-line); display: flex; align-items: center; justify-content: center;
   color: var(--text-dim); font-size: 0.6rem; letter-spacing: 0.16em; }
 
+/* Mobile HUD command strip (built by scene.js when is-mob) */
+.mob-cmd { display: none; }
+
 /* mobile / no-hover fallback: hide the map, show the record cards */
 .sm-fallback { display: none; }
 .scene.sm-off #starmap, .scene.sm-off #sm-fx, .scene.sm-off #sm-cursor { display: none; }
 @media (hover: none), (max-width: 820px) {
   #sm-cursor { display: none !important; }
   .world { touch-action: none; }
-  /* connector leads are hidden on touch; the HUD cards become fixed corner buttons */
+  /* connector leads are hidden on touch; HUD commands stack top-left under status line */
   .scene-links { display: none !important; }
-  .beacon.mob-btn, .telemetry.mob-btn { position: absolute; z-index: 30; bottom: 18px; top: auto; left: auto;
-    transform: none !important; width: 134px; box-sizing: border-box; text-align: center; padding: 0.55rem 0.6rem; }
-  .beacon.mob-btn { left: 16px; }
-  .telemetry.mob-btn { right: 16px; }
-  .beacon.mob-btn .code, .beacon.mob-btn .role, .beacon.mob-btn .status, .beacon.mob-btn .beacon-hint { display: none; }
-  .beacon.mob-btn .name { margin: 0; font-size: 0.78rem; }
-  .telemetry.mob-btn .row, .telemetry.mob-btn .hashbar, .telemetry.mob-btn .mlog-hint { display: none; }
-  .telemetry.mob-btn h5 { margin: 0; border: 0; padding: 0; font-size: 0.78rem; }
+  html.is-mob .mob-cmd { display: flex; flex-direction: column; gap: 7px; position: absolute; z-index: 30;
+    top: 3.85rem; left: 14px; width: min(148px, 40vw); }
+  html.is-mob .mob-cmd .beacon.mob-btn, html.is-mob .mob-cmd .telemetry.mob-btn { position: relative; top: auto; left: auto; bottom: auto; right: auto;
+    transform: none !important; width: 100%; box-sizing: border-box; text-align: center; padding: 0.5rem 0.55rem; }
+  html.is-mob .mob-cmd .beacon.mob-btn .code, html.is-mob .mob-cmd .beacon.mob-btn .role, html.is-mob .mob-cmd .beacon.mob-btn .status, html.is-mob .mob-cmd .beacon.mob-btn .beacon-hint { display: none; }
+  html.is-mob .mob-cmd .beacon.mob-btn .name { margin: 0; font-size: 0.76rem; }
+  html.is-mob .mob-cmd .telemetry.mob-btn .row, html.is-mob .mob-cmd .telemetry.mob-btn .hashbar, html.is-mob .mob-cmd .telemetry.mob-btn .mlog-hint { display: none; }
+  html.is-mob .mob-cmd .telemetry.mob-btn h5 { margin: 0; border: 0; padding: 0; font-size: 0.76rem; }
   /* record / dossier / mission log open as centred modals, sized for a phone */
   #record-overlay { justify-content: center; padding: 0; }
   .record-panel { width: min(580px, 94%); max-height: 88%; padding: 22px 20px; }
@@ -331,7 +344,6 @@ a:hover { text-decoration: underline; }
 }
 
 /* ===== Mobile: ship + crystal stay in-world; JS sizes them in viewBox space ===== */
-.scene.sm-mob #crystal-name .t { font-size: 0.62rem; }
 @media (prefers-reduced-motion: reduce) {
   #starmap { transition: none; }
   .sm-rr, #sm-cursor .r1, #sm-cursor .r2 { animation: none !important; }
@@ -391,7 +403,6 @@ a:hover { text-decoration: underline; }
 /* ===== Free pan/zoom map; no scroll archive on desktop ===== */
 main.wrap { display: none; }
 #starmap { transition: none; }
-#starmap.sm-anim { transition: transform 0.8s cubic-bezier(.22,.61,.36,1); }
 .scene { cursor: grab; }
 .scene.sm-grab { cursor: grabbing; }
 .scene.sm-focus { cursor: none; }
@@ -401,8 +412,16 @@ main.wrap { display: none; }
 }
 
 /* ===== World layer: ship + cockpit pan/zoom together with the map ===== */
-.world { position: absolute; inset: 0; transform-origin: 0 0; z-index: 1; will-change: transform; }
-.world.sm-anim { transition: transform 0.8s cubic-bezier(.22,.61,.36,1); }
+.world { position: absolute; inset: 0; z-index: 1; }
+#world .reticle, #world .crystal-rig, #world .ship-rig {
+  position: absolute; z-index: 3; pointer-events: none;
+  transform-origin: 0 0;
+}
+#world .reticle { transform: translate(-50%, -50%); transform-origin: center center; }
+#world .crystal-hit { pointer-events: auto; }
+#world .ship-rig { z-index: 4; }
+.ship-rig .beacon.ship-hud-card,
+.ship-rig .telemetry.ship-hud-card { z-index: 5; }
 
 /* ===== Contain the scan sweep on record / mlog cards ===== */
 .record-panel { display: flex; flex-direction: column; overflow: hidden; }
@@ -625,11 +644,14 @@ main.wrap { display: none; }
 .crystal { position: absolute; left: 0; top: 0; transform: translate(-50%,-50%); width: min(12vw, 92px);
   cursor: pointer; pointer-events: none; border: 0; background: none; padding: 0; z-index: 2; }
 .crystal svg { width: 100%; height: auto; display: block; overflow: visible;
-  filter: drop-shadow(0 0 7px rgba(34,214,140,0.5)); }
+  filter: drop-shadow(0 0 7px rgba(34,214,140,0.5)); shape-rendering: geometricPrecision; }
 .crystal-hit { position: absolute; left: 0; top: 0; transform: translate(-50%,-50%); width: min(31vw, 304px); height: min(31vw, 304px);
   border-radius: 50%; background: none; border: 0; padding: 0; cursor: pointer; pointer-events: auto; z-index: 3; }
-.crystal-name { position: absolute; left: 58%; top: 44%; transform: translate(-50%, 132px); pointer-events: none; white-space: nowrap;
-  opacity: 0; transition: opacity 0.25s; z-index: 9; text-align: center; background: rgba(8,26,20,0.92); padding: 8px 15px; }
+.crystal-rig .crystal-name,
+.crystal-rig .crystal-hud-card { position: absolute; left: 0; top: 0;
+  transform: translate(-50%, var(--crystal-lbl-d, 50px)) scale(var(--hud-card-inv, 1)); transform-origin: 50% 0;
+  pointer-events: none; white-space: nowrap; opacity: 0; transition: opacity 0.25s; z-index: 9; text-align: center;
+  background: rgba(8,26,20,0.92); padding: 8px 15px; }
 .crystal-name.show { opacity: 1; }
 .crystal-name::before { content: ""; position: absolute; inset: 0; pointer-events: none;
   background: linear-gradient(#4ee3a8,#4ee3a8) 0 0/14px 2px no-repeat, linear-gradient(#4ee3a8,#4ee3a8) 0 0/2px 14px no-repeat,
@@ -686,24 +708,30 @@ main.wrap { display: none; }
   html, body { overflow: hidden; height: 100%; }
   main.wrap { display: none !important; }                 /* archive/mission-log list -> use the in-scene buttons */
   .scene { height: 100dvh; min-height: 100dvh; }
-  /* HUD corner buttons signal they are tappable: gentle pulse + grow on press */
-  .mob-btn { animation: mobpulse 2.4s ease-in-out infinite; transition: transform 0.14s ease, filter 0.14s ease; }
-  .mob-btn:active { transform: scale(1.1) !important; filter: drop-shadow(0 0 13px rgba(120,224,255,0.9)) !important; }
-  .mob-btn:active .name, .mob-btn:active h5 { color: #eafdff; text-shadow: 0 0 10px rgba(120,224,255,0.95); }
+  /* HUD command strip — softer pulse than map chrome */
+  html.is-mob .mob-cmd .mob-btn { animation: mobpulse-subtle 3.4s ease-in-out infinite; transition: transform 0.14s ease, filter 0.14s ease; }
+  html.is-mob .mob-cmd .mob-btn:active { transform: scale(1.04) !important; filter: drop-shadow(0 0 10px rgba(120,224,255,0.85)) !important; }
+  html.is-mob .mob-cmd .mob-btn:active .name, html.is-mob .mob-cmd .mob-btn:active h5 { color: #eafdff; text-shadow: 0 0 8px rgba(120,224,255,0.85); }
   /* modal cards scroll internally so the top is always reachable */
   .profile-overlay, #missionlog-overlay { align-items: flex-start !important; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 4vh 0 6vh !important; }
   .dossier, .mlog-card { max-height: none !important; overflow: visible !important; }
   #record-overlay { align-items: center !important; }
 }
 @keyframes mobpulse { 0%, 100% { filter: drop-shadow(0 0 3px rgba(65,227,255,0.4)); } 50% { filter: drop-shadow(0 0 10px rgba(65,227,255,0.7)); } }
+@keyframes mobpulse-subtle { 0%, 100% { filter: drop-shadow(0 0 2px rgba(65,227,255,0.22)); } 50% { filter: drop-shadow(0 0 7px rgba(65,227,255,0.42)); } }
 
 /* ===== mobile: flatten the ship to pure 2D (no 3D/perspective wobble at high world-scale) ===== */
 .scene.sm-mob .ship-rig, .scene.sm-mob .crystal-rig { perspective: none; }
 .scene.sm-mob .ship { transform-style: flat;
   transform: translate(-50%,-50%) translate(var(--ox,0px), var(--oyb,0px)) rotate(var(--shiprot,90deg)); }
-/* off-duty label scales with the crystal (font-size set in px by JS; box + text use em) */
-.scene.sm-mob .crystal-name { padding: 0.4em 0.85em; }
+/* mobile: off-duty card scales with zoom like constellation labels (font-size set in JS) */
+.scene.sm-mob .crystal-name { padding: 0.34em 0.92em; }
 .scene.sm-mob .crystal-name .t { font-size: 1em; }
+.scene.sm-mob .crystal-name::before {
+  background: linear-gradient(#4ee3a8,#4ee3a8) 0 0/0.6em 0.14em no-repeat, linear-gradient(#4ee3a8,#4ee3a8) 0 0/0.14em 0.6em no-repeat,
+    linear-gradient(#4ee3a8,#4ee3a8) 100% 0/0.6em 0.14em no-repeat, linear-gradient(#4ee3a8,#4ee3a8) 100% 0/0.14em 0.6em no-repeat,
+    linear-gradient(#4ee3a8,#4ee3a8) 0 100%/0.6em 0.14em no-repeat, linear-gradient(#4ee3a8,#4ee3a8) 0 100%/0.14em 0.6em no-repeat,
+    linear-gradient(#4ee3a8,#4ee3a8) 100% 100%/0.6em 0.14em no-repeat, linear-gradient(#4ee3a8,#4ee3a8) 100% 100%/0.14em 0.6em no-repeat; }
 
 /* ============================================================
    Mobile interaction overhaul (phone + tablet) — scoped to .scene.sm-mob.
@@ -762,22 +790,12 @@ main.wrap { display: none; }
 @media (prefers-reduced-motion: reduce) { .con-label, .con-label::after { animation: none !important; } }
 
 
-/* Card corner brackets sized in em so they scale with the card under the map zoom. */
-.scene.sm-mob .crystal-name::before {
-  background: linear-gradient(#4ee3a8,#4ee3a8) 0 0/0.6em 0.14em no-repeat, linear-gradient(#4ee3a8,#4ee3a8) 0 0/0.14em 0.6em no-repeat,
-    linear-gradient(#4ee3a8,#4ee3a8) 100% 0/0.6em 0.14em no-repeat, linear-gradient(#4ee3a8,#4ee3a8) 100% 0/0.14em 0.6em no-repeat,
-    linear-gradient(#4ee3a8,#4ee3a8) 0 100%/0.6em 0.14em no-repeat, linear-gradient(#4ee3a8,#4ee3a8) 0 100%/0.14em 0.6em no-repeat,
-    linear-gradient(#4ee3a8,#4ee3a8) 100% 100%/0.6em 0.14em no-repeat, linear-gradient(#4ee3a8,#4ee3a8) 100% 100%/0.14em 0.6em no-repeat; }
-.scene.sm-mob .crystal-name { padding: 0.4em 1em; }
-
-
-/* Phone: scale the off-duty card text with the card font-size (overrides the fixed tablet size). */
-.scene.sm-phone #crystal-name .t { font-size: 1em; }
-
 /* ============================================================
    Mobile layout keyed off the JS-set html.is-mob class (not just media queries),
    so it holds in every orientation regardless of viewport width or hover support.
    ============================================================ */
+html.is-mob .crystal-hit { pointer-events: none; }
+
 html.is-mob { overflow: hidden; height: 100%; }
 html.is-mob body { overflow: hidden; height: 100%; }
 html.is-mob main.wrap { display: none !important; }
@@ -787,18 +805,18 @@ html.is-mob .scene-links { display: none !important; }
 html.is-mob .world { touch-action: none; }
 html.is-mob .sweep { display: none !important; }
 
-/* HUD cards become fixed bottom-corner buttons */
-html.is-mob .beacon.mob-btn, html.is-mob .telemetry.mob-btn { position: absolute; z-index: 30; bottom: 18px; top: auto; left: auto;
-  transform: none !important; width: 134px; box-sizing: border-box; text-align: center; padding: 0.55rem 0.6rem;
-  animation: mobpulse 2.4s ease-in-out infinite; transition: transform 0.14s ease, filter 0.14s ease; }
-html.is-mob .beacon.mob-btn { left: 16px; }
-html.is-mob .telemetry.mob-btn { right: 16px; }
-html.is-mob .beacon.mob-btn .code, html.is-mob .beacon.mob-btn .role, html.is-mob .beacon.mob-btn .status, html.is-mob .beacon.mob-btn .beacon-hint { display: none; }
-html.is-mob .beacon.mob-btn .name { margin: 0; font-size: 0.78rem; }
-html.is-mob .telemetry.mob-btn .row, html.is-mob .telemetry.mob-btn .hashbar, html.is-mob .telemetry.mob-btn .mlog-hint { display: none; }
-html.is-mob .telemetry.mob-btn h5 { margin: 0; border: 0; padding: 0; font-size: 0.78rem; }
-html.is-mob .mob-btn:active { transform: scale(1.1) !important; filter: drop-shadow(0 0 13px rgba(120,224,255,0.9)) !important; }
-html.is-mob .mob-btn:active .name, html.is-mob .mob-btn:active h5 { color: #eafdff; text-shadow: 0 0 10px rgba(120,224,255,0.95); }
+/* HUD command strip — top-left column under status line (JS builds #mob-cmd) */
+html.is-mob .mob-cmd { display: flex; flex-direction: column; gap: 7px; position: absolute; z-index: 30;
+  top: 3.85rem; left: 14px; width: min(148px, 40vw); }
+html.is-mob .mob-cmd .beacon.mob-btn, html.is-mob .mob-cmd .telemetry.mob-btn { position: relative; top: auto; left: auto; bottom: auto; right: auto;
+  transform: none !important; width: 100%; box-sizing: border-box; text-align: center; padding: 0.5rem 0.55rem;
+  animation: mobpulse-subtle 3.4s ease-in-out infinite; transition: transform 0.14s ease, filter 0.14s ease; }
+html.is-mob .mob-cmd .beacon.mob-btn .code, html.is-mob .mob-cmd .beacon.mob-btn .role, html.is-mob .mob-cmd .beacon.mob-btn .status, html.is-mob .mob-cmd .beacon.mob-btn .beacon-hint { display: none; }
+html.is-mob .mob-cmd .beacon.mob-btn .name { margin: 0; font-size: 0.76rem; }
+html.is-mob .mob-cmd .telemetry.mob-btn .row, html.is-mob .mob-cmd .telemetry.mob-btn .hashbar, html.is-mob .mob-cmd .telemetry.mob-btn .mlog-hint { display: none; }
+html.is-mob .mob-cmd .telemetry.mob-btn h5 { margin: 0; border: 0; padding: 0; font-size: 0.76rem; }
+html.is-mob .mob-cmd .mob-btn:active { transform: scale(1.04) !important; filter: drop-shadow(0 0 10px rgba(120,224,255,0.85)) !important; }
+html.is-mob .mob-cmd .mob-btn:active .name, html.is-mob .mob-cmd .mob-btn:active h5 { color: #eafdff; text-shadow: 0 0 8px rgba(120,224,255,0.85); }
 
 /* records / dossier / mission log open as centred modals */
 html.is-mob #record-overlay { justify-content: center !important; align-items: center !important; padding: 0 !important; }

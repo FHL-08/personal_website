@@ -42,15 +42,6 @@ export const starmap: Record<string, ConLayout> = {
     ],
     edges: [[0, 1], [1, 2], [0, 3], [0, 4], [4, 5]],
   },
-  // CAPABILITY (skills) — Cassiopeia "W", bottom centre
-  skills: {
-    cx: 1285, cy: 1525, depth: 0.8, reticleR: 124,
-    stars: [
-      { dx: -94, dy: 10, mag: 1.6 }, { dx: -47, dy: -26, mag: 1.4 }, { dx: 0, dy: 12, mag: 1.7 },
-      { dx: 47, dy: -26, mag: 1.4 }, { dx: 94, dy: 10, mag: 1.6 },
-    ],
-    edges: [[0, 1], [1, 2], [2, 3], [3, 4]],
-  },
   // COMMENDATIONS (awards) — Big Dipper, lower-right
   awards: {
     cx: 2330, cy: 1295, depth: 0.88, reticleR: 132,

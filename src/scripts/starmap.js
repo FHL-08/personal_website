@@ -3,16 +3,23 @@
    independent of any in-flight CSS transform. Desktop: hover -> focus -> star.
    Touch: permanent labels, tap to dive, glowing per-star reticles, press = glow,
    release = click (no hover emulation). */
+import { isMobileView } from "../lib/mobile.js";
+
 (function () {
   function ready(fn){ if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",fn); else fn(); }
   ready(function () {
     var scene=document.getElementById("scene"), sm=document.getElementById("starmap"), world=document.getElementById("world")||document.getElementById("starmap");
     if(!scene||!sm) return;
-    var MOB = /[?&]view=mobile/.test(location.search) || (window.matchMedia && (window.matchMedia("(pointer: coarse)").matches || window.matchMedia("(hover: none)").matches));
+    var MOB = isMobileView();
     function isPhone(){ return MOB && (Math.min(window.innerWidth||9999, window.innerHeight||9999) <= 540); }
     var PHONE = isPhone();
     var ZMIN = MOB ? 0.7 : 0.4, ZMAX = MOB ? 6 : 2.6;
-    if(MOB) scene.classList.add("sm-mob");
+    if(MOB) {
+      scene.classList.add("sm-mob");
+      document.documentElement.classList.add("is-mob");
+    }
+
+    var smViewport=sm.querySelector("#sm-viewport");
 
     var fx=document.getElementById("sm-fx"), cursor=document.getElementById("sm-cursor"),
         conName=document.getElementById("con-name"), starName=document.getElementById("star-name"),
@@ -45,7 +52,43 @@
       return { W:R.width, H:R.height, s:s, ox:(R.width-VBW*s)/2, oy:(R.height-VBH*s)/2 }; }
     function vb(vx,vy,m){ return { x:m.ox+vx*m.s, y:m.oy+(vy-VBMINY)*m.s }; } // identity screen pos
     function cur2(p){ return { x:T.tx+T.s*p.x, y:T.ty+T.s*p.y }; }         // apply current transform
-    function setT(tx,ty,s){ T.tx=tx; T.ty=ty; T.s=s; world.style.transform="translate("+tx+"px,"+ty+"px) scale("+s+")"; window.__smT={tx:tx,ty:ty,s:s}; }
+
+    /** Pan/zoom via SVG <g> transform — stays vector-crisp (CSS scale on a wrapper blurs). */
+    function applyGTransform(){
+      if(!smViewport) return false;
+      var m=metrics(), gs=T.s;
+      var gtx=(T.tx+(gs-1)*m.ox)/m.s;
+      var gty=(T.ty+(gs-1)*m.oy-(gs-1)*VBMINY*m.s)/m.s;
+      smViewport.setAttribute("transform","translate("+gtx.toFixed(3)+" "+gty.toFixed(3)+") scale("+gs.toFixed(5)+")");
+      if(world) world.style.transform="";
+      return true;
+    }
+    function applyTransform(){
+      if(!applyGTransform()&&world) world.style.transform="translate("+T.tx+"px,"+T.ty+"px) scale("+T.s+")";
+      window.__smpan={x:T.tx,y:T.ty}; window.__smT={tx:T.tx,ty:T.ty,s:T.s};
+      if(conLabels&&mode==="map") placeConLabels();
+      if(typeof window.__placeFgInWorld==="function") window.__placeFgInWorld();
+      updateHud();
+      if(typeof window.__drawLinks==="function") window.__drawLinks();
+      if(mode==="map"&&hovCon&&hovCon.g.classList.contains("on")) showConName(hovCon);
+    }
+    var tweenRaf=0;
+    function tweenTo(tx,ty,s,ms){
+      cancelAnimationFrame(tweenRaf);
+      var t0=performance.now(), sx=T.tx, sy=T.ty, ss=T.s;
+      function step(now){
+        var u=Math.min(1,(now-t0)/ms), e=1-Math.pow(1-u,3);
+        T.tx=sx+(tx-sx)*e; T.ty=sy+(ty-sy)*e; T.s=ss+(s-ss)*e;
+        applyTransform();
+        if(u<1) tweenRaf=requestAnimationFrame(step);
+        else { T.tx=tx; T.ty=ty; T.s=s; applyTransform(); }
+      }
+      tweenRaf=requestAnimationFrame(step);
+    }
+    function setT(tx,ty,s){
+      if(world&&world.classList.contains("sm-anim")) tweenTo(tx,ty,s,800);
+      else { T.tx=tx; T.ty=ty; T.s=s; applyTransform(); }
+    }
     function defaultT(){ var m=metrics();
       if(MOB){ var a=vb(1472,639,m), s=Math.max(0.9,Math.min(3.6, 0.42*Math.min(m.W,m.H)/(400*m.s)));
         if(PHONE) s=Math.min(ZMAX, s*1.35);
@@ -65,8 +108,8 @@
         c.labelEl=d; conLabels.appendChild(d); });
       world.appendChild(conLabels); }
     function placeConLabels(){ if(!conLabels) return; var m=metrics();
-      cons.forEach(function(c){ if(!c.labelEl) return; var p=vb(c.cx, c.cy + c.r + 26, m);
-        c.labelEl.style.left=p.x.toFixed(1)+"px"; c.labelEl.style.top=p.y.toFixed(1)+"px"; c.labelEl.style.fontSize=(20*m.s).toFixed(2)+"px"; }); }
+      cons.forEach(function(c){ if(!c.labelEl) return; var p=cur2(vb(c.cx, c.cy + c.r + 26, m));
+        c.labelEl.style.left=p.x.toFixed(1)+"px"; c.labelEl.style.top=p.y.toFixed(1)+"px"; c.labelEl.style.fontSize=(20*m.s*T.s).toFixed(2)+"px"; }); }
     function showConLabels(on){ if(conLabels) conLabels.classList.toggle("show", !!on); }
 
     /* ---------- MAP (desktop hover label) ---------- */
@@ -212,11 +255,15 @@
     var panRaf=0, busyT=0;
     function updateHud(){ var hr=document.querySelector(".scene-hud .hud-tr"); if(!hr)return;
       hr.textContent = (mode==="map") ? "SECTOR MAP // X "+Math.round(-T.tx)+"  Y "+Math.round(-T.ty)+"  ZOOM "+T.s.toFixed(2)+"x" : "SECTOR MAP // SELECT A CONSTELLATION"; }
-    function writeT(){ panRaf=0; world.style.transform="translate("+T.tx+"px,"+T.ty+"px) scale("+T.s+")"; window.__smpan={x:T.tx,y:T.ty}; window.__smT={tx:T.tx,ty:T.ty,s:T.s}; updateHud(); if(mode==="map"&&hovCon&&hovCon.g.classList.contains("on")) showConName(hovCon); }
+    function writeT(){ panRaf=0; applyTransform(); }
     function schedule(){ if(!panRaf) panRaf=requestAnimationFrame(writeT); }
     function busy(){ scene.classList.add("sm-busy"); clearTimeout(busyT); busyT=setTimeout(function(){ scene.classList.remove("sm-busy"); },220); }
+    function isHudTarget(el) {
+      return el && el.closest && el.closest(".beacon,.telemetry,.mob-btn,.crystal,.crystal-hit,.ship-hud-card,button");
+    }
     function applyPan(){ clampT(); schedule(); }
     scene.addEventListener("pointerdown",function(e){
+      if(isHudTarget(e.target)) return;
       var R=scene.getBoundingClientRect(), px=e.clientX-R.left, py=e.clientY-R.top; held=false;
       if(mode==="map"){
         pts[e.pointerId]={x:e.clientX,y:e.clientY}; var n=nPts();
@@ -237,7 +284,7 @@
         var nd=Math.hypot(a.x-b.x,a.y-b.y), cx=(a.x+b.x)/2-R.left, cy=(a.y+b.y)/2-R.top;
         var ns=Math.max(ZMIN,Math.min(ZMAX, pinch.s*(nd/pinch.d))), k=ns/pinch.s;
         T.s=ns; T.tx=cx-k*((pinch.cx-R.left)-pinch.tx); T.ty=cy-k*((pinch.cy-R.top)-pinch.ty);
-        world.classList.remove("sm-anim"); clampT(); schedule(); busy(); return; }
+        world.classList.remove("sm-anim"); clampT(); applyTransform(); busy(); return; }
       if(drag){ var dx=e.clientX-drag.x, dy=e.clientY-drag.y;
         if(!dragged&&Math.hypot(dx,dy)>5){ dragged=true; clearHold(); world.classList.remove("sm-anim"); scene.classList.add("sm-grab");
           if(MOB&&pressCon){ pressCon.g.classList.remove("pressing"); pressCon=null; }
@@ -247,11 +294,12 @@
         if(MOB&&pressStar){ pressStar.el.classList.remove("held"); pressStar=null; } }
     });
     function endPtr(e){
+      if(isHudTarget(e.target)){ tapStart=null; if(pts[e.pointerId]) delete pts[e.pointerId]; if(nPts()<2) pinch=null; if(nPts()===0){ drag=null; scene.classList.remove("sm-grab"); } clearHold(); downPt=null; return; }
       var R=scene.getBoundingClientRect(), ux=e.clientX-R.left, uy=e.clientY-R.top;
       var isTap = MOB && tapStart && nPts()===1 && Math.hypot(ux-tapStart.x, uy-tapStart.y)<16;
       if(isTap){
         if(mode==="map"){
-          var mm=metrics(), cc=cur2(vb(1472,639,mm)), rr=240*mm.s*T.s;
+          var mm=metrics(), cc=cur2(vb(1472,639,mm)), rr=(MOB?155*1.5:155)*mm.s*T.s;
           if(Math.hypot(tapStart.x-cc.x, tapStart.y-cc.y)<=rr){ if(window.__openOffDuty) window.__openOffDuty(); }
           else { var con=pressCon||nearestCon(tapStart.x, tapStart.y); if(con) focusCon(con); }
         } else if(mode==="focus"){ var si=pressStar||starAt(tapStart.x, tapStart.y); if(si) focusStar(si); else toMap(); }
@@ -265,7 +313,7 @@
     scene.addEventListener("wheel",function(e){ if(mode!=="map")return; e.preventDefault();
       var R=scene.getBoundingClientRect(), mx=e.clientX-R.left, my=e.clientY-R.top;
       var f=e.deltaY<0?1.12:0.89, ns=Math.max(ZMIN,Math.min(ZMAX,T.s*f)), k=ns/T.s;
-      T.tx=mx-(mx-T.tx)*k; T.ty=my-(my-T.ty)*k; T.s=ns; world.classList.remove("sm-anim"); clampT(); schedule(); busy(); },{passive:false});
+      T.tx=mx-(mx-T.tx)*k; T.ty=my-(my-T.ty)*k; T.s=ns; world.classList.remove("sm-anim"); clampT(); applyTransform(); busy(); },{passive:false});
     function openLightbox(i){ if(!curMedia.length||!ml)return; mlIndex=(i+curMedia.length)%curMedia.length; renderLightbox(); ml.classList.add("open"); }
     function renderLightbox(){ var m=curMedia[mlIndex]; if(!m||!mlFrame)return;
       var inner;
@@ -293,5 +341,5 @@
     if(MOB) showConLabels(true);
     setTimeout(function(){ if(mode==="map"){ defaultT(); if(MOB) showConLabels(true); } }, 220);
     setTimeout(function(){ if(mode==="map"){ defaultT(); if(MOB) showConLabels(true); } }, 700);
-    var rzT=0; window.addEventListener("resize", function(){ clearTimeout(rzT); rzT=setTimeout(function(){ PHONE=isPhone(); if(mode==="map"){ defaultT(); if(MOB){ placeConLabels(); showConLabels(true); } } }, 150); });
+    var rzT=0; window.addEventListener("resize", function(){ clearTimeout(rzT); rzT=setTimeout(function(){ PHONE=isPhone(); if(typeof window.__placeFgInWorld==="function") window.__placeFgInWorld(); if(mode==="map"){ defaultT(); if(MOB){ placeConLabels(); showConLabels(true); } } }, 150); });
   });})();
