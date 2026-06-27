@@ -216,7 +216,7 @@ import { isMobileView } from "../lib/mobile.js";
       if(r.media&&r.media.length){ curMedia=r.media;
         var th=r.media.map(function(m,i){
           var inner, cls="media-thumb";
-          if(m.type==="video"){ cls+=" is-video"; inner='<video src="'+esc(m.previewSrc||m.src)+'" muted loop autoplay playsinline poster="'+esc(m.poster||"")+'"></video><span class="media-badge"><svg class="icon icon-fill" viewBox="0 0 24 24" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg></span>'; }
+          if(m.type==="video"){ cls+=" is-video"; inner='<video src="'+esc(m.previewSrc||m.src)+'" muted playsinline poster="'+esc(m.poster||"")+'"'+(MOB?' preload="metadata"':' loop autoplay')+'></video><span class="media-badge"><svg class="icon icon-fill" viewBox="0 0 24 24" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg></span>'; }
           else if(m.type==="pdf"){ cls+=" is-pdf"; inner='<img src="'+esc(m.thumb||"")+'" alt="'+esc(m.alt||"")+'" loading="lazy" decoding="async"/><span class="media-badge"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></span>'; }
           else { inner='<img src="'+esc(m.thumb||m.src)+'" alt="'+esc(m.alt||"")+'" loading="lazy" decoding="async"/>'; }
           return '<button class="'+cls+'" type="button" data-mi="'+i+'">'+inner+'<span class="holo-scan"></span></button>';
@@ -260,7 +260,7 @@ import { isMobileView } from "../lib/mobile.js";
     function busy(){ scene.classList.add("sm-busy"); clearTimeout(busyT); busyT=setTimeout(function(){ scene.classList.remove("sm-busy"); },220); }
 
     /* Mobile: CSS spin on SVG reticles breaks inside panned/zoomed map — drive via transform attr. */
-    var smSpinRaf = 0, SM_SPIN_RATE = 2; /* 2× faster than desktop CSS equivalents */
+    var SM_SPIN_RATE = 2; /* 2× faster than desktop CSS equivalents */
     function smSpinPeriod(el, def, rev, held) {
       var p;
       if (held) p = el.classList.contains("rev") ? 1200 : 1800;
@@ -293,13 +293,7 @@ import { isMobileView } from "../lib/mobile.js";
         }
       }
     }
-    function smSpinLoop() {
-      smSpinRaf = requestAnimationFrame(function () {
-        spinMapReticles(performance.now());
-        smSpinLoop();
-      });
-    }
-    if (MOB) smSpinLoop();
+    if (MOB) window.__spinMapReticles = spinMapReticles;
     function isHudTarget(el) {
       if (!el || !el.closest) return false;
       if (MOB && el.closest && el.closest(".crystal-hit")) return false;

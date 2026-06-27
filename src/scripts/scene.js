@@ -139,10 +139,6 @@ import { isMobileView } from "../lib/mobile.js";
       scene.classList.add("sm-mob");
       document.documentElement.classList.add("is-mob");
       ensureFgInWorld();
-      /* iOS clips fixed canvas inside overflow:hidden — mount starfield on body. */
-      if (canvas && canvas.parentElement !== document.body) {
-        document.body.insertBefore(canvas, scene);
-      }
       var mobCmd = document.getElementById("mob-cmd");
       if (!mobCmd) {
         mobCmd = document.createElement("div");
@@ -168,18 +164,29 @@ import { isMobileView } from "../lib/mobile.js";
     /* ---------- Starfield (resolution-independent) ---------- */
     var canvas = document.getElementById("starfield");
     var ctx = canvas && canvas.getContext ? canvas.getContext("2d", { alpha: true }) : null;
-    var w = 0, h = 0, dpr = 1, stars = [], raf = 0, t = 0, mx = 0, my = 0, built = false;
+    var w = 0, h = 0, dpr = 1, stars = [], raf = 0, t = 0, mx = 0, my = 0, built = false, lastFrame = 0;
     var LAYERS = MOB
       ? [
-        { n: 36, sp: 0.012, min: 0.4, max: 0.9, alpha: 0.5 },
-        { n: 22, sp: 0.03, min: 0.7, max: 1.4, alpha: 0.7 },
-        { n: 10, sp: 0.06, min: 1.0, max: 2.0, alpha: 1.0 }
+        { n: 28, sp: 0.012, min: 0.5, max: 1.0, alpha: 0.55 },
+        { n: 16, sp: 0.03, min: 0.8, max: 1.5, alpha: 0.75 },
+        { n: 8, sp: 0.06, min: 1.1, max: 2.2, alpha: 1.0 }
       ]
       : [
         { n: 80, sp: 0.012, min: 0.4, max: 0.9, alpha: 0.5 },
         { n: 50, sp: 0.03, min: 0.7, max: 1.4, alpha: 0.7 },
         { n: 24, sp: 0.06, min: 1.0, max: 2.0, alpha: 1.0 }
       ];
+    function viewportSize() {
+      var vv = window.visualViewport;
+      if (MOB && vv) {
+        return { w: vv.width, h: vv.height, top: vv.offsetTop || 0, left: vv.offsetLeft || 0 };
+      }
+      return {
+        w: window.innerWidth || document.documentElement.clientWidth || 360,
+        h: window.innerHeight || document.documentElement.clientHeight || 640,
+        top: 0, left: 0
+      };
+    }
     function rnd(a, b) { return a + Math.random() * (b - a); }
     function build() {
       stars = [];
@@ -194,25 +201,31 @@ import { isMobileView } from "../lib/mobile.js";
     }
     function resize() {
       if (!canvas) return false;
-      var nw = canvas.clientWidth, nh = canvas.clientHeight;
-      /* iOS often reports 0×0 on canvas until layout settles — fall back to #scene, then viewport. */
+      var vp = viewportSize(), nw = vp.w, nh = vp.h;
+      /* Fall back to #scene when layout has not settled yet. */
       if ((nw < 2 || nh < 2) && scene) {
         var sr = scene.getBoundingClientRect();
         if (sr.width >= 2 && sr.height >= 2) { nw = sr.width; nh = sr.height; }
       }
-      if ((nw < 2 || nh < 2) && MOB) {
-        var vv = window.visualViewport;
-        nw = (vv && vv.width) || window.innerWidth || document.documentElement.clientWidth || 360;
-        nh = (vv && vv.height) || window.innerHeight || document.documentElement.clientHeight || 640;
-      }
       if (nw < 2 || nh < 2) return false;
-      dpr = Math.min(window.devicePixelRatio || 1, MOB ? 2 : 2);
+      dpr = Math.min(window.devicePixelRatio || 1, MOB ? 1.5 : 2);
+      var pw = Math.max(1, Math.round(nw * dpr)), ph = Math.max(1, Math.round(nh * dpr));
+      if (w === nw && h === nh && canvas.width === pw && canvas.height === ph) return true;
       w = nw; h = nh;
-      canvas.width = Math.max(1, Math.round(w * dpr));
-      canvas.height = Math.max(1, Math.round(h * dpr));
+      canvas.width = pw;
+      canvas.height = ph;
+      canvas.style.width = w + "px";
+      canvas.style.height = h + "px";
       if (MOB) {
-        canvas.style.width = w + "px";
-        canvas.style.height = h + "px";
+        canvas.style.top = vp.top + "px";
+        canvas.style.left = vp.left + "px";
+        canvas.style.right = "auto";
+        canvas.style.bottom = "auto";
+      } else {
+        canvas.style.top = "";
+        canvas.style.left = "";
+        canvas.style.right = "";
+        canvas.style.bottom = "";
       }
       if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       if (!built) build();
@@ -266,12 +279,15 @@ import { isMobileView } from "../lib/mobile.js";
         }
       }
     }
-    function step() {
+    function step(now) {
       raf = 0;
+      if (!lastFrame) lastFrame = now;
+      var dt = Math.min(48, now - lastFrame);
+      lastFrame = now;
       try {
         var canvasReady = w >= 2 && h >= 2;
         if (!canvasReady) canvasReady = resize();
-        t += 16;
+        t += dt;
         if (scene && !reduce) {
           var by = Math.sin(t / 1400) * 6;
           scene.style.setProperty("--bob", by.toFixed(2) + "px");
@@ -279,15 +295,19 @@ import { isMobileView } from "../lib/mobile.js";
           window.__bob = by;
         }
         updateOrbit();
-        if (MOB) spinHudReticles(performance.now());
-        drawLinks();
+        if (MOB) {
+          spinHudReticles(now);
+          if (typeof window.__spinMapReticles === "function") window.__spinMapReticles(now);
+        }
+        if (!MOB) drawLinks();
         updateCrystal();
         if (canvasReady) {
           if (!reduce) {
-            var fh = h || 1;
+            var fh = h || 1, fw = w || 1;
             for (var i = 0; i < stars.length; i++) {
               var s = stars[i];
-              s.fy += s.sp / fh; s.fx -= (s.sp * 0.5) / (w || 1);
+              s.fy += (s.sp * dt) / (1000 * fh);
+              s.fx -= (s.sp * 0.5 * dt) / (1000 * fw);
               if (s.fy > 1) s.fy = 0; if (s.fx < 0) s.fx = 1;
             }
             draw();
@@ -299,7 +319,7 @@ import { isMobileView } from "../lib/mobile.js";
       } catch (err) {
         console.error("scene step", err);
       }
-      raf = requestAnimationFrame(step);
+      if (!document.hidden) raf = requestAnimationFrame(step);
     }
 
     /* ---------- Connector leads (rooted at ship hull) ---------- */
@@ -334,16 +354,20 @@ import { isMobileView } from "../lib/mobile.js";
     var worldEl = document.getElementById("world");
     if (worldEl) worldEl.addEventListener("transitionend", drawLinks);
 
-    function onResize() { resize(); placeFgInWorld(); drawLinks(); }
+    function onResize() { resize(); placeFgInWorld(); if (!MOB) drawLinks(); }
     window.addEventListener("resize", onResize);
-    if (typeof ResizeObserver !== "undefined") {
+    if (typeof ResizeObserver !== "undefined" && scene) {
       var ro = new ResizeObserver(function () { resize(); });
-      if (canvas) ro.observe(canvas);
-      if (scene) ro.observe(scene);
+      ro.observe(scene);
     }
     if (MOB && window.visualViewport) {
-      window.visualViewport.addEventListener("resize", function () { resize(); });
-      window.visualViewport.addEventListener("scroll", function () { resize(); });
+      var vvT = 0;
+      function onVvChange() {
+        clearTimeout(vvT);
+        vvT = setTimeout(function () { resize(); placeFgInWorld(); }, 150);
+      }
+      window.visualViewport.addEventListener("resize", onVvChange);
+      window.visualViewport.addEventListener("scroll", onVvChange);
     }
     document.addEventListener("visibilitychange", function () {
       if (document.hidden) stopLoop();
@@ -492,6 +516,7 @@ import { isMobileView } from "../lib/mobile.js";
     function dot(u, v) { return u[0]*v[0] + u[1]*v[1] + u[2]*v[2]; }
     function norm(v) { var l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0]/l, v[1]/l, v[2]/l]; }
     var crystBack = null, crystFront = null, crystV = [], crystF = [], CRYST_SPIN = 2 * Math.PI / 16000;
+    var crystLast = 0, CRYST_MOB_MS = 66;
     var CL = norm([-0.35, -0.6, 0.72]);                          // light dir (view space)
     function buildCrystal() {
       var c = document.getElementById("crystal"); if (!c) return;
@@ -542,6 +567,11 @@ import { isMobileView } from "../lib/mobile.js";
     }
     function updateCrystal() {
       if (!crystFront) return;
+      if (MOB) {
+        var now = performance.now();
+        if (now - crystLast < CRYST_MOB_MS) return;
+        crystLast = now;
+      }
       var a = reduce ? 0.7 : t * CRYST_SPIN, ca = Math.cos(a), sa = Math.sin(a), f = 920;
       var RV = [];
       for (var i = 0; i < crystV.length; i++) {

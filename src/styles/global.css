@@ -114,8 +114,13 @@ a:hover { text-decoration: underline; }
 /* ============================================================
    Immersive HUD scene
    ============================================================ */
-.scene { position: relative; min-height: 100vh; min-height: 100svh; overflow: hidden; isolation: isolate; --bob: 0px; --bobrot: 0deg; }
-#starfield { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; pointer-events: none; }
+.scene { position: relative; z-index: 1; min-height: 100vh; min-height: 100svh; overflow: hidden; isolation: isolate; --bob: 0px; --bobrot: 0deg; }
+#starfield {
+  position: fixed; inset: 0; width: 100%; height: 100%;
+  height: 100dvh; min-height: -webkit-fill-available;
+  display: block; z-index: 0; pointer-events: none;
+  -webkit-transform: translateZ(0); transform: translateZ(0);
+}
 .scene-grid { position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background-image: linear-gradient(rgba(65,227,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(65,227,255,0.05) 1px, transparent 1px);
   background-size: 46px 46px;
@@ -824,14 +829,10 @@ html.is-mob .reticle .arc,
 html.is-mob .ship-reticle .arc { animation: none !important; }
 html.is-mob .sm-rr-spin,
 html.is-mob .sm-sret-spin { animation: none !important; }
-html.is-mob #starfield {
-  position: fixed; inset: 0; width: 100%; height: 100%;
-  height: 100dvh; min-height: -webkit-fill-available;
-  z-index: 0; -webkit-transform: translateZ(0); transform: translateZ(0);
-}
-html.is-mob .scene { position: relative; z-index: 1; }
-
 html.is-mob { overflow: hidden; height: 100%; }
+html.is-mob .fx-grain { display: none; }
+html.is-mob .con-label,
+html.is-mob .con-label::after { animation: none !important; }
 html.is-mob body { overflow: hidden; height: 100%; }
 html.is-mob main.wrap { display: none !important; }
 html.is-mob .scene { height: 100dvh; min-height: 100dvh; }

@@ -39,7 +39,6 @@ const SHIP = `<svg class="ship-svg" viewBox="0 0 300 140" xmlns="http://www.w3.o
 const SHIPRET = RETICLE;
 const scene = () => `
   <section class="scene" id="scene">
-    <canvas id="starfield"></canvas>
     <div class="scene-grid"></div>
     <div class="world" id="world">
     <svg id="starmap" viewBox="0 -170 2400 1840" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${renderStarmap(constellations)}</svg>
@@ -98,6 +97,7 @@ const html = `<!doctype html>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/augmented-ui@2.0.0/augmented-ui.min.css"/>
 <style>${tokens}\n${global}</style>
 </head><body>
+<canvas id="starfield" aria-hidden="true"></canvas>
 <div class="boot-veil" aria-hidden="true"></div>
 <div class="fx-vignette" aria-hidden="true"></div>
 <div class="fx-grain" aria-hidden="true"></div>
