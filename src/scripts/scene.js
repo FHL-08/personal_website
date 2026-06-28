@@ -9,9 +9,11 @@ import { isMobileView } from "../lib/mobile.js";
   }
 
   ready(function () {
-    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     var scene = document.getElementById("scene");
     var MOB = isMobileView();
+    /* Core HUD motion (starfield, crystal spin, boot veil) stays on for mobile even when iOS Reduce Motion is on. */
+    var hudAnim = MOB || !reduceMotion;
     window.__openOffDuty = function () {};
     /* viewBox units — ~15% larger than typical constellation reticles (R≈132) */
     var RETICLE_R_VB = 155, CRYSTAL_W_VB = 50, SHIP_W_VB = 100, SHIP_RET_D_VB = 135, ORBIT_VB = 140;
@@ -286,7 +288,7 @@ import { isMobileView } from "../lib/mobile.js";
       clearCanvas();
       for (var i = 0; i < stars.length; i++) {
         var s = stars[i];
-        var tw = reduce ? 1 : (0.6 + 0.4 * Math.sin(t * 0.002 + s.tw));
+        var tw = hudAnim ? (0.6 + 0.4 * Math.sin(t * 0.002 + s.tw)) : 1;
         var pan = window.__smpan || { x: 0, y: 0 };
         var px = s.fx * w + mx * s.d * 4 + pan.x * 0.03 * s.d, py = s.fy * h + my * s.d * 4 + pan.y * 0.03 * s.d;
         var rad = Math.max(MOB ? 0.85 : 0.4, s.r);
@@ -318,7 +320,7 @@ import { isMobileView } from "../lib/mobile.js";
     }
     function tryDismissBoot(canvasReady) {
       if (bootDone) return;
-      if (reduce) { dismissBootVeil(); return; }
+      if (reduceMotion && !MOB) { dismissBootVeil(); return; }
       if (performance.now() - bootAt < 520) return;
       if (MOB && !document.documentElement.classList.contains("is-mob")) return;
       if (canvas && !canvasReady) return;
@@ -381,7 +383,7 @@ import { isMobileView } from "../lib/mobile.js";
         var bgActive = !overlaysOpen();
         var mobHeavy = !MOB || (now - mobHeavyLast >= MOB_HEAVY_MS);
         var hudActive = !MOB || bud.mode === "map";
-        if (scene && !reduce && hudActive && !MOB) {
+        if (scene && !reduceMotion && hudActive && !MOB) {
           var by = Math.sin(t / 1400) * 6;
           scene.style.setProperty("--bob", by.toFixed(2) + "px");
           scene.style.setProperty("--bobrot", (Math.sin(t / 1400) * 0.5).toFixed(3) + "deg");
@@ -397,7 +399,7 @@ import { isMobileView } from "../lib/mobile.js";
         }
         if (!MOB || hudActive) updateCrystal(now);
         if (canvasReady && bgActive && hudActive) {
-          if (!reduce) {
+          if (hudAnim) {
             var fh = h || 1, fw = w || 1;
             for (var i = 0; i < stars.length; i++) {
               var s = stars[i];
@@ -478,7 +480,7 @@ import { isMobileView } from "../lib/mobile.js";
       lastFrame = 0;
       resize(); placeFgInWorld(); startLoop();
     });
-    if (!reduce) {
+    if (!reduceMotion) {
       window.addEventListener("pointermove", function (e) {
         mx = e.clientX / window.innerWidth - 0.5;
         my = e.clientY / window.innerHeight - 0.5;
@@ -539,7 +541,7 @@ import { isMobileView } from "../lib/mobile.js";
     var enter = document.querySelector(".enter-archive");
     if (enter) enter.addEventListener("click", function () {
       var el = document.querySelector(".constellation");
-      if (el) el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+      if (el) el.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
     });
 
     /* ---------- Mission Log panel → holographic log ---------- */
@@ -767,7 +769,8 @@ import { isMobileView } from "../lib/mobile.js";
           if (rw > 0) resizeCrystalCanvas(rw);
         }
       }
-      var a = reduce ? 0.7 : (TAU * (t % MOB_CRYSTAL_SPIN_MS)) / MOB_CRYSTAL_SPIN_MS, ca = Math.cos(a), sa = Math.sin(a), f = 920;
+      var a = hudAnim ? (TAU * (t % MOB_CRYSTAL_SPIN_MS)) / MOB_CRYSTAL_SPIN_MS : 0.7;
+      var ca = Math.cos(a), sa = Math.sin(a), f = 920;
       var RV = [];
       for (var i = 0; i < crystV.length; i++) {
         var v = crystV[i], x = v[0] * ca + v[2] * sa, z = -v[0] * sa + v[2] * ca, y = v[1];
