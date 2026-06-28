@@ -202,6 +202,11 @@ import { isMobileView } from "../lib/mobile.js";
     /* ---------- Starfield (resolution-independent) ---------- */
     var canvas = document.getElementById("starfield");
     var ctx = canvas && canvas.getContext ? canvas.getContext("2d", { alpha: true }) : null;
+    if (MOB && canvas) {
+      canvas.addEventListener("webglcontextlost", function (e) { e.preventDefault(); stopLoop(); }, false);
+      canvas.addEventListener("contextlost", function (e) { e.preventDefault(); stopLoop(); }, false);
+      canvas.addEventListener("contextrestored", function () { built = false; resize(); startLoop(); }, false);
+    }
     var w = 0, h = 0, dpr = 1, stars = [], raf = 0, t = 0, mx = 0, my = 0, built = false, lastFrame = 0;
     var LAYERS = MOB
       ? [
@@ -246,7 +251,7 @@ import { isMobileView } from "../lib/mobile.js";
         if (sr.width >= 2 && sr.height >= 2) { nw = sr.width; nh = sr.height; }
       }
       if (nw < 2 || nh < 2) return false;
-      dpr = Math.min(window.devicePixelRatio || 1, MOB ? 1.25 : 2);
+      dpr = Math.min(window.devicePixelRatio || 1, MOB ? 1 : 2);
       var pw = Math.max(1, Math.round(nw * dpr)), ph = Math.max(1, Math.round(nh * dpr));
       if (w === nw && h === nh && canvas.width === pw && canvas.height === ph) return true;
       w = nw; h = nh;
@@ -298,34 +303,7 @@ import { isMobileView } from "../lib/mobile.js";
       raf = 0;
     }
     var reduceDrawn = false;
-    var ARC_PERIODS = { arc1: 46, arc2: 26, arc3: -17, arc4: 34, arc5: 13 };
-    var hudArcCache = [], hudSpinLast = 0, HUD_SPIN_MS = 32;
-    function initHudArcCache() {
-      if (!MOB) return;
-      hudArcCache = [];
-      var roots = [document.querySelector(".reticle"), scene && scene.querySelector(".ship-reticle")];
-      for (var ri = 0; ri < roots.length; ri++) {
-        var root = roots[ri];
-        if (!root) continue;
-        var arcs = root.querySelectorAll(".arc");
-        for (var ai = 0; ai < arcs.length; ai++) {
-          var arc = arcs[ai], period = 30;
-          for (var k in ARC_PERIODS) { if (arc.classList.contains(k)) { period = ARC_PERIODS[k]; break; } }
-          hudArcCache.push({ el: arc, period: period, last: "" });
-        }
-      }
-    }
-    function spinHudReticles(now) {
-      if (!MOB || !hudArcCache.length) return;
-      if (now - hudSpinLast < HUD_SPIN_MS) return;
-      hudSpinLast = now;
-      for (var i = 0; i < hudArcCache.length; i++) {
-        var item = hudArcCache[i], period = item.period;
-        var ang = (now / (Math.abs(period) * 1000)) * 360 * (period < 0 ? -1 : 1);
-        var tf = "rotate(" + (ang % 360).toFixed(2) + "deg)";
-        if (item.last !== tf) { item.last = tf; item.el.style.transform = tf; }
-      }
-    }
+    var mobHeavyLast = 0, MOB_HEAVY_MS = 33;
     function overlaysOpen() {
       var po = document.querySelector(".profile-overlay");
       var mo = document.getElementById("missionlog-overlay");
@@ -353,16 +331,15 @@ import { isMobileView } from "../lib/mobile.js";
         }
         updateOrbit();
         var bgActive = !overlaysOpen();
-        if (MOB) {
-          if (bgActive) {
-            spinHudReticles(now);
-            if (typeof window.__spinMapReticles === "function") window.__spinMapReticles(now);
-          }
-        } else {
+        var mobHeavy = !MOB || (now - mobHeavyLast >= MOB_HEAVY_MS);
+        if (MOB && mobHeavy) mobHeavyLast = now;
+        if (!MOB) {
           drawLinks();
+        } else if (bgActive && mobHeavy && typeof window.__spinMapReticles === "function") {
+          window.__spinMapReticles(now);
         }
-        updateCrystal(now);
-        if (canvasReady && bgActive) {
+        if (!MOB || mobHeavy) updateCrystal(now);
+        if (canvasReady && bgActive && mobHeavy) {
           if (!reduce) {
             var fh = h || 1, fw = w || 1;
             for (var i = 0; i < stars.length; i++) {
@@ -417,15 +394,20 @@ import { isMobileView } from "../lib/mobile.js";
 
     function onResize() { resize(); placeFgInWorld(); if (!MOB) drawLinks(); }
     window.addEventListener("resize", onResize);
-    if (typeof ResizeObserver !== "undefined" && scene) {
+    if (typeof ResizeObserver !== "undefined" && scene && !MOB) {
       var ro = new ResizeObserver(function () { resize(); });
       ro.observe(scene);
     }
     if (MOB && window.visualViewport) {
-      var vvT = 0;
+      var vvT = 0, lastVp = { w: 0, h: 0 };
       function onVvChange() {
         clearTimeout(vvT);
-        vvT = setTimeout(function () { resize(); placeFgInWorld(); }, 150);
+        vvT = setTimeout(function () {
+          var vp = viewportSize();
+          if (Math.abs(vp.w - lastVp.w) < 2 && Math.abs(vp.h - lastVp.h) < 2) return;
+          lastVp = { w: vp.w, h: vp.h };
+          resize(); placeFgInWorld();
+        }, 250);
       }
       window.visualViewport.addEventListener("resize", onVvChange);
       window.visualViewport.addEventListener("scroll", onVvChange);
@@ -434,8 +416,9 @@ import { isMobileView } from "../lib/mobile.js";
       if (document.hidden) stopLoop();
       else startLoop();
     });
-    window.addEventListener("pageshow", function (e) {
-      if (e.persisted) { resize(); placeFgInWorld(); startLoop(); }
+    window.addEventListener("pageshow", function () {
+      lastFrame = 0;
+      resize(); placeFgInWorld(); startLoop();
     });
     if (!reduce) {
       window.addEventListener("pointermove", function (e) {
@@ -454,7 +437,6 @@ import { isMobileView } from "../lib/mobile.js";
     ensureFgInWorld();
     desktopHudSetup();
     mobileSetup();
-    initHudArcCache();
     placeFgInWorld();
     resize();
     drawLinks();
@@ -577,8 +559,7 @@ import { isMobileView } from "../lib/mobile.js";
     function cross(u, v) { return [u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0]]; }
     function dot(u, v) { return u[0]*v[0] + u[1]*v[1] + u[2]*v[2]; }
     function norm(v) { var l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0]/l, v[1]/l, v[2]/l]; }
-    var crystBack = null, crystFront = null, crystV = [], crystF = [], crystPolys = [], CRYST_SPIN = 2 * Math.PI / 16000;
-    var crystLast = 0, CRYST_MOB_MS = 50;
+    var crystBack = null, crystFront = null, crystV = [], crystF = [], crystPolys = [];
     var crystBackOrder = [], crystFrontOrder = [];
     var CL = norm([-0.35, -0.6, 0.72]);                          // light dir (view space)
     function buildCrystal() {
@@ -630,22 +611,56 @@ import { isMobileView } from "../lib/mobile.js";
       crystPolys = [];
       var NS = "http://www.w3.org/2000/svg";
       for (var pi = 0; pi < crystF.length; pi++) {
-        var poly = document.createElementNS(NS, "polygon");
-        poly.setAttribute("stroke-linejoin", "round");
-        crystBack.appendChild(poly);
-        crystPolys.push(poly);
+        if (MOB) {
+          var polyB = document.createElementNS(NS, "polygon");
+          var polyF = document.createElementNS(NS, "polygon");
+          polyB.setAttribute("stroke-linejoin", "round");
+          polyF.setAttribute("stroke-linejoin", "round");
+          polyB.setAttribute("visibility", "hidden");
+          crystBack.appendChild(polyB);
+          crystFront.appendChild(polyF);
+          crystPolys.push({ b: polyB, f: polyF });
+        } else {
+          var poly = document.createElementNS(NS, "polygon");
+          poly.setAttribute("stroke-linejoin", "round");
+          crystBack.appendChild(poly);
+          crystPolys.push(poly);
+        }
       }
       crystBackOrder = []; crystFrontOrder = [];
       updateCrystal(performance.now());
     }
+    function updateCrystalMob(RV, fi, idx) {
+      var item = crystPolys[fi], A = RV[idx[0]], B = RV[idx[1]], C = RV[idx[2]];
+      var nn = norm(cross([B[0]-A[0],B[1]-A[1],B[2]-A[2]], [C[0]-A[0],C[1]-A[1],C[2]-A[2]]));
+      var front = nn[2] > 0, pts = [];
+      for (var p = 0; p < idx.length; p++) { var r = RV[idx[p]]; pts.push(r[3].toFixed(1) + "," + r[4].toFixed(1)); }
+      var ptStr = pts.join(" ");
+      if (front) {
+        var b = Math.max(0, dot(nn, CL));
+        var op = (0.3 + b * 0.42).toFixed(2);
+        var sw = b > 0.78 ? "rgba(224,255,244,0.85)" : "rgba(188,250,223,0.4)";
+        item.f.setAttribute("points", ptStr);
+        item.f.setAttribute("fill", "url(#cEmerald)");
+        item.f.setAttribute("fill-opacity", op);
+        item.f.setAttribute("stroke", sw);
+        item.f.setAttribute("stroke-width", "0.7");
+        item.f.setAttribute("visibility", "visible");
+        item.b.setAttribute("visibility", "hidden");
+      } else {
+        item.b.setAttribute("points", ptStr);
+        item.b.setAttribute("fill", "url(#cCore)");
+        item.b.setAttribute("fill-opacity", "0.96");
+        item.b.setAttribute("stroke", "rgba(150,240,200,0.22)");
+        item.b.setAttribute("stroke-width", "0.5");
+        item.b.setAttribute("visibility", "visible");
+        item.f.setAttribute("visibility", "hidden");
+      }
+    }
     function updateCrystal(now) {
       if (!crystFront || !crystPolys.length) return;
       now = now || performance.now();
-      if (MOB) {
-        if (now - crystLast < CRYST_MOB_MS) return;
-        crystLast = now;
-      }
-      var a = reduce ? 0.7 : t * CRYST_SPIN, ca = Math.cos(a), sa = Math.sin(a), f = 920;
+      var a = reduce ? 0.7 : (TAU * (t % 16000)) / 16000, ca = Math.cos(a), sa = Math.sin(a), f = 920;
       var RV = [];
       for (var i = 0; i < crystV.length; i++) {
         var v = crystV[i], x = v[0] * ca + v[2] * sa, z = -v[0] * sa + v[2] * ca, y = v[1];
@@ -654,7 +669,12 @@ import { isMobileView } from "../lib/mobile.js";
       }
       var backArr = [], frontArr = [];
       for (var fi = 0; fi < crystF.length; fi++) {
-        var idx = crystF[fi], A = RV[idx[0]], B = RV[idx[1]], C = RV[idx[2]];
+        var idx = crystF[fi];
+        if (MOB) {
+          updateCrystalMob(RV, fi, idx);
+          continue;
+        }
+        var A = RV[idx[0]], B = RV[idx[1]], C = RV[idx[2]];
         var nn = norm(cross([B[0]-A[0],B[1]-A[1],B[2]-A[2]], [C[0]-A[0],C[1]-A[1],C[2]-A[2]]));
         var front = nn[2] > 0, az = 0, pts = [];
         for (var p = 0; p < idx.length; p++) { var r = RV[idx[p]]; az += r[2]; pts.push(r[3].toFixed(1) + "," + r[4].toFixed(1)); }
@@ -678,6 +698,7 @@ import { isMobileView } from "../lib/mobile.js";
           backArr.push([az, poly]);
         }
       }
+      if (MOB) return;
       backArr.sort(function (m, n) { return m[0] - n[0]; });
       frontArr.sort(function (m, n) { return m[0] - n[0]; });
       var bi, fi, reorder = false;
