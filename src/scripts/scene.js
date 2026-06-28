@@ -17,21 +17,19 @@ import { isMobileView } from "../lib/mobile.js";
     var RETICLE_R_VB = 155, CRYSTAL_W_VB = 50, SHIP_W_VB = 100, SHIP_RET_D_VB = 135, ORBIT_VB = 140;
     var CRYSTAL_LBL_DIST_VB = 50; /* dist ≈32% of reticle R */
     var CRYSTAL_LBL_FONT_MOB = 20; /* matches .con-label base (20 * m.s * T.s) on touch */
-    var MOB_SHIP_SCALE = 2, MOB_ORBIT_SCALE = 2, MOB_FG_SCALE = 1.5, MOB_ORBIT_PERIOD = 5200;
+    var MOB_SHIP_SCALE = 2, MOB_ORBIT_SCALE = 2, MOB_FG_SCALE = 1.5, MOB_ORBIT_PERIOD = 35000; /* ms for one full lap */
     var DESKTOP_CRYSTAL_SCALE = 1.5, DESKTOP_SHIP_SCALE = 2.4, DESKTOP_ORBIT_SCALE = 3.1, DESKTOP_HUD_CARD_DIST = 0.65;
+    var DESKTOP_ORBIT_PERIOD = 49000; /* ms for one full lap (~same speed as legacy t/7800) */
+    var TAU = Math.PI * 2;
     var SM_VBW = 2400, SM_VBH = 1840, SM_VBMINY = -170, SM_CVX = 1472, SM_CVY = 639;
     var SM_FG = [".crystal-rig", ".ship-rig", ".reticle"];
 
     /* Ship orbit — must init before first placeFgInWorld / updateOrbit call */
-    var orbitSnap = {};
-    function setOrbitVar(name, val) {
-      if (orbitSnap[name] === val) return;
-      orbitSnap[name] = val;
-      scene.style.setProperty(name, val);
-    }
     function updateOrbit() {
       if (!scene) return;
-      var by2 = window.__bob || 0, ang = t / (MOB ? MOB_ORBIT_PERIOD : 7800);
+      var by2 = window.__bob || 0;
+      var period = MOB ? MOB_ORBIT_PERIOD : DESKTOP_ORBIT_PERIOD;
+      var ang = TAU * (t % period) / period;
       var m = smMet();
       var Tz = (window.__smT && window.__smT.s) || 1;
       var rad = ORBIT_VB * m.s * Tz;
@@ -39,25 +37,25 @@ import { isMobileView } from "../lib/mobile.js";
       else rad *= DESKTOP_ORBIT_SCALE;
       var ox = Math.cos(ang) * rad, oy = Math.sin(ang) * rad;
       var hd = Math.atan2(Math.cos(ang) * rad, -Math.sin(ang) * rad) * 180 / Math.PI;
-      setOrbitVar("--ox", ox.toFixed(1) + "px");
-      setOrbitVar("--oy", oy.toFixed(1) + "px");
-      setOrbitVar("--oyb", (MOB ? oy : (oy + by2)).toFixed(1) + "px");
-      setOrbitVar("--shiprot", hd.toFixed(1) + "deg");
-      setOrbitVar("--shiptiltx", (MOB ? 0 : -my * 10).toFixed(2) + "deg");
-      setOrbitVar("--shiptilty", (MOB ? 0 : mx * 14).toFixed(2) + "deg");
+      scene.style.setProperty("--ox", ox.toFixed(1) + "px");
+      scene.style.setProperty("--oy", oy.toFixed(1) + "px");
+      scene.style.setProperty("--oyb", (MOB ? oy : (oy + by2)).toFixed(1) + "px");
+      scene.style.setProperty("--shiprot", hd.toFixed(1) + "deg");
+      scene.style.setProperty("--shiptiltx", (MOB ? 0 : -my * 10).toFixed(2) + "deg");
+      scene.style.setProperty("--shiptilty", (MOB ? 0 : mx * 14).toFixed(2) + "deg");
       var shipRetMul = MOB ? MOB_SHIP_SCALE * MOB_FG_SCALE : DESKTOP_SHIP_SCALE;
       var srR = SHIP_RET_D_VB * shipRetMul * 0.5 * m.s * Tz, gap = 14 * m.s * Tz;
       if (MOB) {
-        setOrbitVar("--bec-dx", (-srR - gap).toFixed(1) + "px");
-        setOrbitVar("--bec-dy", (-srR - gap * 0.65).toFixed(1) + "px");
-        setOrbitVar("--tel-dx", (srR + gap * 0.85).toFixed(1) + "px");
-        setOrbitVar("--tel-dy", (srR * 0.35 + gap * 0.45).toFixed(1) + "px");
+        scene.style.setProperty("--bec-dx", (-srR - gap).toFixed(1) + "px");
+        scene.style.setProperty("--bec-dy", (-srR - gap * 0.65).toFixed(1) + "px");
+        scene.style.setProperty("--tel-dx", (srR + gap * 0.85).toFixed(1) + "px");
+        scene.style.setProperty("--tel-dy", (srR * 0.35 + gap * 0.45).toFixed(1) + "px");
       } else {
         var pad = 2 * m.s * Tz, k = 0.707, d = srR * DESKTOP_HUD_CARD_DIST;
-        setOrbitVar("--bec-dx", (-d * k - pad).toFixed(1) + "px");
-        setOrbitVar("--bec-dy", (-d * k - pad).toFixed(1) + "px");
-        setOrbitVar("--tel-dx", (d * k + pad).toFixed(1) + "px");
-        setOrbitVar("--tel-dy", (d * k + pad * 0.35).toFixed(1) + "px");
+        scene.style.setProperty("--bec-dx", (-d * k - pad).toFixed(1) + "px");
+        scene.style.setProperty("--bec-dy", (-d * k - pad).toFixed(1) + "px");
+        scene.style.setProperty("--tel-dx", (d * k + pad).toFixed(1) + "px");
+        scene.style.setProperty("--tel-dy", (d * k + pad * 0.35).toFixed(1) + "px");
       }
     }
     window.__updateOrbit = updateOrbit;
