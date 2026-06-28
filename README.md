@@ -9,7 +9,7 @@ fully interactive HUD: constellation star map, data-record overlays, media
 lightbox with PDF viewer, mission log, and off-duty gallery. Responsive across
 desktop and touch devices.
 
-**Live site:** _add deployment URL_
+**Live site:** [personal-website-six-navy-64.vercel.app](https://personal-website-six-navy-64.vercel.app/)
 
 ---
 
@@ -185,29 +185,6 @@ Static output directory: **`dist/`**
 - Environment variables (build time):
   - `SUPABASE_URL`
   - `SUPABASE_STORAGE_BUCKET` (if not using default `portfolio`)
-
-Do **not** add `SUPABASE_SERVICE_ROLE_KEY` to deployment environment
-variables unless you run the upload script in CI (not required for normal
-deploys).
-
----
-
-## Security
-
-- **Public bucket** — portfolio media is intentionally world-readable (same as
-  any public website).
-- **Service role key** — local upload script only; never commit or ship to the
-  client.
-- **`.env.local`** — gitignored; use `.env.example` as the template for new
-  clones.
-
-If secrets or assets were committed before gitignore rules were added, remove
-them from tracking (files stay on disk):
-
-```bash
-git rm -r --cached public/assets preview .env.local
-git commit -m "Stop tracking local assets and env secrets"
-```
 
 ---
 
