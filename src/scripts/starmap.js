@@ -442,7 +442,7 @@ import { isMobileView } from "../lib/mobile.js";
           if(crystalAt(tapStart.x, tapStart.y) || crystalAt(ux, uy)){
             if(window.__openOffDuty) window.__openOffDuty();
           } else {
-            var mm=metrics(), cc=cur2(vb(1472,639,mm)), rr=(MOB?155*1.5:155)*mm.s*T.s;
+            var mm=metrics(), cc=cur2(vb(1472,639,mm)), rr=(window.__mobReticleR||232.5)*mm.s*T.s;
             if(Math.hypot(tapStart.x-cc.x, tapStart.y-cc.y)<=rr){ if(window.__openOffDuty) window.__openOffDuty(); }
             else { var con=pressCon||nearestCon(tapStart.x, tapStart.y); if(con) focusCon(con); }
           }

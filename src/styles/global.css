@@ -750,10 +750,9 @@ html.is-mob .ml-frame .ml-next { right: 0; left: auto; }
 @keyframes mobpulse { 0%, 100% { filter: drop-shadow(0 0 3px rgba(65,227,255,0.4)); } 50% { filter: drop-shadow(0 0 10px rgba(65,227,255,0.7)); } }
 @keyframes mobpulse-subtle { 0%, 100% { filter: drop-shadow(0 0 2px rgba(65,227,255,0.22)); } 50% { filter: drop-shadow(0 0 7px rgba(65,227,255,0.42)); } }
 
-/* ===== mobile: flatten the ship to pure 2D (no 3D/perspective wobble at high world-scale) ===== */
-.scene.sm-mob .ship-rig, .scene.sm-mob .crystal-rig { perspective: none; }
-.scene.sm-mob .ship { transform-style: flat;
-  transform: translate(-50%,-50%) translate(var(--ox,0px), var(--oyb,0px)) rotate(var(--shiprot,90deg)); }
+/* ===== mobile: no ship — hero crystal only; keep 3D yaw via JS projection ===== */
+html.is-mob .ship-rig { display: none !important; }
+.scene.sm-mob .ship-rig { display: none !important; }
 /* mobile: off-duty card scales with zoom like constellation labels (font-size set in JS) */
 .scene.sm-mob .crystal-name { padding: 0.34em 0.92em; }
 .scene.sm-mob .crystal-name .t { font-size: 1em; }
@@ -825,8 +824,7 @@ html.is-mob .ml-frame .ml-next { right: 0; left: auto; }
    so it holds in every orientation regardless of viewport width or hover support.
    ============================================================ */
 html.is-mob .crystal-hit { pointer-events: auto; touch-action: manipulation; z-index: 6; }
-html.is-mob .reticle .arc,
-html.is-mob .ship-reticle .arc { animation: none !important; }
+html.is-mob .reticle .arc { animation: none !important; }
 html.is-mob .sm-rr-spin,
 html.is-mob .sm-sret-spin { animation: none !important; }
 html.is-mob #starmap[data-hud-home="1"] { visibility: hidden; }

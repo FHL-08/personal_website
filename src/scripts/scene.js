@@ -17,46 +17,35 @@ import { isMobileView } from "../lib/mobile.js";
     var RETICLE_R_VB = 155, CRYSTAL_W_VB = 50, SHIP_W_VB = 100, SHIP_RET_D_VB = 135, ORBIT_VB = 140;
     var CRYSTAL_LBL_DIST_VB = 50; /* dist ≈32% of reticle R */
     var CRYSTAL_LBL_FONT_MOB = 20; /* matches .con-label base (20 * m.s * T.s) on touch */
-    var MOB_SHIP_SCALE = 2, MOB_ORBIT_SCALE = 2, MOB_FG_SCALE = 1.5, MOB_ORBIT_PERIOD = 35000; /* ms for one full lap */
+    var MOB_HUD_SCALE = 1.5, MOB_CRYSTAL_SCALE = 2.5, MOB_RETICLE_R_MUL = 1.28, MOB_CRYSTAL_LBL_DIST_VB = 92;
     var DESKTOP_CRYSTAL_SCALE = 1.5, DESKTOP_SHIP_SCALE = 2.4, DESKTOP_ORBIT_SCALE = 3.1, DESKTOP_HUD_CARD_DIST = 0.65;
     var DESKTOP_ORBIT_PERIOD = 49000; /* ms for one full lap (~same speed as legacy t/7800) */
     var TAU = Math.PI * 2;
     var SM_VBW = 2400, SM_VBH = 1840, SM_VBMINY = -170, SM_CVX = 1472, SM_CVY = 639;
-    var SM_FG = [".crystal-rig", ".ship-rig", ".reticle"];
+    var SM_FG = MOB ? [".crystal-rig", ".reticle"] : [".crystal-rig", ".ship-rig", ".reticle"];
 
-    /* Ship orbit — must init before first placeFgInWorld / updateOrbit call */
+    /* Ship orbit — desktop only; mobile uses a fixed crystal hero (no ship). */
     function updateOrbit() {
-      if (!scene) return;
+      if (MOB || !scene) return;
       var by2 = window.__bob || 0;
-      var period = MOB ? MOB_ORBIT_PERIOD : DESKTOP_ORBIT_PERIOD;
+      var period = DESKTOP_ORBIT_PERIOD;
       var ang = TAU * (t % period) / period;
       var m = smMet();
       var Tz = (window.__smT && window.__smT.s) || 1;
-      var rad = ORBIT_VB * m.s * Tz;
-      if (MOB) rad *= MOB_ORBIT_SCALE * MOB_FG_SCALE;
-      else rad *= DESKTOP_ORBIT_SCALE;
+      var rad = ORBIT_VB * m.s * Tz * DESKTOP_ORBIT_SCALE;
       var ox = Math.cos(ang) * rad, oy = Math.sin(ang) * rad;
       var hd = Math.atan2(Math.cos(ang) * rad, -Math.sin(ang) * rad) * 180 / Math.PI;
       scene.style.setProperty("--ox", ox.toFixed(1) + "px");
       scene.style.setProperty("--oy", oy.toFixed(1) + "px");
-      scene.style.setProperty("--oyb", (MOB ? oy : (oy + by2)).toFixed(1) + "px");
+      scene.style.setProperty("--oyb", (oy + by2).toFixed(1) + "px");
       scene.style.setProperty("--shiprot", hd.toFixed(1) + "deg");
-      scene.style.setProperty("--shiptiltx", (MOB ? 0 : -my * 10).toFixed(2) + "deg");
-      scene.style.setProperty("--shiptilty", (MOB ? 0 : mx * 14).toFixed(2) + "deg");
-      var shipRetMul = MOB ? MOB_SHIP_SCALE * MOB_FG_SCALE : DESKTOP_SHIP_SCALE;
-      var srR = SHIP_RET_D_VB * shipRetMul * 0.5 * m.s * Tz, gap = 14 * m.s * Tz;
-      if (MOB) {
-        scene.style.setProperty("--bec-dx", (-srR - gap).toFixed(1) + "px");
-        scene.style.setProperty("--bec-dy", (-srR - gap * 0.65).toFixed(1) + "px");
-        scene.style.setProperty("--tel-dx", (srR + gap * 0.85).toFixed(1) + "px");
-        scene.style.setProperty("--tel-dy", (srR * 0.35 + gap * 0.45).toFixed(1) + "px");
-      } else {
-        var pad = 2 * m.s * Tz, k = 0.707, d = srR * DESKTOP_HUD_CARD_DIST;
-        scene.style.setProperty("--bec-dx", (-d * k - pad).toFixed(1) + "px");
-        scene.style.setProperty("--bec-dy", (-d * k - pad).toFixed(1) + "px");
-        scene.style.setProperty("--tel-dx", (d * k + pad).toFixed(1) + "px");
-        scene.style.setProperty("--tel-dy", (d * k + pad * 0.35).toFixed(1) + "px");
-      }
+      scene.style.setProperty("--shiptiltx", (-my * 10).toFixed(2) + "deg");
+      scene.style.setProperty("--shiptilty", (mx * 14).toFixed(2) + "deg");
+      var srR = SHIP_RET_D_VB * DESKTOP_SHIP_SCALE * 0.5 * m.s * Tz, pad = 2 * m.s * Tz, k = 0.707, d = srR * DESKTOP_HUD_CARD_DIST;
+      scene.style.setProperty("--bec-dx", (-d * k - pad).toFixed(1) + "px");
+      scene.style.setProperty("--bec-dy", (-d * k - pad).toFixed(1) + "px");
+      scene.style.setProperty("--tel-dx", (d * k + pad).toFixed(1) + "px");
+      scene.style.setProperty("--tel-dy", (d * k + pad * 0.35).toFixed(1) + "px");
     }
     window.__updateOrbit = updateOrbit;
 
@@ -91,7 +80,7 @@ import { isMobileView } from "../lib/mobile.js";
 
     function applyFgSizes(m, T, world) {
       var lp = m.s;
-      var px = lp * T.s * (MOB ? MOB_FG_SCALE : 1);
+      var px = lp * T.s * (MOB ? MOB_HUD_SCALE : 1);
       var ret = world.querySelector(".reticle");
       var crystal = world.querySelector(".crystal");
       var hit = world.querySelector(".crystal-hit");
@@ -99,18 +88,19 @@ import { isMobileView } from "../lib/mobile.js";
       var sr = world.querySelector(".ship-reticle");
       var cr = world.querySelector(".crystal-rig");
       var srg = world.querySelector(".ship-rig");
-      var retD = RETICLE_R_VB * 2 * px;
-      var cryScale = MOB ? 1 : DESKTOP_CRYSTAL_SCALE;
+      var retMul = MOB ? MOB_RETICLE_R_MUL : 1;
+      var retD = RETICLE_R_VB * 2 * retMul * px;
+      var cryScale = MOB ? MOB_CRYSTAL_SCALE : DESKTOP_CRYSTAL_SCALE;
       var cryW = CRYSTAL_W_VB * cryScale * px;
-      var shipMul = MOB ? MOB_SHIP_SCALE : DESKTOP_SHIP_SCALE;
-      var shipW = SHIP_W_VB * shipMul * px;
-      var srW = SHIP_RET_D_VB * shipMul * px;
-      var hitW = RETICLE_R_VB * 1.55 * px;
+      var shipW = SHIP_W_VB * DESKTOP_SHIP_SCALE * lp * T.s;
+      var srW = SHIP_RET_D_VB * DESKTOP_SHIP_SCALE * lp * T.s;
+      var hitW = RETICLE_R_VB * retMul * 1.55 * px;
       if (ret) { ret.style.width = retD.toFixed(1) + "px"; ret.style.height = retD.toFixed(1) + "px"; }
       if (crystal) crystal.style.width = cryW.toFixed(1) + "px";
       if (hit) { hit.style.width = hitW.toFixed(1) + "px"; hit.style.height = hitW.toFixed(1) + "px"; }
       if (ship) ship.style.width = shipW.toFixed(1) + "px";
       if (sr) sr.style.width = srW.toFixed(1) + "px";
+      if (srg) srg.style.display = MOB ? "none" : "";
       var g = world.querySelector(".crystal-glow");
       if (g) {
         var gw = cryW * 2.33, gh = cryW * 2.63;
@@ -127,8 +117,9 @@ import { isMobileView } from "../lib/mobile.js";
           cn.style.fontSize = "";
         }
         cn.style.transform = "";
-        scene.style.setProperty("--crystal-lbl-d", (CRYSTAL_LBL_DIST_VB * px).toFixed(1) + "px");
+        scene.style.setProperty("--crystal-lbl-d", ((MOB ? MOB_CRYSTAL_LBL_DIST_VB : CRYSTAL_LBL_DIST_VB) * px).toFixed(1) + "px");
       }
+      if (MOB) window.__mobReticleR = RETICLE_R_VB * MOB_RETICLE_R_MUL * MOB_HUD_SCALE;
       if (ret) ret.style.transform = "translate(-50%,-50%)";
       if (cr) cr.style.transform = "";
       if (srg) srg.style.transform = "";
@@ -152,7 +143,7 @@ import { isMobileView } from "../lib/mobile.js";
         el.style.top = c.y.toFixed(1) + "px";
       });
       applyFgSizes(m, T, world);
-      updateOrbit();
+      if (!MOB) updateOrbit();
     }
     window.__placeFgInWorld = placeFgInWorld;
 
@@ -309,7 +300,7 @@ import { isMobileView } from "../lib/mobile.js";
     function initHudArcCache() {
       if (!MOB) return;
       hudArcCache = [];
-      var roots = [document.querySelector(".reticle"), scene && scene.querySelector(".ship-reticle")];
+      var roots = MOB ? [document.querySelector(".reticle")] : [document.querySelector(".reticle"), scene && scene.querySelector(".ship-reticle")];
       for (var ri = 0; ri < roots.length; ri++) {
         var root = roots[ri];
         if (!root) continue;
@@ -360,13 +351,13 @@ import { isMobileView } from "../lib/mobile.js";
         var bgActive = !overlaysOpen();
         var mobHeavy = !MOB || (now - mobHeavyLast >= MOB_HEAVY_MS);
         var hudActive = !MOB || bud.mode === "map";
-        if (scene && !reduce && hudActive) {
+        if (scene && !reduce && hudActive && !MOB) {
           var by = Math.sin(t / 1400) * 6;
           scene.style.setProperty("--bob", by.toFixed(2) + "px");
           scene.style.setProperty("--bobrot", (Math.sin(t / 1400) * 0.5).toFixed(3) + "deg");
           window.__bob = by;
         }
-        if (hudActive) updateOrbit();
+        if (!MOB && hudActive) updateOrbit();
         if (MOB && mobHeavy) mobHeavyLast = now;
         if (!MOB) {
           drawLinks();
