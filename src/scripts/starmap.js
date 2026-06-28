@@ -311,7 +311,14 @@ import { isMobileView } from "../lib/mobile.js";
     function busy(){ scene.classList.add("sm-busy"); clearTimeout(busyT); busyT=setTimeout(function(){ scene.classList.remove("sm-busy"); },220); }
 
     /* Mobile: CSS spin on SVG reticles breaks inside panned/zoomed map — drive via transform attr. */
-    var SM_SPIN_RATE = 2, smSpinLast = 0; /* 2× faster than desktop CSS equivalents */
+    var SM_SPIN_RATE = 2, smSpinLast = 0, SM_SPIN_MS = 100;
+    function smMapActive() {
+      if (!scene) return false;
+      if (scene.classList.contains("sm-focus") || scene.classList.contains("sm-star") || scene.classList.contains("sm-busy")) return true;
+      var T = window.__smT;
+      if (!T) return false;
+      return Math.abs(T.tx) > 2 || Math.abs(T.ty) > 2 || Math.abs(T.s - 1) > 0.02;
+    }
     function smSpinPeriod(el, def, rev, held) {
       var p;
       if (held) p = el.classList.contains("rev") ? 1200 : 1800;
@@ -326,7 +333,8 @@ import { isMobileView } from "../lib/mobile.js";
     }
     function spinMapReticles(now) {
       if (!MOB || !sm) return;
-      if (now - smSpinLast < 50) return;
+      if (!smMapActive()) return;
+      if (now - smSpinLast < SM_SPIN_MS) return;
       smSpinLast = now;
       var spins = sm.querySelectorAll(".sm-rr-spin");
       for (var i = 0; i < spins.length; i++) {
