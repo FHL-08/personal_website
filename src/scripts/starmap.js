@@ -51,6 +51,13 @@ import { isMobileView } from "../lib/mobile.js";
     window.__smT={tx:0,ty:0,s:1};
     function snapHomeT(){ if(!MOB) return; homeT={tx:T.tx,ty:T.ty,s:T.s}; }
     function markMapPanned(){ if(MOB&&mode==="map") mapPanned=true; }
+    function mapMovedFromHome(){
+      if(!MOB) return false;
+      return Math.abs(T.tx - homeT.tx) > 2 || Math.abs(T.ty - homeT.ty) > 2 || Math.abs(T.s - homeT.s) > 0.02;
+    }
+    function starmapShouldShow(){
+      return mode !== "map" || mapPanned || mapMovedFromHome();
+    }
 
     function metrics(){ var R=scene.getBoundingClientRect(); var s=Math.min(R.width/VBW, R.height/VBH);
       return { W:R.width, H:R.height, s:s, ox:(R.width-VBW*s)/2, oy:(R.height-VBH*s)/2 }; }
@@ -70,20 +77,26 @@ import { isMobileView } from "../lib/mobile.js";
     function applyTransformLite(){
       if(!applyGTransform()&&world) world.style.transform="translate("+T.tx+"px,"+T.ty+"px) scale("+T.s+")";
       window.__smpan={x:T.tx,y:T.ty}; window.__smT={tx:T.tx,ty:T.ty,s:T.s};
+      if(MOB&&mode==="map"&&!mapPanned&&mapMovedFromHome()) mapPanned=true;
       updateMapVisibility();
     }
     function updateMapVisibility(){
       if(!MOB||!sm) return;
-      var show = mode !== "map" || mapPanned;
+      var show = starmapShouldShow();
+      var wasHome = sm.getAttribute("data-hud-home") === "1";
       sm.style.visibility = show ? "" : "hidden";
       sm.setAttribute("data-hud-home", show ? "0" : "1");
+      if(show && wasHome){
+        void sm.offsetHeight;
+        if(typeof window.__spinMapReticles==="function") window.__spinMapReticles(performance.now());
+      }
     }
     function sceneBudget(){
       return {
         mode: mode,
-        mapActive: mapPanned,
-        hudHome: mode === "map" && !mapPanned,
-        mapVisible: mode !== "map" || mapPanned
+        mapActive: mapPanned || mapMovedFromHome(),
+        hudHome: mode === "map" && !mapPanned && !mapMovedFromHome(),
+        mapVisible: starmapShouldShow()
       };
     }
     window.__sceneBudget = sceneBudget;
@@ -364,7 +377,7 @@ import { isMobileView } from "../lib/mobile.js";
     }
     function spinMapReticles(now) {
       if (!MOB || !sm) return;
-      if (!mapPanned) return;
+      if (!starmapShouldShow()) return;
       if (now - smSpinLast < SM_SPIN_MS) return;
       smSpinLast = now;
       if (!smSpinCache.length) initSmSpinCache();
@@ -500,5 +513,5 @@ import { isMobileView } from "../lib/mobile.js";
       if (typeof window.__placeFgInWorld === "function") window.__placeFgInWorld();
       if (MOB) { placeConLabels(); showConLabels(true); }
     }, 280);
-    var rzT=0; window.addEventListener("resize", function(){ clearTimeout(rzT); rzT=setTimeout(function(){ MOB=isMobileView(); PHONE=isPhone(); if(typeof window.__placeFgInWorld==="function") window.__placeFgInWorld(); if(mode==="map"){ defaultT(); if(MOB){ placeConLabels(); showConLabels(true); } } }, 150); });
+    var rzT=0; window.addEventListener("resize", function(){ clearTimeout(rzT); rzT=setTimeout(function(){ MOB=isMobileView(); PHONE=isPhone(); if(typeof window.__placeFgInWorld==="function") window.__placeFgInWorld(); if(mode==="map"){ if(MOB&&(mapPanned||mapMovedFromHome())){ clampT(); applyTransform(); if(MOB){ placeConLabels(); showConLabels(true); } } else { defaultT(); if(MOB){ placeConLabels(); showConLabels(true); } } } }, 150); });
   });})();

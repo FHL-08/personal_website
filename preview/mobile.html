@@ -59,7 +59,7 @@
           '<div class="slot" style="width:' + (bw * s) + 'px;height:' + (bh * s) + 'px">' +
             '<div class="bezel-scaler" style="transform:scale(' + s.toFixed(3) + ')">' +
               '<div class="bezel" style="width:' + bw + 'px;height:' + bh + 'px">' +
-                '<iframe src="./index.html?view=mobile&v=' + 1782628287825 + '" style="width:' + dm.w + 'px;height:' + dm.h + 'px" title="' + d.name + ' preview" loading="eager"></iframe>' +
+                '<iframe src="./index.html?view=mobile&v=' + 1782630546322 + '" style="width:' + dm.w + 'px;height:' + dm.h + 'px" title="' + d.name + ' preview" loading="eager"></iframe>' +
               '</div>' +
             '</div>' +
           '</div>';
@@ -70,7 +70,7 @@
     document.getElementById('rot-tablet').onclick = function(){ devices.tablet.portrait = !devices.tablet.portrait; render(); };
     document.getElementById('reload').onclick = render;
     var direct = document.getElementById('direct-link');
-    if (direct) direct.href = './index.html?view=mobile&v=' + 1782628287825;
+    if (direct) direct.href = './index.html?view=mobile&v=' + 1782630546322;
     var rzT = 0; window.addEventListener('resize', function(){ clearTimeout(rzT); rzT = setTimeout(render, 150); });
     render();
   </script>

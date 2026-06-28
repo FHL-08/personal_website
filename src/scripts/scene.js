@@ -17,12 +17,12 @@ import { isMobileView } from "../lib/mobile.js";
     var RETICLE_R_VB = 155, CRYSTAL_W_VB = 50, SHIP_W_VB = 100, SHIP_RET_D_VB = 135, ORBIT_VB = 140;
     var CRYSTAL_LBL_DIST_VB = 50; /* dist ≈32% of reticle R */
     var CRYSTAL_LBL_FONT_MOB = 20; /* matches .con-label base (20 * m.s * T.s) on touch */
-    var MOB_HUD_SCALE = 1.5, MOB_CRYSTAL_SCALE = 2.5, MOB_RETICLE_R_MUL = 1.28, MOB_CRYSTAL_LBL_DIST_VB = 92;
+    var MOB_HUD_SCALE = 1.5, MOB_CRYSTAL_SCALE = 2.5, MOB_RETICLE_R_MUL = 1.38, MOB_CRYSTAL_LBL_GAP_VB = -20;
     var DESKTOP_CRYSTAL_SCALE = 1.5, DESKTOP_SHIP_SCALE = 2.4, DESKTOP_ORBIT_SCALE = 3.1, DESKTOP_HUD_CARD_DIST = 0.65;
     var DESKTOP_ORBIT_PERIOD = 49000; /* ms for one full lap (~same speed as legacy t/7800) */
     var TAU = Math.PI * 2;
     var SM_VBW = 2400, SM_VBH = 1840, SM_VBMINY = -170, SM_CVX = 1472, SM_CVY = 639;
-    var SM_FG = MOB ? [".crystal-rig", ".reticle"] : [".crystal-rig", ".ship-rig", ".reticle"];
+    var SM_FG = MOB ? [".crystal-rig"] : [".crystal-rig", ".ship-rig", ".reticle"];
 
     /* Ship orbit — desktop only; mobile uses a fixed crystal hero (no ship). */
     function updateOrbit() {
@@ -66,10 +66,21 @@ import { isMobileView } from "../lib/mobile.js";
     function ensureFgInWorld() {
       var world = document.getElementById("world");
       if (!world) return;
-      SM_FG.forEach(function (q) {
-        var el = world.querySelector(q) || (scene && scene.querySelector(q));
-        if (el && el.parentElement !== world) world.appendChild(el);
-      });
+      var cr = world.querySelector(".crystal-rig") || (scene && scene.querySelector(".crystal-rig"));
+      var ret = world.querySelector(".reticle") || (scene && scene.querySelector(".reticle"));
+      if (MOB && cr) {
+        if (cr.parentElement !== world) world.appendChild(cr);
+        if (ret && ret.parentElement !== cr) {
+          var hit = cr.querySelector(".crystal-hit");
+          if (hit) cr.insertBefore(ret, hit);
+          else cr.appendChild(ret);
+        }
+      } else {
+        SM_FG.forEach(function (q) {
+          var el = world.querySelector(q) || (scene && scene.querySelector(q));
+          if (el) world.appendChild(el);
+        });
+      }
       var cr = world.querySelector(".crystal-rig");
       var cn = document.getElementById("crystal-name") || (scene && scene.querySelector("#crystal-name"));
       if (cr && cn && cn.parentElement !== cr) {
@@ -97,6 +108,7 @@ import { isMobileView } from "../lib/mobile.js";
       var hitW = RETICLE_R_VB * retMul * 1.55 * px;
       if (ret) { ret.style.width = retD.toFixed(1) + "px"; ret.style.height = retD.toFixed(1) + "px"; }
       if (crystal) crystal.style.width = cryW.toFixed(1) + "px";
+      if (MOB && crystCanvas) resizeCrystalCanvas(cryW);
       if (hit) { hit.style.width = hitW.toFixed(1) + "px"; hit.style.height = hitW.toFixed(1) + "px"; }
       if (ship) ship.style.width = shipW.toFixed(1) + "px";
       if (sr) sr.style.width = srW.toFixed(1) + "px";
@@ -117,9 +129,13 @@ import { isMobileView } from "../lib/mobile.js";
           cn.style.fontSize = "";
         }
         cn.style.transform = "";
-        scene.style.setProperty("--crystal-lbl-d", ((MOB ? MOB_CRYSTAL_LBL_DIST_VB : CRYSTAL_LBL_DIST_VB) * px).toFixed(1) + "px");
+        var lblD = MOB
+          ? (RETICLE_R_VB * retMul + MOB_CRYSTAL_LBL_GAP_VB) * px
+          : CRYSTAL_LBL_DIST_VB * px;
+        scene.style.setProperty("--crystal-lbl-d", lblD.toFixed(1) + "px");
       }
       if (MOB) window.__mobReticleR = RETICLE_R_VB * MOB_RETICLE_R_MUL * MOB_HUD_SCALE;
+      if (MOB && crystCtx && crystF.length) updateCrystal(performance.now());
       if (ret) ret.style.transform = "translate(-50%,-50%)";
       if (cr) cr.style.transform = "";
       if (srg) srg.style.transform = "";
@@ -211,10 +227,6 @@ import { isMobileView } from "../lib/mobile.js";
         { n: 24, sp: 0.06, min: 1.0, max: 2.0, alpha: 1.0 }
       ];
     function viewportSize() {
-      var vv = window.visualViewport;
-      if (MOB && vv) {
-        return { w: vv.width, h: vv.height, top: vv.offsetTop || 0, left: vv.offsetLeft || 0 };
-      }
       return {
         w: window.innerWidth || document.documentElement.clientWidth || 360,
         h: window.innerHeight || document.documentElement.clientHeight || 640,
@@ -251,8 +263,8 @@ import { isMobileView } from "../lib/mobile.js";
       canvas.style.width = w + "px";
       canvas.style.height = h + "px";
       if (MOB) {
-        canvas.style.top = vp.top + "px";
-        canvas.style.left = vp.left + "px";
+        canvas.style.top = "0";
+        canvas.style.left = "0";
         canvas.style.right = "auto";
         canvas.style.bottom = "auto";
       } else {
@@ -295,6 +307,24 @@ import { isMobileView } from "../lib/mobile.js";
     }
     var reduceDrawn = false;
     var mobHeavyLast = 0, MOB_HEAVY_MS = 33;
+    var MOB_CRYSTAL_SPIN_MS = 16000;
+    var CRYST_VB = { x: -74, y: -168, w: 148, h: 360 };
+    var bootAt = performance.now(), bootDone = false;
+    function dismissBootVeil() {
+      if (bootDone) return;
+      bootDone = true;
+      var v = document.querySelector(".boot-veil");
+      if (v) v.classList.add("boot-out");
+    }
+    function tryDismissBoot(canvasReady) {
+      if (bootDone) return;
+      if (reduce) { dismissBootVeil(); return; }
+      if (performance.now() - bootAt < 520) return;
+      if (MOB && !document.documentElement.classList.contains("is-mob")) return;
+      if (canvas && !canvasReady) return;
+      dismissBootVeil();
+    }
+    window.__dismissBootVeil = dismissBootVeil;
     var ARC_PERIODS = { arc1: 46, arc2: 26, arc3: -17, arc4: 34, arc5: 13 };
     var hudArcCache = [], hudSpinLast = 0, HUD_SPIN_MS = 50;
     function initHudArcCache() {
@@ -365,8 +395,8 @@ import { isMobileView } from "../lib/mobile.js";
           if (hudActive) spinHudReticles(now);
           if (bud.mapVisible && typeof window.__spinMapReticles === "function") window.__spinMapReticles(now);
         }
-        if (!MOB || (mobHeavy && hudActive)) updateCrystal(now);
-        if (canvasReady && bgActive && mobHeavy && hudActive) {
+        if (!MOB || hudActive) updateCrystal(now);
+        if (canvasReady && bgActive && hudActive) {
           if (!reduce) {
             var fh = h || 1, fw = w || 1;
             for (var i = 0; i < stars.length; i++) {
@@ -381,6 +411,7 @@ import { isMobileView } from "../lib/mobile.js";
             reduceDrawn = true;
           }
         }
+        tryDismissBoot(canvasReady);
       } catch (err) {
         console.error("scene step", err);
       }
@@ -484,6 +515,7 @@ import { isMobileView } from "../lib/mobile.js";
     }
     bootCanvas();
     requestAnimationFrame(function () { resize(); placeFgInWorld(); });
+    setTimeout(dismissBootVeil, 2400);
 
     /* ---------- Beacon → Commander Profile ---------- */
     var beacon = document.querySelector(".beacon");
@@ -589,7 +621,69 @@ import { isMobileView } from "../lib/mobile.js";
     function norm(v) { var l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0]/l, v[1]/l, v[2]/l]; }
     var crystBack = null, crystFront = null, crystV = [], crystF = [], crystPolys = [];
     var crystBackOrder = [], crystFrontOrder = [];
+    var crystCanvas = null, crystCtx = null, crystCvSize = { w: 0, h: 0, cw: 0, ch: 0 };
     var CL = norm([-0.35, -0.6, 0.72]);                          // light dir (view space)
+    function resizeCrystalCanvas(cw) {
+      if (!crystCanvas || !crystCtx || cw < 1) return false;
+      cw = Math.max(1, Math.round(cw));
+      var ch = Math.max(1, Math.round(cw * (CRYST_VB.h / CRYST_VB.w)));
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      var pw = Math.max(1, Math.round(cw * dpr)), ph = Math.max(1, Math.round(ch * dpr));
+      if (crystCvSize.w === pw && crystCvSize.h === ph) return false;
+      crystCvSize = { w: pw, h: ph, cw: cw, ch: ch };
+      crystCanvas.width = pw;
+      crystCanvas.height = ph;
+      crystCanvas.style.width = cw + "px";
+      crystCanvas.style.height = ch + "px";
+      crystCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return true;
+    }
+    function crystalCanvasPt(x, y) {
+      return [
+        ((x - CRYST_VB.x) / CRYST_VB.w) * crystCvSize.cw,
+        ((y - CRYST_VB.y) / CRYST_VB.h) * crystCvSize.ch
+      ];
+    }
+    function drawCrystalCanvas(RV) {
+      if (!crystCtx || crystCvSize.cw < 1) return;
+      var cw = crystCvSize.cw, ch = crystCvSize.ch;
+      crystCtx.clearRect(0, 0, cw, ch);
+      var faces = [];
+      for (var fi = 0; fi < crystF.length; fi++) {
+        var idx = crystF[fi];
+        var A = RV[idx[0]], B = RV[idx[1]], C = RV[idx[2]];
+        var nn = norm(cross([B[0]-A[0],B[1]-A[1],B[2]-A[2]], [C[0]-A[0],C[1]-A[1],C[2]-A[2]]));
+        var front = nn[2] > 0, az = 0, pts = [];
+        for (var p = 0; p < idx.length; p++) {
+          var r = RV[idx[p]];
+          az += r[2];
+          var cp = crystalCanvasPt(r[3], r[4]);
+          pts.push(cp[0], cp[1]);
+        }
+        az /= idx.length;
+        faces.push({ z: az, pts: pts, front: front, nn: nn });
+      }
+      faces.sort(function (m, n) { return m.z - n.z; });
+      for (var i = 0; i < faces.length; i++) {
+        var f = faces[i], pts = f.pts;
+        crystCtx.beginPath();
+        crystCtx.moveTo(pts[0], pts[1]);
+        for (var j = 2; j < pts.length; j += 2) crystCtx.lineTo(pts[j], pts[j + 1]);
+        crystCtx.closePath();
+        if (f.front) {
+          var b = Math.max(0, dot(f.nn, CL));
+          crystCtx.fillStyle = "rgba(" + Math.round(31 + b * 190) + "," + Math.round(168 + b * 50) + "," + Math.round(115 + b * 30) + "," + (0.3 + b * 0.42).toFixed(2) + ")";
+          crystCtx.strokeStyle = b > 0.78 ? "rgba(224,255,244,0.85)" : "rgba(188,250,223,0.4)";
+          crystCtx.lineWidth = 0.7;
+        } else {
+          crystCtx.fillStyle = "rgba(11,110,76,0.96)";
+          crystCtx.strokeStyle = "rgba(150,240,200,0.22)";
+          crystCtx.lineWidth = 0.5;
+        }
+        crystCtx.fill();
+        crystCtx.stroke();
+      }
+    }
     function buildCrystal() {
       var c = document.getElementById("crystal"); if (!c) return;
       // single-terminated hexagonal crystal: long prism body + sharp top point, irregular base
@@ -619,7 +713,21 @@ import { isMobileView } from "../lib/mobile.js";
         mk([j, k, 6 + k, 6 + j]);             // prism wall quad
         mk([13, 6 + j, 6 + k]);               // bottom cap triangle
       }
-      var backG = MOB ? '<g class="cback"></g>' : '<g class="cback" filter="url(#cFrost)"></g>';
+      if (MOB) {
+        c.innerHTML = "";
+        crystCanvas = document.createElement("canvas");
+        crystCanvas.className = "crystal-canvas";
+        crystCanvas.setAttribute("aria-hidden", "true");
+        c.appendChild(crystCanvas);
+        crystCtx = crystCanvas.getContext("2d", { alpha: true });
+        crystCvSize = { w: 0, h: 0, cw: 0, ch: 0 };
+        crystBack = null;
+        crystFront = null;
+        crystPolys = [];
+        updateCrystal(performance.now());
+        return;
+      }
+      var backG = '<g class="cback" filter="url(#cFrost)"></g>';
       c.innerHTML = '<svg viewBox="-74 -168 148 360" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
         + '<defs>'
         + '<linearGradient id="cEmerald" gradientUnits="userSpaceOnUse" x1="0" y1="-152" x2="0" y2="170">'
@@ -629,7 +737,7 @@ import { isMobileView } from "../lib/mobile.js";
         + '<linearGradient id="cCore" gradientUnits="userSpaceOnUse" x1="0" y1="-152" x2="0" y2="170">'
         + '<stop offset="0" stop-color="#1aa06e"/><stop offset="0.5" stop-color="#0b6e4c"/><stop offset="1" stop-color="#02281a"/>'
         + '</linearGradient>'
-        + (MOB ? '' : '<filter id="cFrost" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="1.5"/></filter>')
+        + '<filter id="cFrost" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="1.5"/></filter>'
         + '</defs>'
         + backG
         + '<g class="cfront"></g>'
@@ -639,56 +747,27 @@ import { isMobileView } from "../lib/mobile.js";
       crystPolys = [];
       var NS = "http://www.w3.org/2000/svg";
       for (var pi = 0; pi < crystF.length; pi++) {
-        if (MOB) {
-          var polyB = document.createElementNS(NS, "polygon");
-          var polyF = document.createElementNS(NS, "polygon");
-          polyB.setAttribute("stroke-linejoin", "round");
-          polyF.setAttribute("stroke-linejoin", "round");
-          polyB.setAttribute("visibility", "hidden");
-          crystBack.appendChild(polyB);
-          crystFront.appendChild(polyF);
-          crystPolys.push({ b: polyB, f: polyF });
-        } else {
-          var poly = document.createElementNS(NS, "polygon");
-          poly.setAttribute("stroke-linejoin", "round");
-          crystBack.appendChild(poly);
-          crystPolys.push(poly);
-        }
+        var poly = document.createElementNS(NS, "polygon");
+        poly.setAttribute("stroke-linejoin", "round");
+        crystBack.appendChild(poly);
+        crystPolys.push(poly);
       }
       crystBackOrder = []; crystFrontOrder = [];
       updateCrystal(performance.now());
     }
-    function updateCrystalMob(RV, fi, idx) {
-      var item = crystPolys[fi], A = RV[idx[0]], B = RV[idx[1]], C = RV[idx[2]];
-      var nn = norm(cross([B[0]-A[0],B[1]-A[1],B[2]-A[2]], [C[0]-A[0],C[1]-A[1],C[2]-A[2]]));
-      var front = nn[2] > 0, pts = [];
-      for (var p = 0; p < idx.length; p++) { var r = RV[idx[p]]; pts.push(r[3].toFixed(1) + "," + r[4].toFixed(1)); }
-      var ptStr = pts.join(" ");
-      if (front) {
-        var b = Math.max(0, dot(nn, CL));
-        var op = (0.3 + b * 0.42).toFixed(2);
-        var sw = b > 0.78 ? "rgba(224,255,244,0.85)" : "rgba(188,250,223,0.4)";
-        item.f.setAttribute("points", ptStr);
-        item.f.setAttribute("fill", "url(#cEmerald)");
-        item.f.setAttribute("fill-opacity", op);
-        item.f.setAttribute("stroke", sw);
-        item.f.setAttribute("stroke-width", "0.7");
-        item.f.setAttribute("visibility", "visible");
-        item.b.setAttribute("visibility", "hidden");
-      } else {
-        item.b.setAttribute("points", ptStr);
-        item.b.setAttribute("fill", "url(#cCore)");
-        item.b.setAttribute("fill-opacity", "0.96");
-        item.b.setAttribute("stroke", "rgba(150,240,200,0.22)");
-        item.b.setAttribute("stroke-width", "0.5");
-        item.b.setAttribute("visibility", "visible");
-        item.f.setAttribute("visibility", "hidden");
-      }
-    }
     function updateCrystal(now) {
-      if (!crystFront || !crystPolys.length) return;
+      if (MOB) {
+        if (!crystCtx || !crystF.length) return;
+      } else if (!crystFront || !crystPolys.length) return;
       now = now || performance.now();
-      var a = reduce ? 0.7 : (TAU * (t % 16000)) / 16000, ca = Math.cos(a), sa = Math.sin(a), f = 920;
+      if (MOB && crystCvSize.cw < 1) {
+        var cel = document.getElementById("crystal");
+        if (cel) {
+          var rw = parseFloat(cel.style.width);
+          if (rw > 0) resizeCrystalCanvas(rw);
+        }
+      }
+      var a = reduce ? 0.7 : (TAU * (t % MOB_CRYSTAL_SPIN_MS)) / MOB_CRYSTAL_SPIN_MS, ca = Math.cos(a), sa = Math.sin(a), f = 920;
       var RV = [];
       for (var i = 0; i < crystV.length; i++) {
         var v = crystV[i], x = v[0] * ca + v[2] * sa, z = -v[0] * sa + v[2] * ca, y = v[1];
@@ -698,10 +777,7 @@ import { isMobileView } from "../lib/mobile.js";
       var backArr = [], frontArr = [];
       for (var fi = 0; fi < crystF.length; fi++) {
         var idx = crystF[fi];
-        if (MOB) {
-          updateCrystalMob(RV, fi, idx);
-          continue;
-        }
+        if (MOB) continue;
         var A = RV[idx[0]], B = RV[idx[1]], C = RV[idx[2]];
         var nn = norm(cross([B[0]-A[0],B[1]-A[1],B[2]-A[2]], [C[0]-A[0],C[1]-A[1],C[2]-A[2]]));
         var front = nn[2] > 0, az = 0, pts = [];
@@ -726,7 +802,10 @@ import { isMobileView } from "../lib/mobile.js";
           backArr.push([az, poly]);
         }
       }
-      if (MOB) return;
+      if (MOB) {
+        drawCrystalCanvas(RV);
+        return;
+      }
       backArr.sort(function (m, n) { return m[0] - n[0]; });
       frontArr.sort(function (m, n) { return m[0] - n[0]; });
       var bi, fi, reorder = false;

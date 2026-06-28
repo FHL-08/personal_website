@@ -37,6 +37,25 @@ import SpeedInsights from "@vercel/speed-insights/astro";
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#05070f" />
     <title>{title}</title>
+    <script is:inline>
+      (function () {
+        if (/[?&]view=mobile/.test(location.search)) {
+          document.documentElement.classList.add("is-mob");
+          return;
+        }
+        if (!window.matchMedia) return;
+        if (window.matchMedia("(max-width: 820px)").matches) {
+          document.documentElement.classList.add("is-mob");
+          return;
+        }
+        if (
+          window.matchMedia("(pointer: coarse)").matches &&
+          window.matchMedia("(hover: none)").matches
+        ) {
+          document.documentElement.classList.add("is-mob");
+        }
+      })();
+    </script>
   </head>
   <body>
     <slot />

@@ -96,6 +96,7 @@ const html = `<!doctype html>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/augmented-ui@2.0.0/augmented-ui.min.css"/>
 <style>${tokens}\n${global}</style>
+<script>(function(){if(/[?&]view=mobile/.test(location.search)){document.documentElement.classList.add("is-mob");return;}if(!window.matchMedia)return;if(window.matchMedia("(max-width: 820px)").matches){document.documentElement.classList.add("is-mob");return;}if(window.matchMedia("(pointer: coarse)").matches&&window.matchMedia("(hover: none)").matches)document.documentElement.classList.add("is-mob");})();</script>
 </head><body>
 <canvas id="starfield" aria-hidden="true"></canvas>
 <div class="boot-veil" aria-hidden="true"></div>

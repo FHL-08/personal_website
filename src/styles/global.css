@@ -552,14 +552,16 @@ html.is-mob .ml-frame .ml-next { right: 0; left: auto; }
 .rec-assets .asset { font-size: 0.74rem; }
 .media-head { font-size: 0.64rem; }
 
-/* ===== Boot reveal (first paint) ===== */
+/* ===== Boot reveal (first paint) — stays opaque until JS adds .boot-out ===== */
 .boot-veil { position: fixed; inset: 0; z-index: 90; background: var(--bg-void); pointer-events: none;
-  animation: bootFade 0.7s ease-out both; }
+  opacity: 1; visibility: visible; }
 .boot-veil::after { content: ""; position: absolute; left: 0; right: 0; height: 2px; top: 0;
   background: linear-gradient(90deg, transparent, rgba(65,227,255,0.9) 50%, transparent);
-  box-shadow: 0 0 12px rgba(65,227,255,0.6); animation: bootScan 0.7s ease-out both; }
-@keyframes bootFade { 0% { opacity: 1; } 32% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
-@keyframes bootScan { 0% { top: 0; opacity: 0; } 14% { opacity: 0.95; } 100% { top: 100%; opacity: 0; } }
+  box-shadow: 0 0 12px rgba(65,227,255,0.6); opacity: 0; }
+.boot-veil.boot-out { animation: bootFade 0.85s ease-out forwards; }
+.boot-veil.boot-out::after { animation: bootScan 0.85s ease-out forwards; }
+@keyframes bootFade { 0% { opacity: 1; } 28% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+@keyframes bootScan { 0% { top: 0; opacity: 0; } 12% { opacity: 0.95; } 100% { top: 100%; opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .boot-veil { display: none; } }
 
 
@@ -675,6 +677,8 @@ html.is-mob .ml-frame .ml-next { right: 0; left: auto; }
   cursor: pointer; pointer-events: none; border: 0; background: none; padding: 0; z-index: 2; }
 .crystal svg { width: 100%; height: auto; display: block; overflow: visible;
   filter: drop-shadow(0 0 7px rgba(34,214,140,0.5)); shape-rendering: geometricPrecision; }
+.crystal-canvas { display: block; width: 100%; height: auto; pointer-events: none;
+  filter: drop-shadow(0 0 7px rgba(34,214,140,0.5)); }
 .crystal-hit { position: absolute; left: 0; top: 0; transform: translate(-50%,-50%); width: min(31vw, 304px); height: min(31vw, 304px);
   border-radius: 50%; background: none; border: 0; padding: 0; cursor: pointer; pointer-events: auto; z-index: 3; }
 .crystal-rig .crystal-name,
@@ -738,6 +742,10 @@ html.is-mob .ml-frame .ml-next { right: 0; left: auto; }
   html, body { overflow: hidden; height: 100%; }
   main.wrap { display: none !important; }                 /* archive/mission-log list -> use the in-scene buttons */
   .scene { height: 100dvh; min-height: 100dvh; }
+  .ship-rig, .scene-links, .enter-archive { display: none !important; }
+  /* Hide desktop-positioned HUD cards until JS moves them into #mob-cmd */
+  .beacon:not(.mob-btn), .telemetry:not(.mob-btn) { visibility: hidden; pointer-events: none; }
+  html.is-mob .mob-cmd .beacon.mob-btn, html.is-mob .mob-cmd .telemetry.mob-btn { visibility: visible; pointer-events: auto; }
   /* HUD command strip — softer pulse than map chrome */
   html.is-mob .mob-cmd .mob-btn { animation: mobpulse-subtle 3.4s ease-in-out infinite; transition: transform 0.14s ease, filter 0.14s ease; }
   html.is-mob .mob-cmd .mob-btn:active { transform: scale(1.04) !important; filter: drop-shadow(0 0 10px rgba(120,224,255,0.85)) !important; }
@@ -750,9 +758,18 @@ html.is-mob .ml-frame .ml-next { right: 0; left: auto; }
 @keyframes mobpulse { 0%, 100% { filter: drop-shadow(0 0 3px rgba(65,227,255,0.4)); } 50% { filter: drop-shadow(0 0 10px rgba(65,227,255,0.7)); } }
 @keyframes mobpulse-subtle { 0%, 100% { filter: drop-shadow(0 0 2px rgba(65,227,255,0.22)); } 50% { filter: drop-shadow(0 0 7px rgba(65,227,255,0.42)); } }
 
-/* ===== mobile: no ship — hero crystal only; keep 3D yaw via JS projection ===== */
+/* ===== mobile: no ship — hero crystal HUD layers (glow → crystal → reticle → label) ===== */
 html.is-mob .ship-rig { display: none !important; }
 .scene.sm-mob .ship-rig { display: none !important; }
+html.is-mob .crystal-rig { z-index: 5; }
+html.is-mob .crystal-rig .crystal-glow { z-index: 0; }
+html.is-mob .crystal-rig .crystal { position: absolute; left: 0; top: 0; z-index: 1; }
+html.is-mob .crystal-rig .reticle {
+  position: absolute; left: 0; top: 0; z-index: 2;
+  transform: translate(-50%, -50%); transform-origin: center center; pointer-events: none;
+}
+html.is-mob .crystal-rig .crystal-hit { z-index: 3; }
+html.is-mob .crystal-rig .crystal-name { z-index: 4; }
 /* mobile: off-duty card scales with zoom like constellation labels (font-size set in JS) */
 .scene.sm-mob .crystal-name { padding: 0.34em 0.92em; }
 .scene.sm-mob .crystal-name .t { font-size: 1em; }
@@ -827,7 +844,8 @@ html.is-mob .crystal-hit { pointer-events: auto; touch-action: manipulation; z-i
 html.is-mob .reticle .arc { animation: none !important; }
 html.is-mob .sm-rr-spin,
 html.is-mob .sm-sret-spin { animation: none !important; }
-html.is-mob #starmap[data-hud-home="1"] { visibility: hidden; }
+html.is-mob #starmap[data-hud-home="1"] { visibility: hidden; pointer-events: none; }
+html.is-mob #starmap[data-hud-home="0"] { visibility: visible; transform: translateZ(0); }
 html.is-mob { overflow: hidden; height: 100%; }
 html.is-mob .fx-grain { display: none; }
 html.is-mob .con-label,
