@@ -3,20 +3,24 @@
 import Base from "../layouts/Base.astro";
 import { profile, constellations, missionLog, offDuty } from "../data/content";
 import { renderStarmap, recordsPayload } from "../lib/starmapRender";
-import { supabase } from '../db/supabase';
+import {
+  resolveOffDuty,
+  resolveProfilePortrait,
+  resolveRecordsPayload,
+} from "../lib/assets";
 
 const pip = (level: number) => Array.from({ length: 5 }, (_, i) => i < level);
 const pad = (n: number) => String(n).padStart(2, "0");
 const starmapSVG = renderStarmap(constellations);
-const recordsJSON = JSON.stringify(recordsPayload(constellations));
+const recordsJSON = JSON.stringify(resolveRecordsPayload(recordsPayload(constellations)));
+const offDutyJSON = JSON.stringify(resolveOffDuty(offDuty));
+const { portrait, cv } = resolveProfilePortrait(profile);
 const contactIcons = {
   email: '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>',
   github: '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>',
   linkedin: '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>',
   scholar: '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 2.5 3 6 3s6-2 6-3v-5"/><path d="M22 10v6"/></svg>'
 };
-const { data, error } = await supabase.from("todos").select('*');
-
 ---
 
 <Base>
@@ -133,7 +137,7 @@ const { data, error } = await supabase.from("todos").select('*');
         <span class="sweep"></span>
         <div class="dossier-head">
           <div class="portrait-wrap">
-            <img class="portrait" src={profile.portrait.src} alt={profile.portrait.alt} decoding="async" />
+            <img class="portrait" src={portrait.src} alt={portrait.alt} decoding="async" />
             <span class="scan"></span>
           </div>
           <div>
@@ -172,7 +176,7 @@ const { data, error } = await supabase.from("todos").select('*');
           </div>
         </div>
         <div class="contacts">
-          <a href={profile.cv.href}><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> {profile.cv.label}</a>
+          <a href={cv.href}><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> {profile.cv.label}</a>
           {profile.contacts.map((c) => (<a class="ic-link" href={c.href} aria-label={c.label} title={c.label} set:html={contactIcons[c.icon ?? ""] ?? c.label} />))}
         </div>
       </section>
@@ -220,7 +224,7 @@ const { data, error } = await supabase.from("todos").select('*');
       <div class="od-cap"></div>
     </div>
   </div>
-  <script is:inline type="application/json" id="offduty-data" set:html={JSON.stringify(offDuty)}></script>
+  <script is:inline type="application/json" id="offduty-data" set:html={offDutyJSON}></script>
 
   <script>import "../scripts/scene.js";</script>
   <script>import "../scripts/starmap.js";</script>

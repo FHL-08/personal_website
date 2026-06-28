@@ -1,51 +1,219 @@
 # Faisal Lawan — Portfolio
 
-An immersive, space-themed personal portfolio. The site is a single star system you
-explore: fly the map, open constellations, and read "data records" covering research,
-projects, awards, work experience, education, skills, hackathons and hobbies. Fully
-responsive, with a dedicated touch layout for phones and tablets.
+[![Astro](https://img.shields.io/badge/Astro-7-BC52EE?logo=astro&logoColor=white)](https://astro.build)
+[![Supabase](https://img.shields.io/badge/Assets-Supabase%20Storage-3FCF8E?logo=supabase&logoColor=white)](https://supabase.com/docs/guides/storage)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Live site:** _add your Vercel URL here_
+An immersive, space-themed personal portfolio built as a static site with a
+fully interactive HUD: constellation star map, data-record overlays, media
+lightbox with PDF viewer, mission log, and off-duty gallery. Responsive across
+desktop and touch devices.
+
+**Live site:** _add deployment URL_
+
+---
+
+## Overview
+
+The repository contains **site code and content definitions only**. Images, video,
+PDFs, and other media live in **Supabase Storage** and are referenced at build
+time via logical paths in `src/data/content.ts` (e.g. `/assets/media/...`).
+
+This keeps the git history small and avoids committing personal media or
+credentials.
+
+---
 
 ## Tech stack
 
-- **Astro** — static output; ships near-zero JS for the content shell.
-- **Vanilla JS + Canvas/SVG** — the interactive HUD scene: starfield, constellation
-  star map, pan/zoom, holographic overlays, and the media lightbox.
-- **React** — used only as a build-time island integration.
-- No backend; the whole site is static files.
+| Layer | Technology |
+|-------|------------|
+| Framework | [Astro 7](https://astro.build) — static output |
+| Scene | Vanilla JS, Canvas, SVG — starfield, map, lightbox |
+| PDF viewer | PDF.js (HUD-themed, in-lightbox) |
+| Assets | Supabase Storage (public read bucket) |
+| Hosting | Vercel (or any static host) |
+
+---
+
+## Prerequisites
+
+- **Node.js** 20+ (LTS recommended)
+- **npm** 10+
+- A **Supabase** project with the storage bucket configured (see below)
+
+---
+
+## Quick start
+
+```bash
+git clone <repository-url>
+cd personal_website
+npm install
+cp .env.example .env.local   # then fill in your values
+```
+
+### 1. Configure environment
+
+Copy `.env.example` to `.env.local`:
+
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_STORAGE_BUCKET=portfolio
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key   # upload script only
+```
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `SUPABASE_URL` | Build & dev | Resolves `/assets/...` to public Storage URLs |
+| `SUPABASE_STORAGE_BUCKET` | Optional | Bucket name (default: `portfolio`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Upload only | `npm run assets:sync` — **never** expose in the browser or commit |
+
+### 2. Set up Supabase Storage (one-time)
+
+In the Supabase dashboard → **SQL**, run:
+
+```
+scripts/db/storage-setup.sql
+```
+
+This creates a public-read `portfolio` bucket.
+
+### 3. Add local assets and sync
+
+Place optimized media under `public/assets/` (mirrors the paths in
+`content.ts`). Then upload:
+
+```bash
+npm run assets:sync
+```
+
+### 4. Run locally
+
+```bash
+npm run dev
+```
+
+Open the URL shown in the terminal (typically `http://localhost:4321`).
+
+**Production-like check:**
+
+```bash
+npm run build
+npm run preview
+```
+
+---
+
+## npm scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Astro dev server with hot reload |
+| `npm run build` | Static production build → `dist/` |
+| `npm run preview` | Serve the production build locally |
+| `npm run preview:build` | Generate standalone `preview/index.html` |
+| `npm run assets:sync` | Upload `public/assets/` to Supabase Storage |
+| `npm run favicons` | Regenerate favicon PNGs from `public/favicon.svg` |
+
+### Standalone preview
+
+Useful for testing the inlined preview bundle without the Astro dev server:
+
+```bash
+npm run preview:build
+npx serve preview
+```
+
+Open `http://localhost:3000/index.html`. Requires `.env.local` so asset URLs
+resolve to Supabase.
+
+---
 
 ## Project structure
 
-| Path | Purpose |
-|------|---------|
-| `src/pages/index.astro` | Page markup |
-| `src/layouts/Base.astro` | HTML shell — head, fonts, icons |
-| `src/data/content.ts` | All site content (single source of truth) |
-| `src/data/starmap.ts` | Constellation layout |
-| `src/lib/starmapRender.ts` | Builds the star-map SVG + record payload |
-| `src/scripts/scene.js` | Immersive HUD scene (starfield, ship, crystal, launchers) |
-| `src/scripts/starmap.js` | Constellation star-map interaction engine |
-| `src/styles/` | Design tokens + global styles |
-| `public/` | Static assets (media, CV, icons) |
-| `scripts/preview-render.mjs` | Generates a standalone local preview |
+```
+src/
+  data/content.ts      # All site copy, records, media paths, off-duty tabs
+  data/starmap.ts      # Constellation layout coordinates
+  lib/assets.ts        # /assets/... → Supabase public URL resolver
+  lib/starmapRender.ts # Star-map SVG + records JSON payload
+  scripts/             # Scene, star map, PDF viewer (client-side)
+  pages/index.astro    # Single-page site shell
+  styles/              # Design tokens + global CSS
 
-## Develop
+public/                # Committed static files (favicon, manifest)
+public/assets/         # Local media cache (gitignored) → sync to Supabase
 
-```bash
-npm install
-npm run dev       # local dev server
-npm run build     # static build -> dist/
-npm run preview   # serve the production build locally
+scripts/
+  preview-render.mjs   # Standalone preview generator
+  sync-assets-to-supabase.mjs
+  db/storage-setup.sql # Supabase bucket + read policy
+  optimize-media.py    # Media pipeline (optional)
+
+preview/               # Generated by preview:build (gitignored)
+dist/                  # Production build output (gitignored)
 ```
 
-## Deploy
+---
 
-Static output to `dist/`. Hosted on Vercel — the framework is auto-detected
-(build command `npm run build`, output directory `dist`).
+## Content workflow
+
+1. Edit **`src/data/content.ts`** — add or update stars, media entries, and
+   paths under `/assets/...`.
+2. Run the media pipeline (if applicable) to produce optimized files in
+   `public/assets/`.
+3. **`npm run assets:sync`** — push changes to Supabase.
+4. **`npm run dev`** or **`npm run build`** — verify locally.
+5. Deploy.
+
+Asset URLs are resolved in:
+
+- `src/pages/index.astro` (portrait, CV, records JSON, off-duty data)
+- `scripts/preview-render.mjs` (standalone preview)
+
+---
+
+## Deployment
+
+Static output directory: **`dist/`**
+
+**Vercel (recommended):**
+
+- Build command: `npm run build`
+- Output directory: `dist`
+- Environment variables (build time):
+  - `SUPABASE_URL`
+  - `SUPABASE_STORAGE_BUCKET` (if not using default `portfolio`)
+
+Do **not** add `SUPABASE_SERVICE_ROLE_KEY` to deployment environment
+variables unless you run the upload script in CI (not required for normal
+deploys).
+
+---
+
+## Security
+
+- **Public bucket** — portfolio media is intentionally world-readable (same as
+  any public website).
+- **Service role key** — local upload script only; never commit or ship to the
+  client.
+- **`.env.local`** — gitignored; use `.env.example` as the template for new
+  clones.
+
+If secrets or assets were committed before gitignore rules were added, remove
+them from tracking (files stay on disk):
+
+```bash
+git rm -r --cached public/assets preview .env.local
+git commit -m "Stop tracking local assets and env secrets"
+```
+
+---
 
 ## License
 
-Source code is released under the terms in [LICENSE](LICENSE). All personal content
-and media in this repository — text, images, video and the CV — are © Faisal Lawan and
-are not covered by that license.
+Source code is released under the [MIT License](LICENSE).
+
+Personal content and media (text, images, video, CV) are © Faisal Lawan and are
+not covered by that license.

@@ -3,14 +3,25 @@
  * Mirrors the Astro site using the same CSS + scripts. Run:
  *   node --experimental-strip-types scripts/preview-render.mjs
  */
-import { readFileSync, writeFileSync, mkdirSync, cpSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { loadEnvLocal } from "./load-env.mjs";
 import { profile, constellations, missionLog, offDuty } from "../src/data/content.ts";
 import { renderStarmap, recordsPayload } from "../src/lib/starmapRender.ts";
+import {
+  resolveOffDuty,
+  resolveProfilePortrait,
+  resolveRecordsPayload,
+} from "../src/lib/assets.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+loadEnvLocal(root);
+
+const { portrait, cv } = resolveProfilePortrait(profile);
+const recordsJSON = JSON.stringify(resolveRecordsPayload(recordsPayload(constellations)));
+const offDutyJSON = JSON.stringify(resolveOffDuty(offDuty));
 
 /** Build pdfViewer bundle for preview (production inlines it via starmap static import). */
 function syncPdfViewerForPreview() {
@@ -32,17 +43,6 @@ function syncPdfViewerForPreview() {
   } catch (e) {
     return "";
   }
-}
-
-/** Copy web assets so preview works when serving only the preview/ folder. */
-function syncPreviewAssets() {
-  const src = join(root, "public", "assets");
-  const dest = join(root, "preview", "assets");
-  if (!existsSync(src)) {
-    console.warn("preview-render: public/assets missing — media/PDFs may 404 in preview.");
-    return;
-  }
-  cpSync(src, dest, { recursive: true, force: true });
 }
 
 const pdfViewerBoot = syncPdfViewerForPreview();
@@ -102,7 +102,7 @@ const scene = () => `
     <div id="record-overlay" role="dialog" aria-modal="true" aria-label="Data Record">
       <div class="record-panel" data-augmented-ui="tl-clip br-clip border"><span class="sweep"></span><button class="record-close" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> CLOSE</button><div id="record-body"></div></div>
     </div>
-    <script type="application/json" id="sm-records">${recordsPayload(constellations) ? JSON.stringify(recordsPayload(constellations)) : "{}"}</script>
+    <script type="application/json" id="sm-records">${recordsJSON}</script>
   </section>`;
 
 const pips = (lvl) => `<div class="pips">${Array.from({ length: 5 }, (_, i) => `<span class="pip ${i < lvl ? "on" : ""}"></span>`).join("")}</div>`;
@@ -110,7 +110,7 @@ const dossierOverlay = () => `
   <div class="profile-overlay" role="dialog" aria-modal="true" aria-label="Commander Profile"><div class="profile-panel">
     <button class="profile-close" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> CLOSE</button>
     <section class="dossier" data-augmented-ui="tl-clip br-clip border"><span class="sweep"></span>
-      <div class="dossier-head"><div class="portrait-wrap"><img class="portrait" src="${esc(profile.portrait.src)}" alt="${esc(profile.portrait.alt)}" decoding="async"/><span class="scan"></span></div>
+      <div class="dossier-head"><div class="portrait-wrap"><img class="portrait" src="${esc(portrait.src)}" alt="${esc(portrait.alt)}" decoding="async"/><span class="scan"></span></div>
         <div><div class="id-tag">PERSONNEL DOSSIER // ${esc(profile.callsign)}</div><h1>${esc(profile.name)}<span class="status-pill">${esc(profile.status)}</span></h1><div class="class">${esc(profile.className)}</div><div class="directive">${esc(profile.directive)}</div></div></div>
       <div class="dossier-grid">
         <div class="dblock"><h4>IDENTIFICATION</h4><dl class="fields">${profile.dossier.map((f) => `<dt>${esc(f.label)}</dt><dd>${esc(f.value)}</dd>`).join("")}</dl></div>
@@ -118,7 +118,7 @@ const dossierOverlay = () => `
         <div class="dblock"><h4>FIELD RECORD</h4><ul class="reclist">${profile.fieldRecord.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></div>
         <div class="dblock"><h4>TOOLSET</h4>${profile.toolset.map((g) => `<div class="toolgroup"><div class="tlabel">${esc(g.label)}</div><div class="titems">${g.items.map((i) => `<span class="chip">${esc(i)}</span>`).join("")}</div></div>`).join("")}</div>
       </div>
-      <div class="contacts"><a href="${esc(profile.cv.href)}"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> ${esc(profile.cv.label)}</a>${profile.contacts.map((c) => `<a class="ic-link" href="${esc(c.href)}" aria-label="${esc(c.label)}" title="${esc(c.label)}">${contactIcons[c.icon] || esc(c.label)}</a>`).join("")}</div>
+      <div class="contacts"><a href="${esc(cv.href)}"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> ${esc(profile.cv.label)}</a>${profile.contacts.map((c) => `<a class="ic-link" href="${esc(c.href)}" aria-label="${esc(c.label)}" title="${esc(c.label)}">${contactIcons[c.icon] || esc(c.label)}</a>`).join("")}</div>
     </section></div></div>`;
 
 const record = (s) => `<article class="record" id="${esc(s.id)}"><span class="sweep"></span>${s.badge ? `<span class="badge">${esc(s.badge)}</span>` : ""}<div class="rtype">${esc(s.recordType)}</div><h3>${esc(s.title)}</h3>${s.date ? `<div class="date">${esc(s.date)}</div>` : ""}<p class="summary">${esc(s.summary)}</p>${s.tags && s.tags.length ? `<div class="tags">${s.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>` : ""}${s.assets && s.assets.length ? `<div class="assets">${s.assets.map((a) => `<a class="asset" href="${esc(a.href)}">${esc(a.label)}</a>`).join("")}</div>` : ""}</article>`;
@@ -177,14 +177,13 @@ ${dossierOverlay()}
     <div class="od-cap"></div>
   </div>
 </div>
-<script type="application/json" id="offduty-data">${JSON.stringify(offDuty)}</script>
+<script type="application/json" id="offduty-data">${offDutyJSON}</script>
 <script>${mobileInline}\n${sceneBundled}</script>
 ${pdfViewerBoot}
 <script>${starmapBundled}</script>
 </body></html>`;
 
-syncPreviewAssets();
-const previewHtml = html.replaceAll('"/assets/', '"./assets/');
+const previewHtml = html;
 const previewVer = Date.now();
 mkdirSync(join(root, "preview"), { recursive: true });
 writeFileSync(join(root, "preview/index.html"), previewHtml);

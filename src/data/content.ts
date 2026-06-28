@@ -4,9 +4,9 @@
  * The immersive scene, the Data Record overlays, the Mission Log and the
  * deep-link pages are all driven from this file. Write content once here.
  *
- * Media `src` paths point at /assets/... (web-ready output of the media
- * pipeline, scripts/optimize-media.mjs). Original source lives in
- * "Context and media/" and is never served directly.
+ * Media `src` paths use logical keys under /assets/... (e.g. /assets/media/foo.jpg).
+ * At build time they resolve to Supabase Storage public URLs via src/lib/assets.ts.
+ * Optimized files live locally in public/assets/ (gitignored) and sync with npm run assets:sync.
  */
 
 // ----------------------------------------------------------------------------
