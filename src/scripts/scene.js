@@ -304,6 +304,39 @@ import { isMobileView } from "../lib/mobile.js";
     }
     var reduceDrawn = false;
     var mobHeavyLast = 0, MOB_HEAVY_MS = 33;
+    var ARC_PERIODS = { arc1: 46, arc2: 26, arc3: -17, arc4: 34, arc5: 13 };
+    var hudArcCache = [], hudSpinLast = 0, HUD_SPIN_MS = 50;
+    function initHudArcCache() {
+      if (!MOB) return;
+      hudArcCache = [];
+      var roots = [document.querySelector(".reticle"), scene && scene.querySelector(".ship-reticle")];
+      for (var ri = 0; ri < roots.length; ri++) {
+        var root = roots[ri];
+        if (!root) continue;
+        var arcs = root.querySelectorAll(".arc");
+        for (var ai = 0; ai < arcs.length; ai++) {
+          var arc = arcs[ai], period = 30;
+          for (var k in ARC_PERIODS) { if (arc.classList.contains(k)) { period = ARC_PERIODS[k]; break; } }
+          hudArcCache.push({ el: arc, period: period, last: "" });
+        }
+      }
+    }
+    function spinHudReticles(now) {
+      if (!MOB || !hudArcCache.length) return;
+      if (now - hudSpinLast < HUD_SPIN_MS) return;
+      hudSpinLast = now;
+      for (var i = 0; i < hudArcCache.length; i++) {
+        var item = hudArcCache[i], period = item.period;
+        var ang = (now / (Math.abs(period) * 1000)) * 360 * (period < 0 ? -1 : 1);
+        var tf = "rotate(" + (ang % 360).toFixed(1) + "deg)";
+        if (item.last !== tf) { item.last = tf; item.el.style.transform = tf; }
+      }
+    }
+    function sceneBud() {
+      return (MOB && typeof window.__sceneBudget === "function")
+        ? window.__sceneBudget()
+        : { mode: "map", mapActive: false, hudHome: true, mapVisible: false };
+    }
     function overlaysOpen() {
       var po = document.querySelector(".profile-overlay");
       var mo = document.getElementById("missionlog-overlay");
@@ -323,23 +356,26 @@ import { isMobileView } from "../lib/mobile.js";
         var canvasReady = w >= 2 && h >= 2;
         if (!canvasReady) canvasReady = resize();
         t += dt;
-        if (scene && !reduce) {
+        var bud = sceneBud();
+        var bgActive = !overlaysOpen();
+        var mobHeavy = !MOB || (now - mobHeavyLast >= MOB_HEAVY_MS);
+        var hudActive = !MOB || bud.mode === "map";
+        if (scene && !reduce && hudActive) {
           var by = Math.sin(t / 1400) * 6;
           scene.style.setProperty("--bob", by.toFixed(2) + "px");
           scene.style.setProperty("--bobrot", (Math.sin(t / 1400) * 0.5).toFixed(3) + "deg");
           window.__bob = by;
         }
-        updateOrbit();
-        var bgActive = !overlaysOpen();
-        var mobHeavy = !MOB || (now - mobHeavyLast >= MOB_HEAVY_MS);
+        if (hudActive) updateOrbit();
         if (MOB && mobHeavy) mobHeavyLast = now;
         if (!MOB) {
           drawLinks();
-        } else if (bgActive && mobHeavy && typeof window.__spinMapReticles === "function") {
-          window.__spinMapReticles(now);
+        } else if (bgActive && mobHeavy) {
+          if (hudActive) spinHudReticles(now);
+          if (bud.mapVisible && typeof window.__spinMapReticles === "function") window.__spinMapReticles(now);
         }
-        if (!MOB || mobHeavy) updateCrystal(now);
-        if (canvasReady && bgActive && mobHeavy) {
+        if (!MOB || (mobHeavy && hudActive)) updateCrystal(now);
+        if (canvasReady && bgActive && mobHeavy && hudActive) {
           if (!reduce) {
             var fh = h || 1, fw = w || 1;
             for (var i = 0; i < stars.length; i++) {
@@ -437,6 +473,7 @@ import { isMobileView } from "../lib/mobile.js";
     ensureFgInWorld();
     desktopHudSetup();
     mobileSetup();
+    initHudArcCache();
     placeFgInWorld();
     resize();
     drawLinks();

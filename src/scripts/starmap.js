@@ -47,12 +47,10 @@ import { isMobileView } from "../lib/mobile.js";
     var mode="map", curCon=null, hovStar=null, hovCon=null, lastM={x:-1,y:-1}, T={tx:0,ty:0,s:1}, hraf=0, hUntil=0, starSeqT1=0, starSeqT2=0;
     var pressCon=null, pressStar=null;
     var homeT={tx:0,ty:0,s:1};
+    var mapPanned=false;
     window.__smT={tx:0,ty:0,s:1};
     function snapHomeT(){ if(!MOB) return; homeT={tx:T.tx,ty:T.ty,s:T.s}; }
-    function mapViewActive(){
-      if(!MOB||mode!=="map") return true;
-      return Math.abs(T.tx-homeT.tx)>3||Math.abs(T.ty-homeT.ty)>3||Math.abs(T.s-homeT.s)>0.025;
-    }
+    function markMapPanned(){ if(MOB&&mode==="map") mapPanned=true; }
 
     function metrics(){ var R=scene.getBoundingClientRect(); var s=Math.min(R.width/VBW, R.height/VBH);
       return { W:R.width, H:R.height, s:s, ox:(R.width-VBW*s)/2, oy:(R.height-VBH*s)/2 }; }
@@ -72,7 +70,23 @@ import { isMobileView } from "../lib/mobile.js";
     function applyTransformLite(){
       if(!applyGTransform()&&world) world.style.transform="translate("+T.tx+"px,"+T.ty+"px) scale("+T.s+")";
       window.__smpan={x:T.tx,y:T.ty}; window.__smT={tx:T.tx,ty:T.ty,s:T.s};
+      updateMapVisibility();
     }
+    function updateMapVisibility(){
+      if(!MOB||!sm) return;
+      var show = mode !== "map" || mapPanned;
+      sm.style.visibility = show ? "" : "hidden";
+      sm.setAttribute("data-hud-home", show ? "0" : "1");
+    }
+    function sceneBudget(){
+      return {
+        mode: mode,
+        mapActive: mapPanned,
+        hudHome: mode === "map" && !mapPanned,
+        mapVisible: mode !== "map" || mapPanned
+      };
+    }
+    window.__sceneBudget = sceneBudget;
     function applyTransformLayout(){
       if(conLabels&&mode==="map") placeConLabels();
       if(typeof window.__placeFgInWorld==="function") window.__placeFgInWorld();
@@ -104,13 +118,19 @@ import { isMobileView } from "../lib/mobile.js";
     function defaultT(){ var m=metrics();
       if(MOB){ var a=vb(1472,639,m), s=Math.max(0.9,Math.min(3.6, 0.42*Math.min(m.W,m.H)/(400*m.s)));
         if(PHONE) s=Math.min(ZMAX, s*1.35);
-        setT(0.5*m.W - s*a.x, 0.5*m.H - s*a.y, s); snapHomeT(); placeConLabels(); return; }
+        mapPanned=false;
+        world.classList.remove("sm-anim");
+        T.tx=0.5*m.W - s*a.x; T.ty=0.5*m.H - s*a.y; T.s=s;
+        applyTransform();
+        snapHomeT();
+        placeConLabels();
+        return; }
       var s=0.8; setT(m.W*(1-s)/2, m.H*(1-s)/2, s); }
     // like defaultT but recenters on a specific constellation (used when closing one on touch,
     // so you zoom back out onto the sector you were in rather than jumping to the crystal)
     function defaultTAt(c){ if(!MOB||!c){ defaultT(); return; } var m=metrics();
       var s=Math.max(0.9,Math.min(3.6, 0.42*Math.min(m.W,m.H)/(400*m.s))); if(PHONE) s=Math.min(ZMAX, s*1.35);
-      var a=vb(c.cx,c.cy,m); T.s=s; T.tx=0.5*m.W - s*a.x; T.ty=0.5*m.H - s*a.y; clampT(); setT(T.tx,T.ty,T.s); placeConLabels(); }
+      var a=vb(c.cx,c.cy,m); mapPanned=true; T.s=s; T.tx=0.5*m.W - s*a.x; T.ty=0.5*m.H - s*a.y; clampT(); setT(T.tx,T.ty,T.s); placeConLabels(); }
 
     /* ---------- permanent constellation labels (touch, map mode) ---------- */
     var conLabels=null;
@@ -301,6 +321,7 @@ import { isMobileView } from "../lib/mobile.js";
       clampT();
       schedule();
       busy();
+      markMapPanned();
     }
     function clampT(){
       var m=metrics();
@@ -343,7 +364,7 @@ import { isMobileView } from "../lib/mobile.js";
     }
     function spinMapReticles(now) {
       if (!MOB || !sm) return;
-      if (!mapViewActive()) return;
+      if (!mapPanned) return;
       if (now - smSpinLast < SM_SPIN_MS) return;
       smSpinLast = now;
       if (!smSpinCache.length) initSmSpinCache();
@@ -405,7 +426,7 @@ import { isMobileView } from "../lib/mobile.js";
         if(!dragged&&Math.hypot(dx,dy)>5){ dragged=true; clearHold(); beginGesture(); scene.classList.add("sm-grab");
           if(MOB&&pressCon){ pressCon.g.classList.remove("pressing"); pressCon=null; }
           if(!MOB&&hovCon){ hovCon.g.classList.remove("on"); hovCon=null; conName.classList.remove("show"); clearFx(); } }
-        if(dragged){ T.tx=drag.tx+dx; T.ty=drag.ty+dy; clampT(); schedule(); busy(); } }
+        if(dragged){ T.tx=drag.tx+dx; T.ty=drag.ty+dy; clampT(); schedule(); busy(); markMapPanned(); } }
       if(downPt && Math.hypot(e.clientX-downPt.x,e.clientY-downPt.y)>6){ downPt.moved=true; clearHold();
         if(MOB&&pressStar){ pressStar.el.classList.remove("held"); pressStar=null; } }
     });
@@ -471,6 +492,7 @@ import { isMobileView } from "../lib/mobile.js";
     document.addEventListener("keydown",function(e){ if(ml&&ml.classList.contains("open")){ if(e.key==="Escape") closeLightbox(); else if(e.key==="ArrowLeft") openLightbox(mlIndex-1); else if(e.key==="ArrowRight") openLightbox(mlIndex+1); return; } if(e.key==="Escape"){ if(mode==="star") toFocus(); else if(mode==="focus") toMap(); } });
     buildConLabels();
     defaultT(); updateHud();
+    updateMapVisibility();
     initSmSpinCache();
     if (MOB) showConLabels(true);
     setTimeout(function () {
