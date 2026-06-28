@@ -4,6 +4,7 @@
    Touch: permanent labels, tap to dive, glowing per-star reticles, press = glow,
    release = click (no hover emulation). */
 import { isMobileView } from "../lib/mobile.js";
+import * as pdfViewerBundled from "./pdfViewer.js";
 
 (function () {
   function ready(fn){ if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",fn); else fn(); }
@@ -302,10 +303,29 @@ import { isMobileView } from "../lib/mobile.js";
       var R=scene.getBoundingClientRect();
       return e.clientX>=R.left&&e.clientX<=R.right&&e.clientY>=R.top&&e.clientY<=R.bottom;
     }
-    function suppressClickOnce(){
-      function block(ev){ ev.preventDefault(); ev.stopPropagation(); document.removeEventListener("click", block, true); }
-      document.addEventListener("click", block, true);
+    var pdfViewerMod=null, mlPdfGen=0;
+    function resolvePdfViewerMod(){
+      if(typeof pdfViewerBundled!=="undefined"&&pdfViewerBundled&&typeof pdfViewerBundled.mountPdfViewer==="function") return pdfViewerBundled;
+      if(typeof window!=="undefined"){
+        var w=window.__PDF_VIEWER_MOD__||window.__pdfViewerExports;
+        if(w&&typeof w.mountPdfViewer==="function") return w;
+      }
+      return null;
     }
+    function loadPdfViewer(){
+      var mod=resolvePdfViewerMod();
+      if(mod){ pdfViewerMod=mod; return Promise.resolve(mod); }
+      return new Promise(function(resolve, reject){
+        var n=0;
+        (function tick(){
+          mod=resolvePdfViewerMod();
+          if(mod){ pdfViewerMod=mod; resolve(mod); return; }
+          if(++n>200) reject(new Error("pdf viewer unavailable"));
+          else setTimeout(tick, 25);
+        })();
+      });
+    }
+    function pdfAlive(gen){ return function(){ return gen===mlPdfGen; }; }
     function ptrPair(){
       var id=Object.keys(pts); if(id.length<2) return null;
       return { a:pts[id[0]], b:pts[id[1]] };
@@ -429,7 +449,48 @@ import { isMobileView } from "../lib/mobile.js";
       return Math.hypot(mx - cx, my - cy) <= rad;
     }
     function applyPan(){ clampT(); schedule(); }
+    var mapMouseOn=false;
+    function disarmMapMouse(){
+      if(!mapMouseOn) return;
+      document.removeEventListener("mousemove", onMapMouseMove, true);
+      document.removeEventListener("mouseup", onMapMouseUp, true);
+      mapMouseOn=false;
+    }
+    function onMapMouseMove(e){
+      if(MOB||mode!=="map"||!drag) return;
+      var dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+      if(!dragged&&Math.hypot(dx,dy)>5){
+        dragged=true; clearHold(); beginGesture(); scene.classList.add("sm-grab");
+        if(hovCon){ hovCon.g.classList.remove("on"); hovCon=null; conName.classList.remove("show"); clearFx(); }
+      }
+      if(dragged){ T.tx=drag.tx+dx; T.ty=drag.ty+dy; clampT(); schedule(); busy(); }
+    }
+    function onMapMouseUp(){
+      disarmMapMouse();
+      resetPanState();
+    }
+    function onMapMouseDown(e){
+      if(MOB||mode!=="map"||e.button!==0) return;
+      if(!inScene(e)) return;
+      if(ml&&ml.classList.contains("open")) return;
+      disarmMapMouse();
+      resetPanState();
+      var R=scene.getBoundingClientRect(), px=e.clientX-R.left, py=e.clientY-R.top;
+      drag={ x:e.clientX, y:e.clientY, tx:T.tx, ty:T.ty };
+      dragged=false; held=false;
+      clearHold();
+      holdT=setTimeout(function(){
+        if(dragged||!drag) return;
+        held=true;
+        var c=nearestCon(px,py);
+        if(c){ cons.forEach(function(o){ o.g.classList.remove("on"); }); c.g.classList.add("on"); hovCon=c; showConName(c); }
+      },330);
+      document.addEventListener("mousemove", onMapMouseMove, true);
+      document.addEventListener("mouseup", onMapMouseUp, true);
+      mapMouseOn=true;
+    }
     function onPanMove(e){
+      if(!MOB&&mode==="map") return;
       if(pts[e.pointerId]){ pts[e.pointerId].x=e.clientX; pts[e.pointerId].y=e.clientY; }
       if(pinch&&nPts()>=2){ applyPinch(); return; }
       if(drag){ var dx=e.clientX-drag.x, dy=e.clientY-drag.y;
@@ -441,6 +502,7 @@ import { isMobileView } from "../lib/mobile.js";
         if(MOB&&pressStar){ pressStar.el.classList.remove("held"); pressStar=null; } }
     }
     function endPtr(e){
+      if(!MOB&&mode==="map") return;
       var wasDrag=dragged;
       if(scene.releasePointerCapture){
         try{ scene.releasePointerCapture(e.pointerId); }catch(err){}
@@ -473,16 +535,15 @@ import { isMobileView } from "../lib/mobile.js";
         if(rem){ drag={x:pts[rem].x,y:pts[rem].y,tx:T.tx,ty:T.ty}; dragged=true; }
       }
       if(nPts()<2) pinch=null;
-      if(nPts()===0){
-        resetPanState();
-        if(wasDrag&&!MOB) suppressClickOnce();
-      }
+      if(nPts()===0) resetPanState();
     }
     function onPanDown(e){
+      if(!MOB&&mode==="map") return;
       if(!inScene(e)) return;
+      if(ml&&ml.classList.contains("open")) return;
       /* Capture phase — must run before HUD buttons stopPropagation on bubble. */
       if(mode==="map"&&MOB&&isHudTarget(e.target)) return;
-      if(mode==="map"&&MOB&&scene.setPointerCapture){
+      if(mode==="map"&&scene.setPointerCapture){
         try{ scene.setPointerCapture(e.pointerId); }catch(err){}
       }
       var R=scene.getBoundingClientRect(), px=e.clientX-R.left, py=e.clientY-R.top; held=false;
@@ -508,25 +569,47 @@ import { isMobileView } from "../lib/mobile.js";
         else { clearHold(); holdT=setTimeout(function(){ if(downPt&&!downPt.moved){ held=true; checkStar(px,py); } },330); }
       }
     }
+    document.addEventListener("mousedown", onMapMouseDown, true);
     document.addEventListener("pointerdown", onPanDown, true);
     document.addEventListener("pointermove", onPanMove, true);
     document.addEventListener("pointerup", endPtr, true);
     document.addEventListener("pointercancel", endPtr, true);
-    if(!MOB) document.addEventListener("mouseup", function(e){ if(drag||nPts()>0) endPtr(e); }, true);
     scene.addEventListener("wheel",function(e){ if(mode!=="map")return; e.preventDefault();
       var R=scene.getBoundingClientRect(), mx=e.clientX-R.left, my=e.clientY-R.top;
       var f=e.deltaY<0?1.12:0.89, ns=Math.max(ZMIN,Math.min(ZMAX,T.s*f)), k=ns/T.s;
       T.tx=mx-(mx-T.tx)*k; T.ty=my-(my-T.ty)*k; T.s=ns; world.classList.remove("sm-anim"); clampT(); applyTransform(); busy(); },{passive:false});
-    function openLightbox(i){ if(!curMedia.length||!ml)return; mlIndex=(i+curMedia.length)%curMedia.length; renderLightbox(); ml.classList.add("open"); }
+    function destroyLightboxViewer(){
+      mlPdfGen++;
+      if(!mlBody) return;
+      var pv=mlBody.querySelector(".ml-pdf-view");
+      if(pv&&pdfViewerMod) pdfViewerMod.destroyPdfViewer(pv);
+    }
+    function openLightbox(i){ if(!curMedia.length||!ml)return; mlIndex=(i+curMedia.length)%curMedia.length; renderLightbox(); ml.classList.add("open"); armMlSwipe(); }
     function renderLightbox(){ var m=curMedia[mlIndex]; if(!m||!mlBody)return;
-      var inner;
+      destroyLightboxViewer();
+      var inner, holoCls="holo-scan";
       if(m.type==="video") inner='<video src="'+esc(m.src)+'" poster="'+esc(m.poster||"")+'" muted controls autoplay playsinline></video>';
-      else if(m.type==="pdf") inner='<iframe class="ml-pdf" src="'+esc(m.src)+'#view=FitH" title="'+esc(m.alt||"document")+'"></iframe>';
+      else if(m.type==="pdf"){ holoCls+=" pdf"; inner='<div class="ml-pdf-view ml-pdf-loading"><div class="ml-pdf-status">DECODING ARCHIVE…</div></div>'; }
       else inner='<img src="'+esc(m.src)+'" alt="'+esc(m.alt||"")+'" decoding="async"/>';
-      mlBody.innerHTML = inner + '<span class="holo-scan'+(m.type==="pdf"?" pdf":"")+'"></span>';
+      mlBody.innerHTML = inner + '<span class="'+holoCls+'"></span>';
+      if(m.type==="pdf"){
+        var gen=mlPdfGen, mount=mlBody.querySelector(".ml-pdf-view");
+        if(mount) loadPdfViewer().then(function(mod){
+          if(gen!==mlPdfGen||!mount.isConnected) return;
+          if(!mod||typeof mod.mountPdfViewer!=="function") throw new Error("pdf viewer unavailable");
+          return mod.mountPdfViewer(mount, m.src, m.alt||m.caption||"document", pdfAlive(gen));
+        }).catch(function(err){
+          console.warn("[lightbox] pdfViewer failed:", err);
+          if(gen!==mlPdfGen||!mount||!mount.isConnected||mount.classList.contains("ml-pdf-error")) return;
+          if(err&&err.message!=="pdf viewer unavailable") return;
+          mount.classList.remove("ml-pdf-loading");
+          mount.classList.add("ml-pdf-error");
+          mount.innerHTML='<div class="ml-pdf-status">ARCHIVE MODULE FAILED</div>';
+        });
+      }
       if(mlCap) mlCap.innerHTML='<span class="ix">'+(mlIndex+1)+' / '+curMedia.length+'</span>'+esc(m.caption||m.alt||"");
       var d=curMedia.length>1?"":"none"; if(mlPrev)mlPrev.style.display=d; if(mlNext)mlNext.style.display=d; }
-    function closeLightbox(){ if(ml){ ml.classList.remove("open"); if(mlBody) mlBody.innerHTML=""; } }
+    function closeLightbox(){ disarmMlSwipe(); destroyLightboxViewer(); if(ml){ ml.classList.remove("open"); if(mlBody) mlBody.innerHTML=""; } }
     if(recordBody){
       if(!MOB) recordBody.addEventListener("click",function(e){ var b=e.target.closest&&e.target.closest(".media-thumb"); if(b){ e.stopPropagation(); openLightbox(+b.getAttribute("data-mi")); } });
       else { var mdDown=null;
@@ -534,10 +617,37 @@ import { isMobileView } from "../lib/mobile.js";
         recordBody.addEventListener("pointerup",function(e){ var b=e.target.closest&&e.target.closest(".media-thumb"); if(b&&mdDown&&Math.hypot(e.clientX-mdDown.x,e.clientY-mdDown.y)<12){ e.stopPropagation(); openLightbox(+b.getAttribute("data-mi")); } mdDown=null; });
       }
     }
-    if(ml){ ml.addEventListener("click",function(e){ if(e.target===ml) closeLightbox(); });
+    var mlSwipe=null, mlSwipeUp=null;
+    function onMlSwipeUp(e){
+      if(!mlSwipe||e.pointerId!==mlSwipe.id) return;
+      var dx=e.clientX-mlSwipe.x, dy=e.clientY-mlSwipe.y;
+      mlSwipe=null;
+      if(!ml||!ml.classList.contains("open")||curMedia.length<2) return;
+      if(Math.abs(dx)<52||Math.abs(dx)<Math.abs(dy)*1.35) return;
+      openLightbox(dx<0?mlIndex+1:mlIndex-1);
+    }
+    function armMlSwipe(){
+      if(mlSwipeUp||!ml) return;
+      mlSwipeUp=onMlSwipeUp;
+      document.addEventListener("pointerup", mlSwipeUp, true);
+    }
+    function disarmMlSwipe(){
+      mlSwipe=null;
+      if(!mlSwipeUp) return;
+      document.removeEventListener("pointerup", mlSwipeUp, true);
+      mlSwipeUp=null;
+    }
+    if(ml){
+      ml.addEventListener("click",function(e){ if(e.target===ml) closeLightbox(); });
       var mc=ml.querySelector(".ml-close"); if(mc) mc.addEventListener("click",closeLightbox);
-      if(mlPrev) mlPrev.addEventListener("click",function(){ openLightbox(mlIndex-1); });
-      if(mlNext) mlNext.addEventListener("click",function(){ openLightbox(mlIndex+1); }); }
+      if(mlPrev) mlPrev.addEventListener("click",function(e){ e.stopPropagation(); openLightbox(mlIndex-1); });
+      if(mlNext) mlNext.addEventListener("click",function(e){ e.stopPropagation(); openLightbox(mlIndex+1); });
+      ml.addEventListener("pointerdown",function(e){
+        if(!ml.classList.contains("open")||curMedia.length<2) return;
+        if(e.target.closest(".ml-close,.ml-nav,.ml-pdf-view,.ml-pdf-body,.ml-pdf-stage,.ml-pdf-canvas,.ml-pdf-toolbar,.ml-pdf-outline,.ml-pdf-search,.ml-pdf-btn,.ml-pdf-page-input,.ml-pdf-search-input,video,button,input")) return;
+        mlSwipe={ x:e.clientX, y:e.clientY, id:e.pointerId };
+      },{passive:true});
+    }
     document.addEventListener("keydown",function(e){ if(ml&&ml.classList.contains("open")){ if(e.key==="Escape") closeLightbox(); else if(e.key==="ArrowLeft") openLightbox(mlIndex-1); else if(e.key==="ArrowRight") openLightbox(mlIndex+1); return; } if(e.key==="Escape"){ if(mode==="star") toFocus(); else if(mode==="focus") toMap(); } });
     buildConLabels();
     defaultT(); updateHud();

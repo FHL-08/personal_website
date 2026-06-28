@@ -3,13 +3,49 @@
  * Mirrors the Astro site using the same CSS + scripts. Run:
  *   node --experimental-strip-types scripts/preview-render.mjs
  */
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, cpSync, existsSync } from "node:fs";
+import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { profile, constellations, missionLog, offDuty } from "../src/data/content.ts";
 import { renderStarmap, recordsPayload } from "../src/lib/starmapRender.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+/** Build pdfViewer bundle for preview (production inlines it via starmap static import). */
+function syncPdfViewerForPreview() {
+  const previewAstro = join(root, "preview", "_astro");
+  mkdirSync(previewAstro, { recursive: true });
+  try {
+    execSync("node scripts/build-pdf-preview.mjs", { cwd: root, stdio: "inherit" });
+  } catch (e) {
+    console.warn("preview-render: pdfViewer preview bundle failed.");
+    return "";
+  }
+  try {
+    const js = readFileSync(join(previewAstro, "pdfViewer.preview.js"), "utf8");
+    return (
+      "<script>\n" +
+      js +
+      '\nif(typeof __pdfViewerExports!=="undefined")window.__PDF_VIEWER_MOD__=__pdfViewerExports;\n</script>'
+    );
+  } catch (e) {
+    return "";
+  }
+}
+
+/** Copy web assets so preview works when serving only the preview/ folder. */
+function syncPreviewAssets() {
+  const src = join(root, "public", "assets");
+  const dest = join(root, "preview", "assets");
+  if (!existsSync(src)) {
+    console.warn("preview-render: public/assets missing — media/PDFs may 404 in preview.");
+    return;
+  }
+  cpSync(src, dest, { recursive: true, force: true });
+}
+
+const pdfViewerBoot = syncPdfViewerForPreview();
 const esc = (s = "") => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const tokens = readFileSync(join(root, "src/styles/tokens.css"), "utf8");
 const global = readFileSync(join(root, "src/styles/global.css"), "utf8").replace(/@import[^;]+;/, "");
@@ -19,7 +55,7 @@ const starmapJs = readFileSync(join(root, "src/scripts/starmap.js"), "utf8");
 
 /** Preview is a single HTML file — inline scripts cannot use ES imports. */
 function bundleForPreview(js) {
-  return js.replace(/^import\s+\{[^}]+\}\s+from\s+["'][^"']+["'];\s*\n?/m, "");
+  return js.replace(/^import\s+.*?from\s+["'][^"']+["'];\s*\n?/gm, "");
 }
 const mobileInline = mobileJs.replace("export function isMobileView", "function isMobileView");
 const sceneBundled = bundleForPreview(sceneJs);
@@ -118,12 +154,12 @@ ${dossierOverlay()}
 </div>
 <div id="media-lightbox" role="dialog" aria-modal="true" aria-label="Media viewer">
   <button class="ml-close" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> CLOSE</button>
+  <button class="ml-nav ml-prev" type="button" aria-label="Previous"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
+  <button class="ml-nav ml-next" type="button" aria-label="Next"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></button>
   <div class="ml-stage">
     <div class="ml-media-wrap">
       <div class="ml-frame" id="ml-frame" data-augmented-ui="tl-clip br-clip border">
         <div class="ml-body" id="ml-body"></div>
-        <button class="ml-nav ml-prev" type="button" aria-label="Previous"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
-        <button class="ml-nav ml-next" type="button" aria-label="Next"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></button>
       </div>
     </div>
     <div class="ml-cap" id="ml-cap"></div>
@@ -143,10 +179,12 @@ ${dossierOverlay()}
 </div>
 <script type="application/json" id="offduty-data">${JSON.stringify(offDuty)}</script>
 <script>${mobileInline}\n${sceneBundled}</script>
+${pdfViewerBoot}
 <script>${starmapBundled}</script>
 </body></html>`;
 
-const previewHtml = html.replaceAll('"/assets/', '"../public/assets/');
+syncPreviewAssets();
+const previewHtml = html.replaceAll('"/assets/', '"./assets/');
 const previewVer = Date.now();
 mkdirSync(join(root, "preview"), { recursive: true });
 writeFileSync(join(root, "preview/index.html"), previewHtml);
