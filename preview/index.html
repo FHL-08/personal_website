@@ -1309,8 +1309,9 @@ function isMobileView() {
         if (MOB) {
           spinHudReticles(now);
           if (typeof window.__spinMapReticles === "function") window.__spinMapReticles(now);
+        } else {
+          drawLinks();
         }
-        if (!MOB) drawLinks();
         updateCrystal();
         if (canvasReady) {
           if (!reduce) {
@@ -1526,8 +1527,8 @@ function isMobileView() {
     function cross(u, v) { return [u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0]]; }
     function dot(u, v) { return u[0]*v[0] + u[1]*v[1] + u[2]*v[2]; }
     function norm(v) { var l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0]/l, v[1]/l, v[2]/l]; }
-    var crystBack = null, crystFront = null, crystV = [], crystF = [], CRYST_SPIN = 2 * Math.PI / 16000;
-    var crystLast = 0, CRYST_MOB_MS = 66;
+    var crystBack = null, crystFront = null, crystV = [], crystF = [], crystPolys = [], CRYST_SPIN = 2 * Math.PI / 16000;
+    var crystLast = 0, CRYST_MOB_MS = 50;
     var CL = norm([-0.35, -0.6, 0.72]);                          // light dir (view space)
     function buildCrystal() {
       var c = document.getElementById("crystal"); if (!c) return;
@@ -1574,10 +1575,18 @@ function isMobileView() {
         + '<g class="cgloss"><ellipse cx="-9" cy="-58" rx="13" ry="56" fill="url(#cGlint)" opacity="0.34" transform="rotate(-13 -9 -58)"/><ellipse cx="13" cy="-98" rx="6" ry="22" fill="url(#cGlint)" opacity="0.48"/></g>'
         + '</svg>';
       crystBack = c.querySelector(".cback"); crystFront = c.querySelector(".cfront");
+      crystPolys = [];
+      var NS = "http://www.w3.org/2000/svg";
+      for (var pi = 0; pi < crystF.length; pi++) {
+        var poly = document.createElementNS(NS, "polygon");
+        poly.setAttribute("stroke-linejoin", "round");
+        crystBack.appendChild(poly);
+        crystPolys.push(poly);
+      }
       updateCrystal();
     }
     function updateCrystal() {
-      if (!crystFront) return;
+      if (!crystFront || !crystPolys.length) return;
       if (MOB) {
         var now = performance.now();
         if (now - crystLast < CRYST_MOB_MS) return;
@@ -1588,29 +1597,38 @@ function isMobileView() {
       for (var i = 0; i < crystV.length; i++) {
         var v = crystV[i], x = v[0] * ca + v[2] * sa, z = -v[0] * sa + v[2] * ca, y = v[1];
         var s = f / (f - z);
-        RV.push([x, y, z, x * s, y * s]);                       // [x,y,z, projX, projY]
+        RV.push([x, y, z, x * s, y * s]);
       }
       var backArr = [], frontArr = [];
       for (var fi = 0; fi < crystF.length; fi++) {
         var idx = crystF[fi], A = RV[idx[0]], B = RV[idx[1]], C = RV[idx[2]];
         var nn = norm(cross([B[0]-A[0],B[1]-A[1],B[2]-A[2]], [C[0]-A[0],C[1]-A[1],C[2]-A[2]]));
-        var front = nn[2] > 0, az = 0, pts = "";
-        for (var p = 0; p < idx.length; p++) { var r = RV[idx[p]]; az += r[2]; pts += (p ? " " : "") + r[3].toFixed(1) + "," + r[4].toFixed(1); }
+        var front = nn[2] > 0, az = 0, pts = [];
+        for (var p = 0; p < idx.length; p++) { var r = RV[idx[p]]; az += r[2]; pts.push(r[3].toFixed(1) + "," + r[4].toFixed(1)); }
         az /= idx.length;
+        var poly = crystPolys[fi];
+        poly.setAttribute("points", pts.join(" "));
         if (front) {
           var b = Math.max(0, dot(nn, CL));
-          var op = (0.3 + b * 0.42).toFixed(2);                                  // translucent surface over solid body
+          var op = (0.3 + b * 0.42).toFixed(2);
           var sw = b > 0.78 ? "rgba(224,255,244,0.85)" : "rgba(188,250,223,0.4)";
-          frontArr.push([az, '<polygon points="' + pts + '" fill="url(#cEmerald)" fill-opacity="' + op + '" stroke="' + sw + '" stroke-width="0.7" stroke-linejoin="round"/>']);
+          poly.setAttribute("fill", "url(#cEmerald)");
+          poly.setAttribute("fill-opacity", op);
+          poly.setAttribute("stroke", sw);
+          poly.setAttribute("stroke-width", "0.7");
+          frontArr.push([az, poly]);
         } else {
-          backArr.push([az, '<polygon points="' + pts + '" fill="url(#cCore)" fill-opacity="0.96" stroke="rgba(150,240,200,0.22)" stroke-width="0.5"/>']);   // solid frosted body
+          poly.setAttribute("fill", "url(#cCore)");
+          poly.setAttribute("fill-opacity", "0.96");
+          poly.setAttribute("stroke", "rgba(150,240,200,0.22)");
+          poly.setAttribute("stroke-width", "0.5");
+          backArr.push([az, poly]);
         }
       }
       backArr.sort(function (m, n) { return m[0] - n[0]; });
       frontArr.sort(function (m, n) { return m[0] - n[0]; });
-      var hb = ""; for (var d1 = 0; d1 < backArr.length; d1++) hb += backArr[d1][1];
-      var hf = ""; for (var d2 = 0; d2 < frontArr.length; d2++) hf += frontArr[d2][1];
-      crystBack.innerHTML = hb; crystFront.innerHTML = hf;
+      for (var d1 = 0; d1 < backArr.length; d1++) crystBack.appendChild(backArr[d1][1]);
+      for (var d2 = 0; d2 < frontArr.length; d2++) crystFront.appendChild(frontArr[d2][1]);
     }
     buildCrystal();
     var crystalEl = document.getElementById("crystal");
@@ -1650,7 +1668,6 @@ function isMobileView() {
       var by2 = window.__bob || 0, ang = t / (MOB ? MOB_ORBIT_PERIOD : 7800);
       var m = smMet();
       var Tz = (window.__smT && window.__smT.s) || 1;
-      /* size orbit/offsets in screen px (zoom baked in — no CSS scale on rigs, keeps SVGs crisp) */
       var rad = ORBIT_VB * m.s * Tz;
       if (MOB) rad *= MOB_ORBIT_SCALE * MOB_FG_SCALE;
       else rad *= DESKTOP_ORBIT_SCALE;
@@ -2001,7 +2018,7 @@ function isMobileView() {
     function busy(){ scene.classList.add("sm-busy"); clearTimeout(busyT); busyT=setTimeout(function(){ scene.classList.remove("sm-busy"); },220); }
 
     /* Mobile: CSS spin on SVG reticles breaks inside panned/zoomed map — drive via transform attr. */
-    var SM_SPIN_RATE = 2; /* 2× faster than desktop CSS equivalents */
+    var SM_SPIN_RATE = 2, smSpinLast = 0; /* 2× faster than desktop CSS equivalents */
     function smSpinPeriod(el, def, rev, held) {
       var p;
       if (held) p = el.classList.contains("rev") ? 1200 : 1800;
@@ -2016,6 +2033,8 @@ function isMobileView() {
     }
     function spinMapReticles(now) {
       if (!MOB || !sm) return;
+      if (now - smSpinLast < 50) return;
+      smSpinLast = now;
       var spins = sm.querySelectorAll(".sm-rr-spin");
       for (var i = 0; i < spins.length; i++) {
         var spin = spins[i], host = spin.closest(".sm-rr");
