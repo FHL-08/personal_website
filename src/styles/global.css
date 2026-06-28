@@ -825,6 +825,8 @@ html.is-mob .ml-frame .ml-next { right: 0; left: auto; }
    so it holds in every orientation regardless of viewport width or hover support.
    ============================================================ */
 html.is-mob .crystal-hit { pointer-events: auto; touch-action: manipulation; z-index: 6; }
+html.is-mob .reticle .arc,
+html.is-mob .ship-reticle .arc { animation: none !important; }
 html.is-mob .sm-rr-spin,
 html.is-mob .sm-sret-spin { animation: none !important; }
 html.is-mob { overflow: hidden; height: 100%; }

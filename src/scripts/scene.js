@@ -22,6 +22,46 @@ import { isMobileView } from "../lib/mobile.js";
     var SM_VBW = 2400, SM_VBH = 1840, SM_VBMINY = -170, SM_CVX = 1472, SM_CVY = 639;
     var SM_FG = [".crystal-rig", ".ship-rig", ".reticle"];
 
+    /* Ship orbit — must init before first placeFgInWorld / updateOrbit call */
+    var orbitSnap = {};
+    function setOrbitVar(name, val) {
+      if (orbitSnap[name] === val) return;
+      orbitSnap[name] = val;
+      scene.style.setProperty(name, val);
+    }
+    function updateOrbit() {
+      if (!scene) return;
+      var by2 = window.__bob || 0, ang = t / (MOB ? MOB_ORBIT_PERIOD : 7800);
+      var m = smMet();
+      var Tz = (window.__smT && window.__smT.s) || 1;
+      var rad = ORBIT_VB * m.s * Tz;
+      if (MOB) rad *= MOB_ORBIT_SCALE * MOB_FG_SCALE;
+      else rad *= DESKTOP_ORBIT_SCALE;
+      var ox = Math.cos(ang) * rad, oy = Math.sin(ang) * rad;
+      var hd = Math.atan2(Math.cos(ang) * rad, -Math.sin(ang) * rad) * 180 / Math.PI;
+      setOrbitVar("--ox", ox.toFixed(1) + "px");
+      setOrbitVar("--oy", oy.toFixed(1) + "px");
+      setOrbitVar("--oyb", (MOB ? oy : (oy + by2)).toFixed(1) + "px");
+      setOrbitVar("--shiprot", hd.toFixed(1) + "deg");
+      setOrbitVar("--shiptiltx", (MOB ? 0 : -my * 10).toFixed(2) + "deg");
+      setOrbitVar("--shiptilty", (MOB ? 0 : mx * 14).toFixed(2) + "deg");
+      var shipRetMul = MOB ? MOB_SHIP_SCALE * MOB_FG_SCALE : DESKTOP_SHIP_SCALE;
+      var srR = SHIP_RET_D_VB * shipRetMul * 0.5 * m.s * Tz, gap = 14 * m.s * Tz;
+      if (MOB) {
+        setOrbitVar("--bec-dx", (-srR - gap).toFixed(1) + "px");
+        setOrbitVar("--bec-dy", (-srR - gap * 0.65).toFixed(1) + "px");
+        setOrbitVar("--tel-dx", (srR + gap * 0.85).toFixed(1) + "px");
+        setOrbitVar("--tel-dy", (srR * 0.35 + gap * 0.45).toFixed(1) + "px");
+      } else {
+        var pad = 2 * m.s * Tz, k = 0.707, d = srR * DESKTOP_HUD_CARD_DIST;
+        setOrbitVar("--bec-dx", (-d * k - pad).toFixed(1) + "px");
+        setOrbitVar("--bec-dy", (-d * k - pad).toFixed(1) + "px");
+        setOrbitVar("--tel-dx", (d * k + pad).toFixed(1) + "px");
+        setOrbitVar("--tel-dy", (d * k + pad * 0.35).toFixed(1) + "px");
+      }
+    }
+    window.__updateOrbit = updateOrbit;
+
     function smMet() {
       if (!scene) return { W: 0, H: 0, s: 1, ox: 0, oy: 0 };
       var R = scene.getBoundingClientRect();
@@ -233,10 +273,7 @@ import { isMobileView } from "../lib/mobile.js";
     }
     function clearCanvas() {
       if (!ctx || !canvas) return;
-      ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.restore();
+      ctx.clearRect(0, 0, w, h);
     }
     function draw() {
       if (!ctx || w < 1 || h < 1) return;
@@ -263,6 +300,44 @@ import { isMobileView } from "../lib/mobile.js";
       raf = 0;
     }
     var reduceDrawn = false;
+    var ARC_PERIODS = { arc1: 46, arc2: 26, arc3: -17, arc4: 34, arc5: 13 };
+    var hudArcCache = [], hudSpinLast = 0, HUD_SPIN_MS = 32;
+    function initHudArcCache() {
+      if (!MOB) return;
+      hudArcCache = [];
+      var roots = [document.querySelector(".reticle"), scene && scene.querySelector(".ship-reticle")];
+      for (var ri = 0; ri < roots.length; ri++) {
+        var root = roots[ri];
+        if (!root) continue;
+        var arcs = root.querySelectorAll(".arc");
+        for (var ai = 0; ai < arcs.length; ai++) {
+          var arc = arcs[ai], period = 30;
+          for (var k in ARC_PERIODS) { if (arc.classList.contains(k)) { period = ARC_PERIODS[k]; break; } }
+          hudArcCache.push({ el: arc, period: period, last: "" });
+        }
+      }
+    }
+    function spinHudReticles(now) {
+      if (!MOB || !hudArcCache.length) return;
+      if (now - hudSpinLast < HUD_SPIN_MS) return;
+      hudSpinLast = now;
+      for (var i = 0; i < hudArcCache.length; i++) {
+        var item = hudArcCache[i], period = item.period;
+        var ang = (now / (Math.abs(period) * 1000)) * 360 * (period < 0 ? -1 : 1);
+        var tf = "rotate(" + (ang % 360).toFixed(2) + "deg)";
+        if (item.last !== tf) { item.last = tf; item.el.style.transform = tf; }
+      }
+    }
+    function overlaysOpen() {
+      var po = document.querySelector(".profile-overlay");
+      var mo = document.getElementById("missionlog-overlay");
+      var oo = document.getElementById("offduty-overlay");
+      var ro = document.getElementById("record-overlay");
+      var lb = document.getElementById("media-lightbox");
+      return (po && po.classList.contains("open")) || (mo && mo.classList.contains("open"))
+        || (oo && oo.classList.contains("open")) || (ro && ro.classList.contains("show"))
+        || (lb && lb.classList.contains("open"));
+    }
     function step(now) {
       raf = 0;
       if (!lastFrame) lastFrame = now;
@@ -279,13 +354,17 @@ import { isMobileView } from "../lib/mobile.js";
           window.__bob = by;
         }
         updateOrbit();
+        var bgActive = !overlaysOpen();
         if (MOB) {
-          if (typeof window.__spinMapReticles === "function") window.__spinMapReticles(now);
+          if (bgActive) {
+            spinHudReticles(now);
+            if (typeof window.__spinMapReticles === "function") window.__spinMapReticles(now);
+          }
         } else {
           drawLinks();
         }
         updateCrystal(now);
-        if (canvasReady) {
+        if (canvasReady && bgActive) {
           if (!reduce) {
             var fh = h || 1, fw = w || 1;
             for (var i = 0; i < stars.length; i++) {
@@ -377,123 +456,7 @@ import { isMobileView } from "../lib/mobile.js";
     ensureFgInWorld();
     desktopHudSetup();
     mobileSetup();
-
-    /* ---------- Emerald crystal shard (CSS 3D, hexagonal habit) — before animation loop ---------- */
-    function sub(p, q) { return [p[0]-q[0], p[1]-q[1], p[2]-q[2]]; }
-    function add(p, q) { return [p[0]+q[0], p[1]+q[1], p[2]+q[2]]; }
-    function cross(u, v) { return [u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0]]; }
-    function dot(u, v) { return u[0]*v[0] + u[1]*v[1] + u[2]*v[2]; }
-    function norm(v) { var l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0]/l, v[1]/l, v[2]/l]; }
-    var crystBack = null, crystFront = null, crystV = [], crystF = [], crystPolys = [], CRYST_SPIN = 2 * Math.PI / 16000;
-    var crystBackOrder = [], crystFrontOrder = [];
-    var CL = norm([-0.35, -0.6, 0.72]);
-    function buildCrystal() {
-      var c = document.getElementById("crystal"); if (!c) return;
-      var HA = [4, 63, 119, 181, 242, 303];
-      var RT = [35, 31, 36, 32, 35, 30], RB = [41, 33, 43, 31, 39, 30];
-      var yTv = [-50, -61, -44, -58, -48, -64];
-      var yBv = [110, 134, 104, 152, 118, 146];
-      crystV = [];
-      for (var i = 0; i < 6; i++) { var a = HA[i] * Math.PI / 180; crystV.push([Math.cos(a) * RT[i], yTv[i], Math.sin(a) * RT[i]]); }
-      for (var i2 = 0; i2 < 6; i2++) { var a2 = HA[i2] * Math.PI / 180; crystV.push([Math.cos(a2) * RB[i2], yBv[i2], Math.sin(a2) * RB[i2]]); }
-      crystV.push([4, -150, -3]);
-      crystV.push([-7, 170, 6]);
-      var ctr = [0, 0, 0]; for (var p = 0; p < crystV.length; p++) ctr = add(ctr, crystV[p]);
-      ctr = [ctr[0]/crystV.length, ctr[1]/crystV.length, ctr[2]/crystV.length];
-      function mk(idx) {
-        var A = crystV[idx[0]], B = crystV[idx[1]], C = crystV[idx[2]];
-        var nn = cross(sub(B, A), sub(C, A));
-        var mid = [0,0,0]; for (var q = 0; q < idx.length; q++) mid = add(mid, crystV[idx[q]]);
-        mid = [mid[0]/idx.length, mid[1]/idx.length, mid[2]/idx.length];
-        if (dot(nn, sub(mid, ctr)) < 0) idx = idx.slice().reverse();
-        crystF.push(idx);
-      }
-      crystF = [];
-      for (var j = 0; j < 6; j++) {
-        var k = (j + 1) % 6;
-        mk([12, j, k]);
-        mk([j, k, 6 + k, 6 + j]);
-        mk([13, 6 + j, 6 + k]);
-      }
-      var backG = MOB ? '<g class="cback"></g>' : '<g class="cback" filter="url(#cFrost)"></g>';
-      c.innerHTML = '<svg viewBox="-74 -168 148 360" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
-        + '<defs>'
-        + '<linearGradient id="cEmerald" gradientUnits="userSpaceOnUse" x1="0" y1="-152" x2="0" y2="170">'
-        + '<stop offset="0" stop-color="#bff5dc"/><stop offset="0.42" stop-color="#1fa873"/><stop offset="1" stop-color="#04331f"/>'
-        + '</linearGradient>'
-        + '<radialGradient id="cGlint" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#e9fff5" stop-opacity="0.9"/><stop offset="1" stop-color="#e9fff5" stop-opacity="0"/></radialGradient>'
-        + '<linearGradient id="cCore" gradientUnits="userSpaceOnUse" x1="0" y1="-152" x2="0" y2="170">'
-        + '<stop offset="0" stop-color="#1aa06e"/><stop offset="0.5" stop-color="#0b6e4c"/><stop offset="1" stop-color="#02281a"/>'
-        + '</linearGradient>'
-        + (MOB ? '' : '<filter id="cFrost" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="1.5"/></filter>')
-        + '</defs>'
-        + backG
-        + '<g class="cfront"></g>'
-        + '<g class="cgloss"><ellipse cx="-9" cy="-58" rx="13" ry="56" fill="url(#cGlint)" opacity="0.34" transform="rotate(-13 -9 -58)"/><ellipse cx="13" cy="-98" rx="6" ry="22" fill="url(#cGlint)" opacity="0.48"/></g>'
-        + '</svg>';
-      crystBack = c.querySelector(".cback"); crystFront = c.querySelector(".cfront");
-      crystPolys = [];
-      var NS = "http://www.w3.org/2000/svg";
-      for (var pi = 0; pi < crystF.length; pi++) {
-        var poly = document.createElementNS(NS, "polygon");
-        poly.setAttribute("stroke-linejoin", "round");
-        crystBack.appendChild(poly);
-        crystPolys.push(poly);
-      }
-      updateCrystal(performance.now());
-    }
-    function updateCrystal(now) {
-      if (!crystFront || !crystPolys.length) return;
-      now = now || performance.now();
-      var a = reduce ? 0.7 : now * CRYST_SPIN, ca = Math.cos(a), sa = Math.sin(a), f = 920;
-      var RV = [];
-      for (var i = 0; i < crystV.length; i++) {
-        var v = crystV[i], x = v[0] * ca + v[2] * sa, z = -v[0] * sa + v[2] * ca, y = v[1];
-        var s = f / (f - z);
-        RV.push([x, y, z, x * s, y * s]);
-      }
-      var backArr = [], frontArr = [];
-      for (var fi = 0; fi < crystF.length; fi++) {
-        var idx = crystF[fi], A = RV[idx[0]], B = RV[idx[1]], C = RV[idx[2]];
-        var nn = norm(cross([B[0]-A[0],B[1]-A[1],B[2]-A[2]], [C[0]-A[0],C[1]-A[1],C[2]-A[2]]));
-        var front = nn[2] > 0, az = 0, pts = [];
-        for (var p = 0; p < idx.length; p++) { var r = RV[idx[p]]; az += r[2]; pts.push(r[3].toFixed(1) + "," + r[4].toFixed(1)); }
-        az /= idx.length;
-        var poly = crystPolys[fi];
-        poly.setAttribute("points", pts.join(" "));
-        if (front) {
-          var b = Math.max(0, dot(nn, CL));
-          var op = (0.3 + b * 0.42).toFixed(2);
-          var sw = b > 0.78 ? "rgba(224,255,244,0.85)" : "rgba(188,250,223,0.4)";
-          poly.setAttribute("fill", "url(#cEmerald)");
-          poly.setAttribute("fill-opacity", op);
-          poly.setAttribute("stroke", sw);
-          poly.setAttribute("stroke-width", "0.7");
-          frontArr.push([az, poly]);
-        } else {
-          poly.setAttribute("fill", "url(#cCore)");
-          poly.setAttribute("fill-opacity", "0.96");
-          poly.setAttribute("stroke", "rgba(150,240,200,0.22)");
-          poly.setAttribute("stroke-width", "0.5");
-          backArr.push([az, poly]);
-        }
-      }
-      backArr.sort(function (m, n) { return m[0] - n[0]; });
-      frontArr.sort(function (m, n) { return m[0] - n[0]; });
-      var bi, fi, reorder = false;
-      if (backArr.length !== crystBackOrder.length || frontArr.length !== crystFrontOrder.length) reorder = true;
-      else {
-        for (bi = 0; bi < backArr.length; bi++) if (backArr[bi][1] !== crystBackOrder[bi]) { reorder = true; break; }
-        if (!reorder) for (fi = 0; fi < frontArr.length; fi++) if (frontArr[fi][1] !== crystFrontOrder[fi]) { reorder = true; break; }
-      }
-      if (reorder) {
-        crystBackOrder = []; crystFrontOrder = [];
-        for (bi = 0; bi < backArr.length; bi++) { crystBackOrder.push(backArr[bi][1]); crystBack.appendChild(backArr[bi][1]); }
-        for (fi = 0; fi < frontArr.length; fi++) { crystFrontOrder.push(frontArr[fi][1]); crystFront.appendChild(frontArr[fi][1]); }
-      }
-    }
-    buildCrystal();
-
+    initHudArcCache();
     placeFgInWorld();
     resize();
     drawLinks();
@@ -610,6 +573,128 @@ import { isMobileView } from "../lib/mobile.js";
     window.__openOffDuty = odOpen;
     var odTemp = document.getElementById("offduty-temp"); if (odTemp) odTemp.addEventListener("click", odOpen);
 
+    /* ---------- Emerald crystal shard (CSS 3D, hexagonal habit) ---------- */
+    function sub(p, q) { return [p[0]-q[0], p[1]-q[1], p[2]-q[2]]; }
+    function add(p, q) { return [p[0]+q[0], p[1]+q[1], p[2]+q[2]]; }
+    function cross(u, v) { return [u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0]]; }
+    function dot(u, v) { return u[0]*v[0] + u[1]*v[1] + u[2]*v[2]; }
+    function norm(v) { var l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0]/l, v[1]/l, v[2]/l]; }
+    var crystBack = null, crystFront = null, crystV = [], crystF = [], crystPolys = [], CRYST_SPIN = 2 * Math.PI / 16000;
+    var crystLast = 0, CRYST_MOB_MS = 50;
+    var crystBackOrder = [], crystFrontOrder = [];
+    var CL = norm([-0.35, -0.6, 0.72]);                          // light dir (view space)
+    function buildCrystal() {
+      var c = document.getElementById("crystal"); if (!c) return;
+      // single-terminated hexagonal crystal: long prism body + sharp top point, irregular base
+      var HA = [4, 63, 119, 181, 242, 303];                      // hex angles (deg), slightly irregular
+      var RT = [35, 31, 36, 32, 35, 30], RB = [41, 33, 43, 31, 39, 30];
+      var yTv = [-50, -61, -44, -58, -48, -64];                  // irregular girdle heights (no flat ring)
+      var yBv = [110, 134, 104, 152, 118, 146];                  // broken-off base: several verts dropped low
+      crystV = [];
+      for (var i = 0; i < 6; i++) { var a = HA[i] * Math.PI / 180; crystV.push([Math.cos(a) * RT[i], yTv[i], Math.sin(a) * RT[i]]); }
+      for (var i2 = 0; i2 < 6; i2++) { var a2 = HA[i2] * Math.PI / 180; crystV.push([Math.cos(a2) * RB[i2], yBv[i2], Math.sin(a2) * RB[i2]]); }
+      crystV.push([4, -150, -3]);                                // 12 apex top (sharp point)
+      crystV.push([-7, 170, 6]);                                 // 13 apex bottom (below all base verts)
+      var ctr = [0, 0, 0]; for (var p = 0; p < crystV.length; p++) ctr = add(ctr, crystV[p]);
+      ctr = [ctr[0]/crystV.length, ctr[1]/crystV.length, ctr[2]/crystV.length];
+      function mk(idx) {
+        var A = crystV[idx[0]], B = crystV[idx[1]], C = crystV[idx[2]];
+        var nn = cross(sub(B, A), sub(C, A));
+        var mid = [0,0,0]; for (var q = 0; q < idx.length; q++) mid = add(mid, crystV[idx[q]]);
+        mid = [mid[0]/idx.length, mid[1]/idx.length, mid[2]/idx.length];
+        if (dot(nn, sub(mid, ctr)) < 0) idx = idx.slice().reverse();    // ensure outward winding
+        crystF.push(idx);
+      }
+      crystF = [];
+      for (var j = 0; j < 6; j++) {
+        var k = (j + 1) % 6;
+        mk([12, j, k]);                       // top cap triangle -> point
+        mk([j, k, 6 + k, 6 + j]);             // prism wall quad
+        mk([13, 6 + j, 6 + k]);               // bottom cap triangle
+      }
+      var backG = MOB ? '<g class="cback"></g>' : '<g class="cback" filter="url(#cFrost)"></g>';
+      c.innerHTML = '<svg viewBox="-74 -168 148 360" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+        + '<defs>'
+        + '<linearGradient id="cEmerald" gradientUnits="userSpaceOnUse" x1="0" y1="-152" x2="0" y2="170">'
+        + '<stop offset="0" stop-color="#bff5dc"/><stop offset="0.42" stop-color="#1fa873"/><stop offset="1" stop-color="#04331f"/>'
+        + '</linearGradient>'
+        + '<radialGradient id="cGlint" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#e9fff5" stop-opacity="0.9"/><stop offset="1" stop-color="#e9fff5" stop-opacity="0"/></radialGradient>'
+        + '<linearGradient id="cCore" gradientUnits="userSpaceOnUse" x1="0" y1="-152" x2="0" y2="170">'
+        + '<stop offset="0" stop-color="#1aa06e"/><stop offset="0.5" stop-color="#0b6e4c"/><stop offset="1" stop-color="#02281a"/>'
+        + '</linearGradient>'
+        + (MOB ? '' : '<filter id="cFrost" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="1.5"/></filter>')
+        + '</defs>'
+        + backG
+        + '<g class="cfront"></g>'
+        + '<g class="cgloss"><ellipse cx="-9" cy="-58" rx="13" ry="56" fill="url(#cGlint)" opacity="0.34" transform="rotate(-13 -9 -58)"/><ellipse cx="13" cy="-98" rx="6" ry="22" fill="url(#cGlint)" opacity="0.48"/></g>'
+        + '</svg>';
+      crystBack = c.querySelector(".cback"); crystFront = c.querySelector(".cfront");
+      crystPolys = [];
+      var NS = "http://www.w3.org/2000/svg";
+      for (var pi = 0; pi < crystF.length; pi++) {
+        var poly = document.createElementNS(NS, "polygon");
+        poly.setAttribute("stroke-linejoin", "round");
+        crystBack.appendChild(poly);
+        crystPolys.push(poly);
+      }
+      crystBackOrder = []; crystFrontOrder = [];
+      updateCrystal(performance.now());
+    }
+    function updateCrystal(now) {
+      if (!crystFront || !crystPolys.length) return;
+      now = now || performance.now();
+      if (MOB) {
+        if (now - crystLast < CRYST_MOB_MS) return;
+        crystLast = now;
+      }
+      var a = reduce ? 0.7 : t * CRYST_SPIN, ca = Math.cos(a), sa = Math.sin(a), f = 920;
+      var RV = [];
+      for (var i = 0; i < crystV.length; i++) {
+        var v = crystV[i], x = v[0] * ca + v[2] * sa, z = -v[0] * sa + v[2] * ca, y = v[1];
+        var s = f / (f - z);
+        RV.push([x, y, z, x * s, y * s]);
+      }
+      var backArr = [], frontArr = [];
+      for (var fi = 0; fi < crystF.length; fi++) {
+        var idx = crystF[fi], A = RV[idx[0]], B = RV[idx[1]], C = RV[idx[2]];
+        var nn = norm(cross([B[0]-A[0],B[1]-A[1],B[2]-A[2]], [C[0]-A[0],C[1]-A[1],C[2]-A[2]]));
+        var front = nn[2] > 0, az = 0, pts = [];
+        for (var p = 0; p < idx.length; p++) { var r = RV[idx[p]]; az += r[2]; pts.push(r[3].toFixed(1) + "," + r[4].toFixed(1)); }
+        az /= idx.length;
+        var poly = crystPolys[fi];
+        poly.setAttribute("points", pts.join(" "));
+        if (front) {
+          var b = Math.max(0, dot(nn, CL));
+          var op = (0.3 + b * 0.42).toFixed(2);
+          var sw = b > 0.78 ? "rgba(224,255,244,0.85)" : "rgba(188,250,223,0.4)";
+          poly.setAttribute("fill", "url(#cEmerald)");
+          poly.setAttribute("fill-opacity", op);
+          poly.setAttribute("stroke", sw);
+          poly.setAttribute("stroke-width", "0.7");
+          frontArr.push([az, poly]);
+        } else {
+          poly.setAttribute("fill", "url(#cCore)");
+          poly.setAttribute("fill-opacity", "0.96");
+          poly.setAttribute("stroke", "rgba(150,240,200,0.22)");
+          poly.setAttribute("stroke-width", "0.5");
+          backArr.push([az, poly]);
+        }
+      }
+      backArr.sort(function (m, n) { return m[0] - n[0]; });
+      frontArr.sort(function (m, n) { return m[0] - n[0]; });
+      var bi, fi, reorder = false;
+      if (backArr.length !== crystBackOrder.length || frontArr.length !== crystFrontOrder.length) reorder = true;
+      else {
+        for (bi = 0; bi < backArr.length; bi++) if (backArr[bi][1] !== crystBackOrder[bi]) { reorder = true; break; }
+        if (!reorder) for (fi = 0; fi < frontArr.length; fi++) if (frontArr[fi][1] !== crystFrontOrder[fi]) { reorder = true; break; }
+      }
+      if (reorder) {
+        crystBackOrder = []; crystFrontOrder = [];
+        for (bi = 0; bi < backArr.length; bi++) { crystBackOrder.push(backArr[bi][1]); crystBack.appendChild(backArr[bi][1]); }
+        for (fi = 0; fi < frontArr.length; fi++) { crystFrontOrder.push(frontArr[fi][1]); crystFront.appendChild(frontArr[fi][1]); }
+      }
+    }
+    buildCrystal();
     var crystalEl = document.getElementById("crystal");
     if (crystalEl) crystalEl.addEventListener("click", function (e) { e.stopPropagation(); odOpen(); });
     var crystHit = document.getElementById("crystal-hit");
@@ -633,7 +718,7 @@ import { isMobileView } from "../lib/mobile.js";
         e.stopPropagation();
         if (cretEl) cretEl.classList.add("hot");
       });
-      crystHit.addEventListener("pointerup", function () {
+      crystHit.addEventListener("pointerup", function (e) {
         if (cretEl) setTimeout(function () { cretEl.classList.remove("hot"); }, 160);
       });
       crystHit.addEventListener("pointercancel", function () {
@@ -641,45 +726,6 @@ import { isMobileView } from "../lib/mobile.js";
       });
     }
 
-    /* ---------- Ship orbit (HUD rig travels rigidly with the ship) ---------- */
-    var orbitSnap = {};
-    function setOrbitVar(name, val) {
-      if (orbitSnap[name] === val) return;
-      orbitSnap[name] = val;
-      scene.style.setProperty(name, val);
-    }
-    function updateOrbit() {
-      if (!scene) return;
-      var by2 = window.__bob || 0, ang = t / (MOB ? MOB_ORBIT_PERIOD : 7800);
-      var m = smMet();
-      var Tz = (window.__smT && window.__smT.s) || 1;
-      var rad = ORBIT_VB * m.s * Tz;
-      if (MOB) rad *= MOB_ORBIT_SCALE * MOB_FG_SCALE;
-      else rad *= DESKTOP_ORBIT_SCALE;
-      var ox = Math.cos(ang) * rad, oy = Math.sin(ang) * rad;
-      var hd = Math.atan2(Math.cos(ang) * rad, -Math.sin(ang) * rad) * 180 / Math.PI;
-      setOrbitVar("--ox", ox.toFixed(1) + "px");
-      setOrbitVar("--oy", oy.toFixed(1) + "px");
-      setOrbitVar("--oyb", (MOB ? oy : (oy + by2)).toFixed(1) + "px");
-      setOrbitVar("--shiprot", hd.toFixed(1) + "deg");
-      setOrbitVar("--shiptiltx", (MOB ? 0 : -my * 10).toFixed(2) + "deg");
-      setOrbitVar("--shiptilty", (MOB ? 0 : mx * 14).toFixed(2) + "deg");
-      var shipRetMul = MOB ? MOB_SHIP_SCALE * MOB_FG_SCALE : DESKTOP_SHIP_SCALE;
-      var srR = SHIP_RET_D_VB * shipRetMul * 0.5 * m.s * Tz, gap = 14 * m.s * Tz;
-      if (MOB) {
-        setOrbitVar("--bec-dx", (-srR - gap).toFixed(1) + "px");
-        setOrbitVar("--bec-dy", (-srR - gap * 0.65).toFixed(1) + "px");
-        setOrbitVar("--tel-dx", (srR + gap * 0.85).toFixed(1) + "px");
-        setOrbitVar("--tel-dy", (srR * 0.35 + gap * 0.45).toFixed(1) + "px");
-      } else {
-        var pad = 2 * m.s * Tz, k = 0.707, d = srR * DESKTOP_HUD_CARD_DIST;
-        setOrbitVar("--bec-dx", (-d * k - pad).toFixed(1) + "px");
-        setOrbitVar("--bec-dy", (-d * k - pad).toFixed(1) + "px");
-        setOrbitVar("--tel-dx", (d * k + pad).toFixed(1) + "px");
-        setOrbitVar("--tel-dy", (d * k + pad * 0.35).toFixed(1) + "px");
-      }
-    }
-    window.__updateOrbit = updateOrbit;
     /* ship-reticle hover light-up (travels with ship) */
     var shipRetEl = scene && scene.querySelector(".ship-reticle");
     window.addEventListener("pointermove", function (e) {

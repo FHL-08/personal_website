@@ -46,7 +46,13 @@ import { isMobileView } from "../lib/mobile.js";
 
     var mode="map", curCon=null, hovStar=null, hovCon=null, lastM={x:-1,y:-1}, T={tx:0,ty:0,s:1}, hraf=0, hUntil=0, starSeqT1=0, starSeqT2=0;
     var pressCon=null, pressStar=null;
+    var homeT={tx:0,ty:0,s:1};
     window.__smT={tx:0,ty:0,s:1};
+    function snapHomeT(){ if(!MOB) return; homeT={tx:T.tx,ty:T.ty,s:T.s}; }
+    function mapViewActive(){
+      if(!MOB||mode!=="map") return true;
+      return Math.abs(T.tx-homeT.tx)>3||Math.abs(T.ty-homeT.ty)>3||Math.abs(T.s-homeT.s)>0.025;
+    }
 
     function metrics(){ var R=scene.getBoundingClientRect(); var s=Math.min(R.width/VBW, R.height/VBH);
       return { W:R.width, H:R.height, s:s, ox:(R.width-VBW*s)/2, oy:(R.height-VBH*s)/2 }; }
@@ -98,7 +104,7 @@ import { isMobileView } from "../lib/mobile.js";
     function defaultT(){ var m=metrics();
       if(MOB){ var a=vb(1472,639,m), s=Math.max(0.9,Math.min(3.6, 0.42*Math.min(m.W,m.H)/(400*m.s)));
         if(PHONE) s=Math.min(ZMAX, s*1.35);
-        setT(0.5*m.W - s*a.x, 0.5*m.H - s*a.y, s); placeConLabels(); return; }
+        setT(0.5*m.W - s*a.x, 0.5*m.H - s*a.y, s); snapHomeT(); placeConLabels(); return; }
       var s=0.8; setT(m.W*(1-s)/2, m.H*(1-s)/2, s); }
     // like defaultT but recenters on a specific constellation (used when closing one on touch,
     // so you zoom back out onto the sector you were in rather than jumping to the crystal)
@@ -311,13 +317,17 @@ import { isMobileView } from "../lib/mobile.js";
     function busy(){ scene.classList.add("sm-busy"); clearTimeout(busyT); busyT=setTimeout(function(){ scene.classList.remove("sm-busy"); },220); }
 
     /* Mobile: CSS spin on SVG reticles breaks inside panned/zoomed map — drive via transform attr. */
-    var SM_SPIN_RATE = 2, smSpinLast = 0, SM_SPIN_MS = 100;
-    function smMapActive() {
-      if (!scene) return false;
-      if (scene.classList.contains("sm-focus") || scene.classList.contains("sm-star") || scene.classList.contains("sm-busy")) return true;
-      var T = window.__smT;
-      if (!T) return false;
-      return Math.abs(T.tx) > 2 || Math.abs(T.ty) > 2 || Math.abs(T.s - 1) > 0.02;
+    var SM_SPIN_RATE = 2, smSpinLast = 0, SM_SPIN_MS = 50;
+    var smSpinCache = [];
+    function initSmSpinCache() {
+      if (!MOB || !sm) return;
+      smSpinCache = [];
+      var spins = sm.querySelectorAll(".sm-rr-spin");
+      for (var i = 0; i < spins.length; i++) {
+        var spin = spins[i], host = spin.closest(".sm-rr");
+        if (!host) continue;
+        smSpinCache.push({ el: spin, host: host, last: "" });
+      }
     }
     function smSpinPeriod(el, def, rev, held) {
       var p;
@@ -333,16 +343,16 @@ import { isMobileView } from "../lib/mobile.js";
     }
     function spinMapReticles(now) {
       if (!MOB || !sm) return;
-      if (!smMapActive()) return;
+      if (!mapViewActive()) return;
       if (now - smSpinLast < SM_SPIN_MS) return;
       smSpinLast = now;
-      var spins = sm.querySelectorAll(".sm-rr-spin");
-      for (var i = 0; i < spins.length; i++) {
-        var spin = spins[i], host = spin.closest(".sm-rr");
-        if (!host) continue;
+      if (!smSpinCache.length) initSmSpinCache();
+      for (var i = 0; i < smSpinCache.length; i++) {
+        var item = smSpinCache[i], host = item.host;
         var period = smSpinPeriod(host, 24000, 4500, false);
         var ang = (now / period) * 360 * smSpinDir(host);
-        spin.setAttribute("transform", "rotate(" + (ang % 360).toFixed(2) + ")");
+        var tf = "rotate(" + (ang % 360).toFixed(2) + ")";
+        if (item.last !== tf) { item.last = tf; item.el.setAttribute("transform", tf); }
       }
       if (mode === "focus" && scene.classList.contains("sm-focus")) {
         var starSpins = sm.querySelectorAll(".sm-sret-spin");
@@ -461,6 +471,7 @@ import { isMobileView } from "../lib/mobile.js";
     document.addEventListener("keydown",function(e){ if(ml&&ml.classList.contains("open")){ if(e.key==="Escape") closeLightbox(); else if(e.key==="ArrowLeft") openLightbox(mlIndex-1); else if(e.key==="ArrowRight") openLightbox(mlIndex+1); return; } if(e.key==="Escape"){ if(mode==="star") toFocus(); else if(mode==="focus") toMap(); } });
     buildConLabels();
     defaultT(); updateHud();
+    initSmSpinCache();
     if (MOB) showConLabels(true);
     setTimeout(function () {
       if (mode !== "map") return;
