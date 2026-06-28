@@ -291,6 +291,21 @@ import { isMobileView } from "../lib/mobile.js";
     function nearestCon(mx,my){ var m=metrics(), best=null,bd=1e9; cons.forEach(function(c){ var p=cur2(vb(c.cx,c.cy,m)), rr=c.r*m.s*T.s+26, d=Math.hypot(mx-p.x,my-p.y); if(d<rr&&d<bd){bd=d;best=c;} }); return best; }
     function clearHold(){ if(holdT){ clearTimeout(holdT); holdT=0; } }
     function nPts(){ var n=0; for(var k in pts) n++; return n; }
+    function resetPanState(){
+      drag=null; dragged=false; pinch=null; held=false; tapStart=null; downPt=null;
+      clearHold();
+      scene.classList.remove("sm-grab");
+      endGesture();
+    }
+    function inScene(e){
+      if(!scene) return false;
+      var R=scene.getBoundingClientRect();
+      return e.clientX>=R.left&&e.clientX<=R.right&&e.clientY>=R.top&&e.clientY<=R.bottom;
+    }
+    function suppressClickOnce(){
+      function block(ev){ ev.preventDefault(); ev.stopPropagation(); document.removeEventListener("click", block, true); }
+      document.addEventListener("click", block, true);
+    }
     function ptrPair(){
       var id=Object.keys(pts); if(id.length<2) return null;
       return { a:pts[id[0]], b:pts[id[1]] };
@@ -414,25 +429,7 @@ import { isMobileView } from "../lib/mobile.js";
       return Math.hypot(mx - cx, my - cy) <= rad;
     }
     function applyPan(){ clampT(); schedule(); }
-    scene.addEventListener("pointerdown",function(e){
-      if(isHudTarget(e.target)) return;
-      if(mode==="map"&&scene.setPointerCapture){
-        try{ scene.setPointerCapture(e.pointerId); }catch(err){}
-      }
-      var R=scene.getBoundingClientRect(), px=e.clientX-R.left, py=e.clientY-R.top; held=false;
-      if(mode==="map"){
-        pts[e.pointerId]={x:e.clientX,y:e.clientY}; var n=nPts();
-        if(n===1){ drag={x:e.clientX,y:e.clientY,tx:T.tx,ty:T.ty}; dragged=false; tapStart={x:px,y:py}; pinch=null;
-          if(MOB){ var pc=nearestCon(px,py); if(pc){ pressCon=pc; pc.g.classList.add("pressing"); } }
-          else { clearHold(); holdT=setTimeout(function(){ if(dragged)return; held=true; var c=nearestCon(px,py); if(c){ cons.forEach(function(o){o.g.classList.remove("on");}); c.g.classList.add("on"); hovCon=c; showConName(c); } },330); }
-        } else if(n===2){ drag=null; dragged=true; clearHold(); tapStart=null;
-          if(pressCon){ pressCon.g.classList.remove("pressing"); pressCon=null; }
-          initPinch(); }
-      } else if(mode==="focus"){ pts[e.pointerId]={x:e.clientX,y:e.clientY}; downPt={x:e.clientX,y:e.clientY,moved:false}; tapStart={x:px,y:py};
-        if(MOB){ var ps=starAt(px,py); if(ps){ pressStar=ps; ps.el.classList.add("held"); } }
-        else { clearHold(); holdT=setTimeout(function(){ if(downPt&&!downPt.moved){ held=true; checkStar(px,py); } },330); } }
-    });
-    window.addEventListener("pointermove",function(e){
+    function onPanMove(e){
       if(pts[e.pointerId]){ pts[e.pointerId].x=e.clientX; pts[e.pointerId].y=e.clientY; }
       if(pinch&&nPts()>=2){ applyPinch(); return; }
       if(drag){ var dx=e.clientX-drag.x, dy=e.clientY-drag.y;
@@ -442,12 +439,18 @@ import { isMobileView } from "../lib/mobile.js";
         if(dragged){ T.tx=drag.tx+dx; T.ty=drag.ty+dy; clampT(); schedule(); busy(); markMapPanned(); } }
       if(downPt && Math.hypot(e.clientX-downPt.x,e.clientY-downPt.y)>6){ downPt.moved=true; clearHold();
         if(MOB&&pressStar){ pressStar.el.classList.remove("held"); pressStar=null; } }
-    });
+    }
     function endPtr(e){
+      var wasDrag=dragged;
       if(scene.releasePointerCapture){
         try{ scene.releasePointerCapture(e.pointerId); }catch(err){}
       }
-      if(isHudTarget(e.target)){ tapStart=null; if(pts[e.pointerId]) delete pts[e.pointerId]; if(nPts()<2) pinch=null; if(nPts()===0){ drag=null; scene.classList.remove("sm-grab"); endGesture(); } clearHold(); downPt=null; return; }
+      if(!wasDrag&&isHudTarget(e.target)){
+        if(pts[e.pointerId]) delete pts[e.pointerId];
+        if(nPts()===0) resetPanState();
+        else { clearHold(); downPt=null; }
+        return;
+      }
       var R=scene.getBoundingClientRect(), ux=e.clientX-R.left, uy=e.clientY-R.top;
       var isTap = MOB && tapStart && nPts()===1 && !dragged && Math.hypot(ux-tapStart.x, uy-tapStart.y)<16;
       if(isTap){
@@ -463,7 +466,6 @@ import { isMobileView } from "../lib/mobile.js";
       }
       if(pressCon){ pressCon.g.classList.remove("pressing"); pressCon=null; }
       if(pressStar){ pressStar.el.classList.remove("held"); pressStar=null; }
-      tapStart=null;
       if(pts[e.pointerId]) delete pts[e.pointerId];
       if(nPts()===1&&pinch){
         pinch=null;
@@ -471,12 +473,46 @@ import { isMobileView } from "../lib/mobile.js";
         if(rem){ drag={x:pts[rem].x,y:pts[rem].y,tx:T.tx,ty:T.ty}; dragged=true; }
       }
       if(nPts()<2) pinch=null;
-      if(nPts()===0){ drag=null; scene.classList.remove("sm-grab"); endGesture(); }
-      clearHold(); downPt=null;
-      setTimeout(function(){ if(nPts()===0) dragged=false; },0);
+      if(nPts()===0){
+        resetPanState();
+        if(wasDrag&&!MOB) suppressClickOnce();
+      }
     }
-    window.addEventListener("pointerup",endPtr);
-    window.addEventListener("pointercancel",endPtr);
+    function onPanDown(e){
+      if(!inScene(e)) return;
+      /* Capture phase — must run before HUD buttons stopPropagation on bubble. */
+      if(mode==="map"&&MOB&&isHudTarget(e.target)) return;
+      if(mode==="map"&&MOB&&scene.setPointerCapture){
+        try{ scene.setPointerCapture(e.pointerId); }catch(err){}
+      }
+      var R=scene.getBoundingClientRect(), px=e.clientX-R.left, py=e.clientY-R.top; held=false;
+      if(mode==="map"){
+        if(!MOB) pts={};
+        pts[e.pointerId]={x:e.clientX,y:e.clientY}; var n=nPts();
+        if(n===1){ drag={x:e.clientX,y:e.clientY,tx:T.tx,ty:T.ty}; dragged=false; tapStart={x:px,y:py}; pinch=null;
+          if(MOB){ var pc=nearestCon(px,py); if(pc){ pressCon=pc; pc.g.classList.add("pressing"); } }
+          else { clearHold(); holdT=setTimeout(function(){ if(dragged)return; held=true; var c=nearestCon(px,py); if(c){ cons.forEach(function(o){o.g.classList.remove("on");}); c.g.classList.add("on"); hovCon=c; showConName(c); } },330); }
+        } else if(n===2&&MOB){ drag=null; dragged=true; clearHold(); tapStart=null;
+          if(pressCon){ pressCon.g.classList.remove("pressing"); pressCon=null; }
+          initPinch(); }
+        else if(n===2&&!MOB){
+          var keep=e.pointerId;
+          pts={}; pts[keep]={x:e.clientX,y:e.clientY};
+          drag={x:e.clientX,y:e.clientY,tx:T.tx,ty:T.ty}; dragged=false; pinch=null; tapStart={x:px,y:py};
+        }
+      } else if(mode==="focus"){
+        if(isHudTarget(e.target)) return;
+        if(scene.setPointerCapture){ try{ scene.setPointerCapture(e.pointerId); }catch(err){} }
+        pts[e.pointerId]={x:e.clientX,y:e.clientY}; downPt={x:e.clientX,y:e.clientY,moved:false}; tapStart={x:px,y:py};
+        if(MOB){ var ps=starAt(px,py); if(ps){ pressStar=ps; ps.el.classList.add("held"); } }
+        else { clearHold(); holdT=setTimeout(function(){ if(downPt&&!downPt.moved){ held=true; checkStar(px,py); } },330); }
+      }
+    }
+    document.addEventListener("pointerdown", onPanDown, true);
+    document.addEventListener("pointermove", onPanMove, true);
+    document.addEventListener("pointerup", endPtr, true);
+    document.addEventListener("pointercancel", endPtr, true);
+    if(!MOB) document.addEventListener("mouseup", function(e){ if(drag||nPts()>0) endPtr(e); }, true);
     scene.addEventListener("wheel",function(e){ if(mode!=="map")return; e.preventDefault();
       var R=scene.getBoundingClientRect(), mx=e.clientX-R.left, my=e.clientY-R.top;
       var f=e.deltaY<0?1.12:0.89, ns=Math.max(ZMIN,Math.min(ZMAX,T.s*f)), k=ns/T.s;

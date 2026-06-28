@@ -529,7 +529,7 @@ import { isMobileView } from "../lib/mobile.js";
     function blockMapPtr(e) { e.stopPropagation(); }
     if (beacon) {
       beacon.addEventListener("click", function (e) { e.stopPropagation(); openP(); });
-      beacon.addEventListener("pointerdown", blockMapPtr);
+      if (MOB) beacon.addEventListener("pointerdown", blockMapPtr);
       beacon.addEventListener("mouseenter", function () { if (radar) radar.classList.add("scanning"); });
       beacon.addEventListener("mouseleave", function () { if (radar) radar.classList.remove("scanning"); });
     }
@@ -552,7 +552,7 @@ import { isMobileView } from "../lib/mobile.js";
     function closeM() { if (mlog) { mlog.classList.remove("open"); document.body.style.overflow = ""; if (mlogBtn) mlogBtn.focus(); } }
     if (mlogBtn) {
       mlogBtn.addEventListener("click", function (e) { e.stopPropagation(); openM(); });
-      mlogBtn.addEventListener("pointerdown", blockMapPtr);
+      if (MOB) mlogBtn.addEventListener("pointerdown", blockMapPtr);
       mlogBtn.addEventListener("mouseenter", function () { if (radar) radar.classList.add("scanning"); });
       mlogBtn.addEventListener("mouseleave", function () { if (radar) radar.classList.remove("scanning"); });
     }
@@ -838,11 +838,17 @@ import { isMobileView } from "../lib/mobile.js";
     }
     if (MOB && crystHit) {
       var cretEl = scene.querySelector(".reticle");
+      if (crystalEl) {
+        crystalEl.setAttribute("aria-hidden", "true");
+        crystalEl.tabIndex = -1;
+      }
       function openCrystalTap(e) {
         e.stopPropagation();
         odOpen();
       }
       crystHit.addEventListener("click", openCrystalTap);
+      crystHit.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+      crystHit.addEventListener("selectstart", function (e) { e.preventDefault(); });
       crystHit.addEventListener("pointerdown", function (e) {
         e.stopPropagation();
         if (cretEl) cretEl.classList.add("hot");

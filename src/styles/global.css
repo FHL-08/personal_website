@@ -708,7 +708,7 @@ html.is-mob .ml-frame .ml-next { right: 0; left: auto; }
 .ship-reticle.scanning .arc2, .ship-reticle.scanning .arc3, .ship-reticle.scanning .arc5 { animation-duration: 6s; }
 @media (prefers-reduced-motion: reduce) { .crystal, .crystal-glow { animation: none !important; } }
 @media (prefers-reduced-motion: reduce) {
-  html.is-mob .crystal-glow { animation: crystalPulse 3.8s ease-in-out infinite !important; }
+  html.is-mob .crystal-rig .crystal-glow { animation: crystalPulseMob 3.8s ease-in-out infinite !important; }
 }
 
 /* ============================================================
@@ -765,7 +765,18 @@ html.is-mob .ml-frame .ml-next { right: 0; left: auto; }
 html.is-mob .ship-rig { display: none !important; }
 .scene.sm-mob .ship-rig { display: none !important; }
 html.is-mob .crystal-rig { z-index: 5; }
-html.is-mob .crystal-rig .crystal-glow { z-index: 0; }
+html.is-mob .crystal-rig,
+html.is-mob .crystal-rig * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+html.is-mob .crystal-rig .crystal-glow {
+  z-index: 0;
+  /* Opacity-only pulse — scale() made iOS long-press selection look like it was breathing */
+  animation: crystalPulseMob 3.8s ease-in-out infinite;
+}
+@keyframes crystalPulseMob { 0%,100% { opacity: 0.6; } 50% { opacity: 0.92; } }
 html.is-mob .crystal-rig .crystal { position: absolute; left: 0; top: 0; z-index: 1; }
 html.is-mob .crystal-rig .reticle {
   position: absolute; left: 0; top: 0; z-index: 2;
@@ -846,7 +857,13 @@ html.is-mob .crystal-rig .crystal-name { z-index: 4; }
    Mobile layout keyed off the JS-set html.is-mob class (not just media queries),
    so it holds in every orientation regardless of viewport width or hover support.
    ============================================================ */
-html.is-mob .crystal-hit { pointer-events: auto; touch-action: manipulation; z-index: 6; }
+html.is-mob .crystal-hit {
+  pointer-events: auto; touch-action: manipulation; z-index: 6;
+  -webkit-tap-highlight-color: transparent;
+  background: transparent;
+}
+html.is-mob .crystal-hit:focus { outline: none; }
+html.is-mob .crystal .crystal-canvas { -webkit-user-drag: none; user-drag: none; }
 html.is-mob .reticle .arc { animation: none !important; }
 html.is-mob .sm-rr-spin,
 html.is-mob .sm-sret-spin { animation: none !important; }
